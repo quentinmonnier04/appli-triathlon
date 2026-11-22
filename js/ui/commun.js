@@ -3,6 +3,9 @@
 
 import { formaterDureeCourte } from '../regles/validation.js';
 
+// Version affichée dans l'application : doit être identique à VERSION dans sw.js (5.7).
+export const VERSION_APP = 'v1.1.1';
+
 // Sports (9.4.3) ; ENCHAINEMENT masqué jusqu'en V1.2 (D-05).
 export const SPORTS = [
   { code: 'NATATION', libelle: 'Natation', couleur: '#1565C0', icone: '🏊' },

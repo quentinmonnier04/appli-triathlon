@@ -1,0 +1,241 @@
+/* Styles de l'application (ENF-02, ENF-11, ENF-12, ENF-14).
+   Mobile d'abord ; couleurs des sports en classes (CSP : pas de style inline). */
+
+:root {
+  --fond: #F4F5F2;
+  --carte: #FFFFFF;
+  --texte: #1B1F1C;
+  --texte-doux: #4F5752;
+  --bordure: #D5D9D3;
+  --accent: #2E7D32;
+  --accent-texte: #FFFFFF;
+  --danger: #B3261E;
+  --danger-fond: #FDECEA;
+  --alerte-fond: #FFF4D6;
+  --rayon: 12px;
+  --tactile: 44px;
+  --barre: 64px;
+
+  --NATATION: #1565C0;
+  --VELO: #E65100;
+  --CAP: #2E7D32;
+  --RENFO: #6A1B9A;
+  --REPOS: #616161;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  overflow-x: hidden;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 12px 16px calc(var(--barre) + 96px);
+}
+
+h1 { font-size: 1.3rem; margin: 8px 0 16px; }
+h2 { font-size: 1.05rem; margin: 20px 0 8px; }
+
+a { color: var(--accent); }
+
+/* --- Boutons --- */
+button, .bouton {
+  min-height: var(--tactile);
+  min-width: var(--tactile);
+  padding: 8px 14px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--carte);
+  color: var(--texte);
+  font: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+}
+button:active, .bouton:active { transform: scale(0.98); }
+button:disabled { opacity: 0.5; cursor: default; }
+.principal { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); font-weight: 600; }
+.danger { color: var(--danger); border-color: var(--danger); }
+.lien { border: none; background: none; color: var(--accent); text-decoration: underline; padding: 8px; }
+.choisi { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); }
+
+/* --- Barre d'onglets fixe en bas (ENF-11) --- */
+.onglets {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: calc(var(--barre) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  background: var(--carte);
+  border-top: 1px solid var(--bordure);
+  z-index: 10;
+}
+.onglets a {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--texte-doux);
+  text-decoration: none;
+  font-weight: 500;
+}
+.onglets a.actif { color: var(--accent); font-weight: 700; box-shadow: inset 0 3px 0 var(--accent); }
+
+/* --- Bandeaux --- */
+.bandeau {
+  max-width: 640px;
+  margin: 8px auto 0;
+  padding: 10px 14px;
+  border-radius: var(--rayon);
+  background: var(--alerte-fond);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+#maj .bandeau { margin: 8px 16px 0; }
+
+/* --- En-tête du jour (E-01) --- */
+.entete-jour {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.entete-jour h1 { margin: 0; text-align: center; flex: 1; font-size: 1.15rem; }
+.retour-jour { text-align: center; margin: 4px 0 8px; }
+
+/* --- Cartes de séance --- */
+.carte {
+  background: var(--carte);
+  border: 1px solid var(--bordure);
+  border-left: 6px solid var(--REPOS);
+  border-radius: var(--rayon);
+  padding: 12px 14px;
+  margin: 12px 0;
+}
+.carte.cliquable { cursor: pointer; }
+.sport-NATATION { border-left-color: var(--NATATION); }
+.sport-VELO { border-left-color: var(--VELO); }
+.sport-CAP { border-left-color: var(--CAP); }
+.sport-RENFO { border-left-color: var(--RENFO); }
+.sport-REPOS { border-left-color: var(--REPOS); }
+
+.carte-titre { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 1.05rem; }
+.carte-titre .icone { font-size: 1.3rem; }
+.carte-infos { color: var(--texte-doux); margin-top: 4px; }
+.carte details { margin-top: 6px; }
+.carte summary { cursor: pointer; min-height: var(--tactile); display: flex; align-items: center; color: var(--texte-doux); }
+.carte ul { margin: 0; padding-left: 20px; }
+.actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.actions > * { flex: 1; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #ECEFEA;
+  color: var(--texte);
+}
+.badge.cle { background: #FFF1C2; color: #6B4E00; }
+.badge.FAITE { background: #DDF0DE; color: #1B5E20; }
+.badge.PARTIELLE { background: #FFE9D2; color: #8A3B00; }
+.badge.SAUTEE { background: #ECEFEA; color: #424242; }
+.statut-ligne { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+
+.vide { color: var(--texte-doux); text-align: center; padding: 24px 0; }
+
+/* Actions principales en bas, au-dessus de la barre d'onglets (ENF-11) */
+.barre-actions {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: calc(var(--barre) + env(safe-area-inset-bottom));
+  padding: 8px 16px;
+  background: linear-gradient(to top, var(--fond) 70%, transparent);
+  z-index: 5;
+}
+.barre-actions > div { max-width: 640px; margin: 0 auto; display: flex; gap: 8px; }
+.barre-actions button, .barre-actions .bouton { flex: 1; }
+
+/* --- Formulaires (E-02, E-03) --- */
+.champ { margin: 14px 0; }
+.champ > label, .champ > .etiquette { display: block; font-weight: 600; margin-bottom: 6px; }
+input[type="text"], input[type="date"], input[type="number"], input[inputmode], select, textarea {
+  width: 100%;
+  min-height: var(--tactile);
+  padding: 8px 12px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--carte);
+  color: var(--texte);
+  font: inherit;
+}
+textarea { min-height: 88px; resize: vertical; }
+.case { display: flex; align-items: center; gap: 10px; min-height: var(--tactile); font-weight: 600; }
+.case input { width: 24px; height: 24px; }
+.groupe { display: flex; flex-wrap: wrap; gap: 6px; }
+.groupe button { flex: 1 1 auto; }
+.aide { color: var(--texte-doux); font-size: 0.9rem; margin-top: 4px; }
+.invalide { border-color: var(--danger) !important; background: var(--danger-fond) !important; }
+.erreur { color: var(--danger); font-size: 0.9rem; margin-top: 4px; }
+.masque { display: none !important; }
+
+.bloc {
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  padding: 10px;
+  margin: 8px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: var(--carte);
+}
+.bloc label { font-size: 0.85rem; color: var(--texte-doux); display: block; }
+.bloc .supprimer-bloc { grid-column: 1 / -1; }
+
+.pied-formulaire { display: flex; gap: 8px; margin-top: 24px; }
+.pied-formulaire > * { flex: 1; }
+
+/* --- Feuille du bas (C-06 à C-10) --- */
+.voile {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+}
+.feuille {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--carte);
+  border-radius: 16px 16px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.feuille h2 { margin-top: 0; }
+.grille-rpe { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.grille-rpe button { justify-content: flex-start; }
+
+/* --- Écran sauvegarde --- */
+.ligne-sauvegarde { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+.version { color: var(--texte-doux); font-size: 0.85rem; text-align: center; margin-top: 32px; }
