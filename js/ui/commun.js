@@ -1,10 +1,10 @@
 // Constantes d'affichage et outils communs aux écrans (9.4.3, 9.4.4, ENF-15).
 // Ce module ne touche pas au DOM au chargement : il reste importable par node --test.
 
-import { formaterDureeCourte } from '../regles/validation.js';
+import { formaterDuree, formaterDureeCourte } from '../regles/validation.js';
 
 // Version affichée dans l'application : doit être identique à VERSION dans sw.js (5.7).
-export const VERSION_APP = 'v1.1.2';
+export const VERSION_APP = 'v1.1.3';
 
 // Sports (9.4.3) ; ENCHAINEMENT masqué jusqu'en V1.2 (D-05).
 export const SPORTS = [
@@ -145,6 +145,25 @@ export function texteBloc(bloc) {
   if (bloc.zone) texte += ` Z${bloc.zone}`;
   if (bloc.recup_s) texte += `, récup ${formaterDureeCourte(bloc.recup_s)}`;
   return texte.trim();
+}
+
+// Badge de statut d'une réalisation (E-01, F-21) : "Faite · RPE 6", "Sautée · Météo".
+export function texteStatut(r) {
+  const statut = STATUTS.find((s) => s.code === r.statut)?.libelle ?? '';
+  if (r.statut === 'SAUTEE') {
+    const motif = MOTIFS.find((m) => m.code === r.motif)?.libelle;
+    return motif ? `${statut} · ${motif}` : statut;
+  }
+  return r.rpe ? `${statut} · RPE ${r.rpe}` : statut;
+}
+
+// Ligne d'infos d'une carte (E-01) : durée, distance, zone cible et repère RPE (D-02).
+export function texteInfos(s) {
+  const morceaux = [];
+  if (s.duree_s) morceaux.push(formaterDuree(s.duree_s));
+  if (s.distance_m) morceaux.push(formaterDistance(s.distance_m, s.sport));
+  if (s.zone_cible) morceaux.push(`Z${s.zone_cible}`, `RPE ${ZONES[s.zone_cible].rpe}`);
+  return morceaux.join(' · ');
 }
 
 // --- Routeur ---

@@ -52,3 +52,17 @@ test('formaterDistance', () => {
 test('sports de V1.1 sans enchaînement (D-05)', () => {
   assert.deepEqual(SPORTS.map((s) => s.code), ['NATATION', 'VELO', 'CAP', 'RENFO', 'REPOS']);
 });
+
+test('texte du badge de statut (E-01)', async () => {
+  const { texteStatut } = await import('../js/ui/commun.js');
+  assert.equal(texteStatut({ statut: 'FAITE', rpe: 6 }), 'Faite · RPE 6');
+  assert.equal(texteStatut({ statut: 'PARTIELLE', rpe: 4 }), 'Partielle · RPE 4');
+  assert.equal(texteStatut({ statut: 'SAUTEE', motif: 'METEO' }), 'Sautée · Météo');
+});
+
+test('ligne d\'infos d\'une carte : durée, distance, zone et repère RPE (D-02)', async () => {
+  const { texteInfos } = await import('../js/ui/commun.js');
+  assert.equal(texteInfos({ sport: 'CAP', duree_s: 5400, distance_m: 10500, zone_cible: 4 }), '1:30 · 10,5 km · Z4 · RPE 7-8');
+  assert.equal(texteInfos({ sport: 'NATATION', distance_m: 1500 }), '1500 m');
+  assert.equal(texteInfos({ sport: 'REPOS' }), '');
+});
