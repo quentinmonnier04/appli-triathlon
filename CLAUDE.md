@@ -505,6 +505,8 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | D-05 | 22/11/2026 | Pas de saisie hors ligne : l'écriture demande du réseau (ENF-07). Évite les conflits de synchronisation. |
 | D-06 | 22/11/2026 | Design inspiré de l'appli Suunto : thème sombre par défaut, cartes, barre de navigation flottante. Liberté de l'assistant sur les détails. |
 | D-07 | 22/11/2026 | Serveur local lancé avec `--bind 127.0.0.1` (accès limité au PC). |
+| D-08 | 22/11/2026 | Test CORS réussi : Intervals.icu accepte les appels depuis le navigateur (en-tête `Authorization` autorisé, origine renvoyée telle quelle, y compris pour une origine GitHub Pages). Plan B (relais) inutile. |
+| D-09 | 22/11/2026 | Arborescence ajustée en L0 : `api/session.js` (identifiants, connexion, déconnexion ; l'affichage ne reçoit jamais la clé), `logique/connexion.js` (contrôle des identifiants, en-tête d'authentification), `logique/messages.js` (messages 9.5), `js/version.js` (`VERSION_APP`), `creer_icones.py` (icônes). |
 
 ---
 
@@ -512,9 +514,9 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 
 | Lot | Statut |
 |---|---|
-| L0 | À démarrer |
+| L0 | Code écrit, recette PC faite ; tests avec ma vraie clé et sur téléphone à faire |
 | L1 à L7 | À faire |
 
-**Ancien code v1.0** : abandonné. Au début de L0, le supprimer dans un commit dédié « Suppression du code v1.0 » (il reste récupérable dans l'historique git). Les fonctions utiles (formatage des durées, par exemple) peuvent être reprises si elles respectent ce document.
+**Ancien code v1.0** : supprimé (commit « Suppression du code v1.0 »), récupérable dans l'historique git.
 
-**Prochaine étape :** lot L0. Commencer par le **test CORS** : une page minimale qui appelle Intervals.icu avec ma clé. Si l'appel échoue, s'arrêter et proposer le plan B (5.7) avant de continuer.
+**Prochaine étape :** valider L0 avec ma vraie clé (critère 9.7), puis lot L1.

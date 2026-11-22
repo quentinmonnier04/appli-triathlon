@@ -1,0 +1,219 @@
+/* Styles (ENF-02, ENF-15, ENF-17, ENF-19, ENF-21).
+   Inspiration appli Suunto : thème sombre, cartes arrondies, grands chiffres, barre flottante.
+   Polices système uniquement ; couleurs en classes (CSP : aucun style inline). */
+
+:root {
+  color-scheme: dark;
+  --fond: #0E1013;
+  --surface: #1A1D22;
+  --surface-2: #252930;
+  --bordure: #30353D;
+  --texte: #F2F4F5;
+  --texte-doux: #A9B1BA;
+  --accent: #5AA9FF;
+  --accent-texte: #06121F;
+  --succes: #6FD08C;
+  --succes-fond: #12301C;
+  --danger: #FF8A80;
+  --danger-fond: #3A1716;
+  --alerte-fond: #33290F;
+  --rayon: 20px;
+  --rayon-petit: 14px;
+  --tactile: 48px;
+  --nav: 68px;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: calc(12px + env(safe-area-inset-top)) 16px calc(var(--nav) + 48px + env(safe-area-inset-bottom));
+}
+
+h1 { font-size: 1.9rem; line-height: 1.15; margin: 8px 0 4px; letter-spacing: -0.02em; }
+h2 { font-size: 1.05rem; margin: 0 0 8px; }
+p { margin: 0 0 12px; }
+a { color: var(--accent); }
+
+.doux { color: var(--texte-doux); }
+.masque { display: none !important; }
+
+/* --- En-tête d'écran --- */
+.entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: var(--tactile);
+  margin-bottom: 12px;
+}
+.entete .titre-petit { font-weight: 700; font-size: 1.1rem; }
+.icone-bouton {
+  width: var(--tactile);
+  height: var(--tactile);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--texte);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 1.25rem;
+  border: 1px solid var(--bordure);
+}
+
+/* --- Cartes --- */
+.carte {
+  background: var(--surface);
+  border-radius: var(--rayon);
+  padding: 18px;
+  margin: 14px 0;
+}
+.carte.hero { padding: 24px 20px; background: linear-gradient(160deg, #1F2A3A 0%, var(--surface) 70%); }
+.grand-chiffre { font-size: 2.6rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 10px; overflow-wrap: anywhere; }
+.etiquette-carte { color: var(--texte-doux); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 6px; }
+
+.etapes { counter-reset: etape; list-style: none; padding: 0; margin: 0; }
+.etapes li { counter-increment: etape; position: relative; padding: 0 0 14px 44px; }
+.etapes li::before {
+  content: counter(etape);
+  position: absolute; left: 0; top: -2px;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--surface-2); color: var(--accent);
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
+}
+
+/* --- Boutons --- */
+.bouton {
+  min-height: var(--tactile);
+  width: 100%;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--bordure);
+  background: var(--surface-2);
+  color: var(--texte);
+  font: inherit;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.bouton:active { transform: scale(0.98); }
+.bouton:disabled { opacity: 0.6; cursor: default; }
+.bouton.principal { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); }
+.bouton.danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+.pile { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+
+/* --- Formulaires --- */
+.champ { margin: 0 0 16px; }
+.champ label { display: block; font-weight: 600; margin-bottom: 6px; }
+.champ input {
+  width: 100%;
+  min-height: var(--tactile);
+  padding: 10px 14px;
+  border-radius: var(--rayon-petit);
+  border: 1px solid var(--bordure);
+  background: var(--fond);
+  color: var(--texte);
+  font: inherit;
+}
+.champ input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.champ input.invalide { border-color: var(--danger); }
+.aide { color: var(--texte-doux); font-size: 0.9rem; margin-top: 6px; }
+.erreur-champ { color: var(--danger); font-size: 0.9rem; margin-top: 6px; }
+
+/* --- Messages d'état (ENF-22) --- */
+.message {
+  border-radius: var(--rayon-petit);
+  padding: 12px 14px;
+  margin: 12px 0;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.message.succes { background: var(--succes-fond); color: var(--succes); }
+.message.erreur { background: var(--danger-fond); color: var(--danger); }
+.message.info { background: var(--surface-2); color: var(--texte); }
+.message a { color: inherit; font-weight: 700; }
+
+/* Squelette de chargement */
+.squelette {
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, #2E333B 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: reflet 1.2s infinite linear;
+  height: 18px;
+  margin: 8px 0;
+}
+.squelette.grand { height: 40px; width: 70%; }
+@keyframes reflet { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .squelette { animation: none; } }
+
+.version { color: var(--texte-doux); font-size: 0.85rem; text-align: center; margin-top: 28px; }
+
+/* --- Barre de navigation flottante (ENF-15, ENF-17) --- */
+.navigation {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  height: var(--nav);
+  min-width: 140px;
+  max-width: calc(100% - 32px);
+  padding: 6px 10px;
+  display: flex;
+  gap: 4px;
+  background: rgba(26, 29, 34, 0.92);
+  border: 1px solid var(--bordure);
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  z-index: 10;
+}
+@supports (backdrop-filter: blur(10px)) { .navigation { backdrop-filter: blur(10px); } }
+.navigation a {
+  flex: 1;
+  min-width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--texte-doux);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.navigation .nav-icone { font-size: 1.3rem; line-height: 1.2; }
+.navigation a.actif { color: var(--texte); background: var(--surface-2); }
+
+/* --- Bandeau de mise à jour --- */
+.bandeau {
+  max-width: 640px;
+  margin: 8px auto 0;
+  padding: 10px 14px;
+  border-radius: var(--rayon-petit);
+  background: var(--alerte-fond);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+#maj .bandeau { margin: 8px 16px 0; }
+.bandeau .bouton { width: auto; }

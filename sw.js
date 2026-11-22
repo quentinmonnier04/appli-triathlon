@@ -1,0 +1,54 @@
+// Service worker : met les fichiers de l'application en cache (hors ligne, 5.7).
+// Changer VERSION à chaque modification (identique à VERSION_APP dans js/version.js).
+// Les appels à Intervals.icu ne passent jamais par ce cache (données dans IndexedDB via api/).
+const VERSION = 'v2.0.1';
+const CACHE = `triathlon-${VERSION}`;
+
+const FICHIERS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './css/style.css',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './js/app.js',
+  './js/version.js',
+  './js/api/client.js',
+  './js/api/athlete.js',
+  './js/api/session.js',
+  './js/cache/stockage.js',
+  './js/logique/connexion.js',
+  './js/logique/format.js',
+  './js/logique/messages.js',
+  './js/ui/composants.js',
+  './js/ui/bienvenue.js',
+  './js/ui/accueil.js',
+  './js/ui/reglages.js',
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FICHIERS)));
+});
+
+// Suppression des caches des versions précédentes.
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((cles) => Promise.all(cles.filter((c) => c !== CACHE).map((c) => caches.delete(c))))
+      .then(() => self.clients.claim()),
+  );
+});
+
+// Fichiers de l'application : cache d'abord. Autres origines (Intervals.icu) : non interceptées.
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
+  event.respondWith(
+    caches.match(event.request, { ignoreSearch: true }).then((reponse) => reponse || fetch(event.request)),
+  );
+});
+
+// Le bandeau "Nouvelle version disponible" demande l'activation immédiate.
+self.addEventListener('message', (event) => {
+  if (event.data === 'ACTIVER') self.skipWaiting();
+});

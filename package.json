@@ -1,0 +1,8 @@
+{
+  "name": "appli-triathlon",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}
