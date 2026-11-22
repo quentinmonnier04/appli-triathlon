@@ -87,3 +87,85 @@ export function calculerAllure(sport, duree_s, distance_m) {
   if (sport === 'VELO') return `${((distance_m / 1000) / (duree_s / 3600)).toFixed(1).replace('.', ',')} km/h`;
   return null;
 }
+
+// --- Validation des objets (C-14, ENF-20) ---
+
+// Ajoute l'erreur de borne de la valeur au dictionnaire des erreurs, si besoin.
+function ajouterBorne(erreurs, champ, cle, valeur) {
+  const e = verifierBorne(cle, valeur);
+  if (e) erreurs[champ] = e;
+}
+
+// Vrai si la valeur est absente (null, undefined ou texte vide).
+function estVide(v) {
+  return v === null || v === undefined || v === '';
+}
+
+// Séance prévue (F-10, F-11) : titre obligatoire (M-01), 60 caractères max, bornes de durée, distance, répétitions.
+export function validerSeancePrevue(s) {
+  const erreurs = {};
+  const titre = String(s.titre ?? '').trim();
+  if (!titre) erreurs.titre = { code: 'M-01' };
+  else if (titre.length > 60) erreurs.titre = { code: 'M-02', champ: 'Titre', min: '1', max: '60 caractères' };
+  ajouterBorne(erreurs, 'duree_s', 'duree', s.duree_s);
+  ajouterBorne(erreurs, 'distance_m', 'distance', s.distance_m);
+  const blocs = s.segments?.[0]?.blocs ?? [];
+  blocs.forEach((b, i) => {
+    ajouterBorne(erreurs, `blocs.${i}.repetitions`, 'repetitions', b.repetitions);
+    ajouterBorne(erreurs, `blocs.${i}.distance_m`, 'distance', b.distance_m);
+  });
+  return { ok: Object.keys(erreurs).length === 0, erreurs };
+}
+
+// Réalisation (F-21 à F-24) : champs obligatoires selon le statut (M-10) et bornes (M-02).
+export function validerRealisation(r) {
+  const erreurs = {};
+  if (estVide(r.sport)) erreurs.sport = { code: 'M-10' };
+  if (estVide(r.statut)) erreurs.statut = { code: 'M-10' };
+  if (r.statut === 'SAUTEE') {
+    if (estVide(r.motif)) erreurs.motif = { code: 'M-10' };
+  } else if (r.statut === 'FAITE' || r.statut === 'PARTIELLE') {
+    if (estVide(r.duree_s)) erreurs.duree_s = { code: 'M-10' };
+    if (estVide(r.rpe)) erreurs.rpe = { code: 'M-10' };
+  }
+  if (!erreurs.duree_s) ajouterBorne(erreurs, 'duree_s', 'duree', r.duree_s);
+  if (!erreurs.rpe) ajouterBorne(erreurs, 'rpe', 'rpe', r.rpe);
+  ajouterBorne(erreurs, 'distance_m', 'distance', r.distance_m);
+  ajouterBorne(erreurs, 'fc_moy', 'fc', r.fc_moy);
+  ajouterBorne(erreurs, 'puissance_moy_w', 'puissance', r.puissance_moy_w);
+  if (r.douleur) {
+    const i = r.douleur.intensite;
+    if (estVide(r.douleur.zone)) erreurs.douleur = { code: 'M-10' };
+    else if (!Number.isInteger(i) || i < 1 || i > 5) erreurs.douleur = { code: 'M-02', champ: 'Intensité', min: '1', max: '5' };
+  }
+  return { ok: Object.keys(erreurs).length === 0, erreurs };
+}
+
+// Copie nettoyée d'une réalisation (règle 4.5.2) :
+// SAUTEE -> aucune mesure ; non SAUTEE -> pas de motif ; puissance seulement pour le vélo ; champs vides retirés.
+export function normaliserRealisation(r) {
+  const n = {};
+  for (const [cle, valeur] of Object.entries(r)) if (!estVide(valeur)) n[cle] = valeur;
+  if (n.statut === 'SAUTEE') {
+    for (const cle of ['duree_s', 'distance_m', 'fc_moy', 'puissance_moy_w', 'rpe', 'douleur']) delete n[cle];
+  } else {
+    delete n.motif;
+  }
+  if (n.sport !== 'VELO') delete n.puissance_moy_w;
+  return n;
+}
+
+// --- Format de sauvegarde (9.6, F-36) ---
+
+export const SCHEMA_VERSION = 1;
+export const STORES = ['meta', 'athletes', 'parametres', 'seances_prevues', 'realisations'];
+
+// Vrai seulement pour une sauvegarde de l'application lisible par cette version du code.
+export function verifierSauvegarde(objet, versionCode = SCHEMA_VERSION) {
+  if (!objet || typeof objet !== 'object' || Array.isArray(objet)) return false;
+  if (objet.app !== 'triathlon-app') return false;
+  if (!Number.isInteger(objet.schema_version) || objet.schema_version > versionCode) return false;
+  const d = objet.donnees;
+  if (!d || typeof d !== 'object') return false;
+  return STORES.every((store) => Array.isArray(d[store]));
+}
