@@ -13,9 +13,8 @@ async function copieDeSecurite() {
   localStorage.setItem('triathlon-copie-avant-migration', JSON.stringify(copie));
 }
 
-// Création des données par défaut (C-01, D-01, 9.5).
-async function premierLancement() {
-  await ecrire('meta', { id: 'meta', schema_version: SCHEMA_VERSION });
+// Création de l'athlète et des paramètres par défaut (C-01, D-01, 9.5).
+async function creerAthleteParDefaut() {
   const id = crypto.randomUUID();
   await ecrire('athletes', {
     id,
@@ -28,6 +27,12 @@ async function premierLancement() {
     questionnaire_termine: false,
   });
   await ecrire('parametres', { athlete_id: id, theme: 'AUTO', rappel_sauvegarde_jours: 7 });
+}
+
+// Premier lancement : Meta puis athlète par défaut (C-01).
+async function premierLancement() {
+  await ecrire('meta', { id: 'meta', schema_version: SCHEMA_VERSION });
+  await creerAthleteParDefaut();
 }
 
 // Demande au navigateur de ne pas effacer les données (ENF-19).
@@ -51,6 +56,8 @@ export async function initialiser() {
     await ecrire('meta', meta);
   }
   await demanderPersistance();
+  // Une sauvegarde importée sans athlète ne doit pas bloquer le démarrage
+  if ((await listerTout('athletes')).length === 0) await creerAthleteParDefaut();
   const athletes = await listerTout('athletes');
   return { athleteId: athletes[0].id };
 }
