@@ -3,7 +3,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   echapperHtml, formaterDuree, formaterDistance, formaterVitesse, formaterDateHeure, formaterHorodatage, formaterEntier,
+  formaterDureeLongue,
 } from '../js/logique/format.js';
+
+test('durée totale lisible pour les widgets : "12 h 34", "45 min"', () => {
+  assert.equal(formaterDureeLongue(45240), '12 h 34');
+  assert.equal(formaterDureeLongue(3600), '1 h 00');
+  assert.equal(formaterDureeLongue(2700), '45 min');
+  assert.equal(formaterDureeLongue(0), '0 min');
+  assert.equal(formaterDureeLongue(-5400), '1 h 30');
+});
 
 test("echapperHtml neutralise le HTML venant de l'API", () => {
   assert.equal(echapperHtml('<img src=x onerror="a()">'), '&lt;img src=x onerror=&quot;a()&quot;&gt;');

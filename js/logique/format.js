@@ -29,6 +29,13 @@ export function formaterDuree(s) {
   return h > 0 ? `${h}:${deux(m)}:${deux(sec)}` : `${m}:${deux(sec)}`;
 }
 
+// Durée totale pour les widgets (F-22, F-25) : "12 h 34", "45 min" ; le signe est ignoré.
+export function formaterDureeLongue(s) {
+  const minutes = Math.round(Math.abs(s ?? 0) / 60);
+  const h = Math.floor(minutes / 60);
+  return h > 0 ? `${h} h ${deux(minutes % 60)}` : `${minutes} min`;
+}
+
 // Distance (9.4) : "48,38 km" ; natation en mètres "1 500 m".
 export function formaterDistance(m, sportCode) {
   if (!(m > 0)) return null;

@@ -4,6 +4,28 @@ import assert from 'node:assert/strict';
 import { convertirAthlete } from '../js/api/athlete.js';
 import { typeErreurHttp } from '../js/api/client.js';
 import { convertirActivite, convertirIntervalle, CHAMPS_FIL } from '../js/api/activites.js';
+import { convertirSeancePrevue } from '../js/api/evenements.js';
+import { convertirForme } from '../js/api/wellness.js';
+
+test('événement WORKOUT -> objet interne SeancePrevue (9.2)', () => {
+  assert.deepEqual(convertirSeancePrevue({ id: 77, start_date_local: '2026-11-22T00:00:00', category: 'WORKOUT', type: 'Run',
+    name: 'Fractionné', moving_time: 3600, distance: 10000, description: '5x1km' }), {
+    id: '77', date: '2026-11-22', sport: 'CAP', titre: 'Fractionné', duree_s: 3600, distance_m: 10000, description: '5x1km', blocs: null,
+  });
+});
+
+test('séance prévue : repli sur les objectifs de temps et de distance, titre par défaut', () => {
+  const s = convertirSeancePrevue({ id: 5, start_date_local: '2026-11-23T00:00:00', type: 'Swim', time_target: 2700, distance_target: 2000 });
+  assert.equal(s.duree_s, 2700);
+  assert.equal(s.distance_m, 2000);
+  assert.equal(s.titre, 'Natation');
+  assert.equal(s.description, null);
+});
+
+test('wellness -> objet interne Forme (9.2) : valeurs entières cohérentes, TSB = CTL - ATL', () => {
+  assert.deepEqual(convertirForme({ id: '2026-11-22', ctl: 52.44, atl: 61.9 }), { date: '2026-11-22', ctl: 52, atl: 62, tsb: -10 });
+  assert.deepEqual(convertirForme({ id: '2026-11-21' }), { date: '2026-11-21', ctl: null, atl: null, tsb: null });
+});
 
 test('athlète : nom repris du champ name', () => {
   assert.deepEqual(convertirAthlete({ id: 'i42', name: 'Quentin M', firstname: 'Quentin', sportSettings: [] }), { id: 'i42', nom: 'Quentin M' });

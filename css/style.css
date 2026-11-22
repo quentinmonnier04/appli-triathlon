@@ -325,3 +325,55 @@ button.icone-bouton { cursor: pointer; font: inherit; font-size: 1.25rem; }
 }
 .badge-charge small { font-weight: 500; font-size: 0.7rem; color: var(--texte-doux); }
 .resume .stat-valeur { white-space: normal; font-size: 1.45rem; line-height: 1.15; }
+
+/* ===== L2 : tableau de bord ===== */
+.actions-entete { display: flex; gap: 8px; }
+.etiquette-section { color: var(--texte-doux); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin: 18px 4px -6px; }
+.seance-du-jour + .seance-du-jour { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--bordure); }
+.description-seance {
+  margin: 10px 0 0;
+  color: var(--texte-doux);
+  font-size: 0.9rem;
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Forme (F-23) */
+.phrase-forme { font-size: 1.6rem; font-weight: 800; margin: 2px 0 4px; }
+.forme-frais { color: #6FD08C; }
+.forme-equilibre { color: var(--accent); }
+.forme-charge { color: #FFC266; }
+.forme-fatigue { color: var(--danger); }
+
+/* Durée du mois (F-22) */
+.comparaison { margin: 8px 0 10px; font-weight: 600; }
+.comparaison.hausse { color: #6FD08C; }
+.comparaison.baisse { color: #FFC266; }
+.courbe { width: 100%; height: 72px; display: block; overflow: visible; }
+.courbe path { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.courbe-actuelle { stroke: var(--accent); }
+.courbe-precedente { stroke: #5C6570; stroke-dasharray: 4 4; }
+.legende { display: flex; gap: 16px; font-size: 0.8rem; color: var(--texte-doux); margin-top: 6px; }
+.legende span::before { content: ""; display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.legende-actuelle::before { background: var(--accent); }
+.legende-precedente::before { background: #5C6570; }
+
+/* Semaine en cours (F-25) */
+.ligne-semaine { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+.ligne-semaine .pastille { width: 36px; height: 36px; font-size: 1.1rem; }
+.ligne-semaine-corps { flex: 1; min-width: 0; }
+.ligne-semaine-texte { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-size: 0.95rem; }
+.barre-progression { display: block; height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.barre-remplie { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--couleur-sport); }
+
+/* Mini-calendrier (F-24) */
+.mini-calendrier { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; text-align: center; }
+.mini-entete { color: var(--texte-doux); font-size: 0.75rem; font-weight: 600; padding-bottom: 4px; }
+.mini-jour { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 40px; border-radius: 10px; font-size: 0.85rem; }
+.mini-jour.aujourdhui { background: var(--texte); color: var(--fond); font-weight: 800; }
+.mini-points { display: flex; gap: 2px; height: 6px; margin-top: 2px; }
+.point { width: 6px; height: 6px; border-radius: 50%; background: var(--couleur-sport); }
+.mini-jour.aujourdhui .point { box-shadow: 0 0 0 1px var(--fond); }

@@ -70,6 +70,18 @@ async function chargerPage(jusqua = null) {
   return bruts.map(convertirActivite);
 }
 
+// Toutes les activités depuis un jour donné jusqu'à maintenant (tableau de bord, F-21, F-22, F-24, F-25).
+export async function chargerActivitesDepuis(debut) {
+  const bruts = await requeteAuthentifiee('/athlete/0/activities', { oldest: debut, fields: CHAMPS_FIL.join(',') });
+  return bruts.map(convertirActivite);
+}
+
+// Dernière activité, quelle que soit sa date (F-21), ou null.
+export async function chargerDerniereActivite() {
+  const [derniere] = await chargerPage();
+  return derniere ?? null;
+}
+
 // Fil en cache (5.5) : { activites, fin, charge_le } ou null.
 export async function lireFilEnCache() {
   const cache = await lireCache('fil');
