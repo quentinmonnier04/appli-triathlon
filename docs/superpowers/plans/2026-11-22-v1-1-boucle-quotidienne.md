@@ -427,7 +427,7 @@ Contenu (9.1) :
 
 - [ ] **Étape 1 : implémenter `afficherAujourdhui`** et la brancher dans `ROUTES`.
 - [ ] **Étape 2 : `node --test`** → OK.
-- [ ] **Étape 3 : vérifier dans le navigateur** : « Aucune séance prévue. » ; ◀ ▶ changent le jour ; lien « Aujourd'hui » apparaît sur un autre jour ; console vide. Ajouter à la main dans F12 une séance de test (ou attendre la tâche 9) n'est pas requis.
+- [ ] **Étape 3 : vérifier dans le navigateur** : « Aucune séance prévue. » ; ◀ ▶ changent le jour ; lien « Aujourd'hui » apparaît sur un autre jour ; console vide. L'affichage des cartes sera vérifié à la tâche 9.
 - [ ] **Étape 4 : commit** « V1.1 : écran Aujourd'hui, navigation jour par jour (F-20, C-02, C-19, D-04) ».
 
 ---
