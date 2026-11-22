@@ -21,6 +21,7 @@ const ROUTES = {
 // Affiche l'écran correspondant à l'ancre courante.
 async function afficherRoute() {
   const { segments, params } = lireRoute(location.hash);
+  document.getElementById('voile')?.remove(); // ferme une feuille restée ouverte
   const ecran = ROUTES[segments[0]];
   if (!ecran) {
     location.replace('#/aujourdhui');

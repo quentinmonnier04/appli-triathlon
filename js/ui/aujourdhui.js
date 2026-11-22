@@ -1,10 +1,132 @@
 // Écran E-01 "Aujourd'hui" (F-20, F-21, F-23, C-02, C-19, D-04).
 // Affichage seulement : les données viennent de db/, les textes de commun.js.
 
-import { listerParJour, realisationDeSeance } from '../db/database.js';
+import { listerParJour, realisationDeSeance, creerRealisationUnique } from '../db/database.js';
+import { validerRealisation, normaliserRealisation, lireDuree, formaterDuree, BORNES } from '../regles/validation.js';
 import {
   jourISO, decalerJour, formaterDateLongue, sport, texteBloc, texteInfos, texteStatut, echapperHtml,
+  LIBELLES_RPE, MOTIFS, formaterMessage,
 } from './commun.js';
+
+// --- Feuille du bas pour la saisie rapide (C-06 à C-10) ---
+
+// Ouvre une feuille modale en bas de l'écran ; renvoie l'élément de la feuille.
+function ouvrirFeuille(contenu) {
+  fermerFeuille();
+  document.body.insertAdjacentHTML('beforeend',
+    `<div class="voile" id="voile"><div class="feuille" role="dialog" aria-modal="true">${contenu}
+      <div class="pied-formulaire"><button type="button" data-fermer>Annuler</button></div></div></div>`);
+  const voile = document.getElementById('voile');
+  voile.addEventListener('click', (ev) => {
+    if (ev.target === voile || ev.target.closest('[data-fermer]')) fermerFeuille();
+  });
+  return voile.querySelector('.feuille');
+}
+
+function fermerFeuille() {
+  document.getElementById('voile')?.remove();
+}
+
+// Boutons RPE 1 à 10 avec libellés (C-06).
+function boutonsRpe() {
+  return `<div class="grille-rpe">${Object.entries(LIBELLES_RPE)
+    .map(([n, l]) => `<button type="button" data-rpe="${n}"><strong>${n}</strong> ${l}</button>`).join('')}</div>`;
+}
+
+// Champ durée réalisée (C-08, C-09).
+function champDuree(valeur) {
+  return `<div class="champ"><label for="duree-rapide">Durée (h:mm)</label>
+    <input id="duree-rapide" inputmode="decimal" placeholder="1:00" value="${valeur ? formaterDuree(valeur) : ''}"></div>`;
+}
+
+// Crée la réalisation après contrôle ; renvoie les erreurs ou null (règles 4.5.1, 4.5.2, C-14).
+async function creerRealisation(contexte, seance, champs) {
+  const r = normaliserRealisation({
+    athlete_id: contexte.athleteId,
+    seance_prevue_id: seance.id,
+    date: seance.date,
+    sport: seance.sport,
+    source: 'MANUEL',
+    ...champs,
+  });
+  const { ok, erreurs } = validerRealisation(r);
+  if (!ok) return erreurs;
+  await creerRealisationUnique(r);
+  return null;
+}
+
+// Ouvre la feuille correspondant au bouton touché, puis réaffiche l'écran après création.
+function saisieRapide(action, seance, contexte, reafficher) {
+  const titre = `<h2>${echapperHtml(seance.titre)}</h2>`;
+  let feuille;
+  let rpeChoisi = null;
+
+  // Désactive les boutons (double toucher), crée, ou affiche les erreurs et réactive.
+  async function valider(champs) {
+    feuille.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+    const erreurs = await creerRealisation(contexte, seance, champs);
+    if (!erreurs) {
+      fermerFeuille();
+      await reafficher();
+      return;
+    }
+    feuille.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+    feuille.querySelectorAll('.erreur').forEach((e) => e.remove());
+    const message = Object.values(erreurs).map((e) => echapperHtml(formaterMessage(e))).join(' ');
+    feuille.querySelector('.zone-erreur').innerHTML = `<div class="erreur" role="alert">${message}</div>`;
+    feuille.querySelector('#duree-rapide')?.classList.toggle('invalide', Boolean(erreurs.duree_s));
+  }
+
+  // Lit la durée saisie ; une saisie illisible devient une erreur M-02.
+  function dureeSaisie() {
+    const texte = feuille.querySelector('#duree-rapide').value.trim();
+    if (!texte) return undefined;
+    return lireDuree(texte) ?? -1;
+  }
+
+  if (action === 'SAUTEE') {
+    // C-10 : un toucher sur un motif crée la réalisation SAUTEE
+    feuille = ouvrirFeuille(`${titre}<p>Pourquoi ?</p><div class="ligne-sauvegarde">
+      ${MOTIFS.map((m) => `<button type="button" data-motif="${m.code}">${m.libelle}</button>`).join('')}</div>
+      <div class="zone-erreur"></div>`);
+    feuille.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-motif]');
+      if (b) valider({ statut: 'SAUTEE', motif: b.dataset.motif });
+    });
+    return;
+  }
+
+  const direct = action === 'FAITE' && seance.duree_s; // C-07 : 2 actions
+  const avecDuree = !direct; // C-08 (Faite sans durée prévue) et C-09 (Partielle)
+  feuille = ouvrirFeuille(`${titre}<p>${action === 'FAITE' ? 'Séance faite' : 'Séance partielle'} : quel effort (RPE) ?</p>
+    ${avecDuree ? champDuree(action === 'PARTIELLE' ? seance.duree_s : null) : ''}
+    ${boutonsRpe()}
+    <div class="zone-erreur"></div>
+    ${avecDuree ? '<div class="pied-formulaire"><button type="button" class="principal" id="valider">Valider</button></div>' : ''}`);
+  feuille.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-rpe]');
+    if (b) {
+      rpeChoisi = Number(b.dataset.rpe);
+      if (direct) {
+        valider({ statut: 'FAITE', rpe: rpeChoisi, duree_s: seance.duree_s, distance_m: seance.distance_m });
+        return;
+      }
+      feuille.querySelectorAll('[data-rpe]').forEach((x) => x.classList.toggle('choisi', x === b));
+    }
+    if (ev.target.closest('#valider')) {
+      const duree = dureeSaisie();
+      if (duree === -1) {
+        const d = BORNES.duree;
+        feuille.querySelector('.zone-erreur').innerHTML = `<div class="erreur" role="alert">${echapperHtml(formaterMessage({ code: 'M-02', champ: d.libelle, min: d.minAff, max: d.maxAff }))}</div>`;
+        feuille.querySelector('#duree-rapide').classList.add('invalide');
+        return;
+      }
+      const champs = { statut: action, rpe: rpeChoisi ?? undefined, duree_s: duree };
+      if (action === 'FAITE') champs.distance_m = seance.distance_m;
+      valider(champs);
+    }
+  });
+}
 
 // Carte d'une séance prévue (9.1) ; realisation = sa réalisation éventuelle.
 function carteSeance(s, realisation) {
@@ -73,8 +195,15 @@ export async function afficherAujourdhui(conteneur, contexte, segments, params) 
       <a class="bouton" href="#/realisation/nouvelle?date=${date}">+ Séance non prévue</a>
     </div></div>`;
 
-  // Toucher la carte (hors boutons et liens) ouvre E-02 (9.1).
+  // Boutons Faite / Partielle / Sautée (C-06 à C-10) ; toucher la carte ouvre E-02 (9.1).
+  const parId = new Map(seances.map((s) => [s.id, s]));
   conteneur.querySelector('#seances').addEventListener('click', (ev) => {
+    const bouton = ev.target.closest('button[data-action]');
+    if (bouton) {
+      saisieRapide(bouton.dataset.action, parId.get(bouton.dataset.id), contexte,
+        () => afficherAujourdhui(conteneur, contexte, segments, params));
+      return;
+    }
     if (ev.target.closest('button, a, summary, details ul')) return;
     const carte = ev.target.closest('[data-seance]');
     if (carte) location.hash = `#/seance/${carte.dataset.seance}`;

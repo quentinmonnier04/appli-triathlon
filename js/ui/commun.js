@@ -4,7 +4,7 @@
 import { formaterDuree, formaterDureeCourte } from '../regles/validation.js';
 
 // Version affichée dans l'application : doit être identique à VERSION dans sw.js (5.7).
-export const VERSION_APP = 'v1.1.4';
+export const VERSION_APP = 'v1.1.6';
 
 // Sports (9.4.3) ; ENCHAINEMENT masqué jusqu'en V1.2 (D-05).
 export const SPORTS = [
