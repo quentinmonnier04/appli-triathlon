@@ -25,3 +25,54 @@ export function verifierBorne(cle, valeur) {
   if (valeur > b.max) return erreur;
   return null;
 }
+
+// --- Durées (D-09, F-11, F-22) ---
+
+// Lit une durée saisie en h:mm et renvoie des secondes, ou null si illisible.
+// Formats acceptés : "1:30", "1h30", "1h", "1.30", "1,30", minutes seules "90".
+export function lireDuree(texte) {
+  const t = String(texte ?? '').replace(/\s+/g, '');
+  if (/^\d+$/.test(t)) return Number(t) * 60;
+  let m = t.match(/^(\d{1,2})h$/);
+  if (m) return Number(m[1]) * 3600;
+  m = t.match(/^(\d{1,2})[:h.,](\d{2})$/);
+  if (m && Number(m[2]) < 60) return Number(m[1]) * 3600 + Number(m[2]) * 60;
+  return null;
+}
+
+// Secondes -> "h:mm" (secondes arrondies à la minute inférieure).
+export function formaterDuree(s) {
+  const minutes = Math.floor(s / 60);
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+// Lit une durée courte "m:ss" ou des minutes seules (blocs, récupération).
+export function lireDureeCourte(texte) {
+  const t = String(texte ?? '').replace(/\s+/g, '');
+  if (/^\d+$/.test(t)) return Number(t) * 60;
+  const m = t.match(/^(\d{1,3}):(\d{2})$/);
+  if (m && Number(m[2]) < 60) return Number(m[1]) * 60 + Number(m[2]);
+  return null;
+}
+
+// Secondes -> "m:ss".
+export function formaterDureeCourte(s) {
+  const total = Math.round(s);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
+// --- Distances (F-11, F-22) ---
+
+// Lit une distance saisie : km (virgule ou point) ou mètres pour la natation. Renvoie des mètres.
+export function lireDistance(texte, sport) {
+  const t = String(texte ?? '').replace(/\s+/g, '').replace(',', '.');
+  if (!/^\d+(\.\d+)?$/.test(t)) return null;
+  const n = Number(t);
+  return sport === 'NATATION' ? Math.round(n) : Math.round(n * 1000);
+}
+
+// Mètres -> texte à placer dans le champ de saisie ("10,5" ou "1500" pour la natation).
+export function formaterDistanceSaisie(m, sport) {
+  if (sport === 'NATATION') return String(m);
+  return String(m / 1000).replace('.', ',');
+}
