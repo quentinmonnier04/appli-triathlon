@@ -514,9 +514,9 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 
 | Lot | Statut |
 |---|---|
-| L0 | Code écrit, recette PC faite ; tests avec ma vraie clé et sur téléphone à faire |
+| L0 | Validé le 22/11/2026 (connexion réelle à Intervals.icu OK) ; installation sur téléphone à faire après la mise en ligne |
 | L1 à L7 | À faire |
 
 **Ancien code v1.0** : supprimé (commit « Suppression du code v1.0 »), récupérable dans l'historique git.
 
-**Prochaine étape :** valider L0 avec ma vraie clé (critère 9.7), puis lot L1.
+**Prochaine étape :** lot L1 (Activités).
