@@ -950,8 +950,8 @@ Import accepté seulement si `app` = « triathlon-app », `schema_version` ≤ v
 
 | Lot | Statut |
 |---|---|
-| V1.1 | À démarrer : aucun code écrit |
+| V1.1 | Code écrit, recette PC faite ; tests sur téléphone à faire |
 | V1.2 à V1.5 | À faire |
 | V2, V3 | Non démarrés |
 
-**Prochaine étape :** développer le lot V1.1 complet.
+**Prochaine étape :** dérouler les tests manuels 9.7 sur Android et iPhone, mettre en ligne sur GitHub Pages, puis 2 semaines d'usage avant V1.2.
