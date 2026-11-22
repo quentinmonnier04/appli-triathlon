@@ -7,6 +7,7 @@ import {
   jourISO, decalerJour, formaterDateLongue, sport, texteBloc, texteInfos, texteStatut, echapperHtml,
   LIBELLES_RPE, MOTIFS, formaterMessage,
 } from './commun.js';
+import { bandeauRappel } from './sauvegarde.js';
 
 // --- Feuille du bas pour la saisie rapide (C-06 à C-10) ---
 
@@ -194,6 +195,9 @@ export async function afficherAujourdhui(conteneur, contexte, segments, params) 
       <a class="bouton principal" href="#/seance/nouvelle?date=${date}">+ Séance prévue</a>
       <a class="bouton" href="#/realisation/nouvelle?date=${date}">+ Séance non prévue</a>
     </div></div>`;
+
+  // C-15 : bandeau de rappel de sauvegarde (M-05)
+  conteneur.querySelector('#rappel').innerHTML = await bandeauRappel(contexte);
 
   // Boutons Faite / Partielle / Sautée (C-06 à C-10) ; toucher la carte ouvre E-02 (9.1).
   const parId = new Map(seances.map((s) => [s.id, s]));

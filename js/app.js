@@ -6,6 +6,7 @@ import { initialiser } from './db/migrations.js';
 import { afficherAujourdhui } from './ui/aujourdhui.js';
 import { afficherSeance } from './ui/seance.js';
 import { afficherRealisation } from './ui/realisation.js';
+import { afficherSauvegarde } from './ui/sauvegarde.js';
 
 const conteneur = document.getElementById('app');
 
@@ -17,7 +18,7 @@ const ROUTES = {
   aujourdhui: afficherAujourdhui,
   seance: afficherSeance,
   realisation: afficherRealisation,
-  sauvegarde: async (c) => { c.innerHTML = '<h1>Sauvegarde</h1>'; },
+  sauvegarde: afficherSauvegarde,
 };
 
 // Affiche l'écran correspondant à l'ancre courante.
