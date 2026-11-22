@@ -100,21 +100,22 @@ function widgetSemaine(prevues, activites, jour) {
 }
 
 // F-24 : mini-calendrier du mois, un point coloré par sport pratiqué chaque jour.
-// L'ouverture de l'Agenda sera branchée avec l'écran Agenda (L3).
+// Le widget entier ouvre l'Agenda sur le mois en cours (zone cliquable assez grande, ENF-17).
 function widgetCalendrier(activites, jour) {
   const parJour = sportsParJour(activites);
-  return `<div class="carte"><div class="etiquette-carte">${libelleMois(jour)}</div>
-    <div class="mini-calendrier" role="grid" aria-label="Activités du mois">
+  return `<a class="carte carte-lien" href="#/agenda?vue=mois&date=${jour}" aria-label="Ouvrir l'agenda du mois">
+    <div class="etiquette-carte">${libelleMois(jour)}</div><span class="lien-fleche" aria-hidden="true">→</span>
+    <div class="mini-calendrier" aria-hidden="true">
       ${['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((j) => `<span class="mini-entete" aria-hidden="true">${j}</span>`).join('')}
       ${grilleMois(jour).flat().map((d) => {
     if (!d) return '<span class="mini-jour vide"></span>';
     const sports = parJour[d] ?? [];
     const libelle = `${Number(d.slice(8, 10))}${sports.length ? ' : ' + sports.map((s) => sport(s).libelle).join(', ') : ''}`;
-    return `<span class="mini-jour${d === jour ? ' aujourdhui' : ''}" role="gridcell" aria-label="${echapperHtml(libelle)}">
+    return `<span class="mini-jour${d === jour ? ' aujourdhui' : ''}" title="${echapperHtml(libelle)}">
           <span class="mini-numero">${Number(d.slice(8, 10))}</span>
           <span class="mini-points">${sports.slice(0, 3).map((s) => `<span class="point sport-${s}"></span>`).join('')}</span></span>`;
   }).join('')}
-    </div></div>`;
+    </div></a>`;
 }
 
 function rendreTableau(t) {

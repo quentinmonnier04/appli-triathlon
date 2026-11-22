@@ -9,6 +9,12 @@ export function totalDuree(elements, debut, fin) {
   return elements.filter((e) => e.date >= debut && e.date <= fin).reduce((s, e) => s + (e.duree_s ?? 0), 0);
 }
 
+// Totaux d'une liste d'activités (F-33) : durée, distance, dénivelé, nombre ; valeurs absentes = 0.
+export function totauxPeriode(activites) {
+  const somme = (champ) => activites.reduce((s, a) => s + (a[champ] ?? 0), 0);
+  return { duree_s: somme('duree_s'), distance_m: somme('distance_m'), denivele_m: somme('denivele_m'), nombre: activites.length };
+}
+
 // Durée cumulée jour après jour, sur nbJours à partir de "debut".
 export function cumulParJour(elements, debut, nbJours) {
   const courbe = [];

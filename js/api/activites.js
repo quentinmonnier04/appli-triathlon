@@ -76,6 +76,14 @@ export async function chargerActivitesDepuis(debut) {
   return bruts.map(convertirActivite);
 }
 
+// Activités entre deux jours inclus (agenda, F-30 à F-35) ; "newest" est une date-heure locale.
+export async function chargerActivitesEntre(debut, fin) {
+  const bruts = await requeteAuthentifiee('/athlete/0/activities', {
+    oldest: debut, newest: `${fin}T23:59:59`, fields: CHAMPS_FIL.join(','),
+  });
+  return bruts.map(convertirActivite);
+}
+
 // Dernière activité, quelle que soit sa date (F-21), ou null.
 export async function chargerDerniereActivite() {
   const [derniere] = await chargerPage();

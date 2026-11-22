@@ -6,20 +6,27 @@ import { afficherAccueil } from './ui/accueil.js';
 import { afficherReglages } from './ui/reglages.js';
 import { afficherActivites } from './ui/activites.js';
 import { afficherActivite } from './ui/activite.js';
+import { afficherAgenda } from './ui/agenda.js';
 
 const conteneur = document.getElementById('app');
 const navigation = document.getElementById('navigation');
 
-// Écrans livrés (9.1) : L0 (bienvenue, accueil, réglages), L1 (activités, détail).
+// Écrans livrés (9.1) : L0 (bienvenue, accueil, réglages), L1 (activités, détail), L3 (agenda).
 const ROUTES = {
   bienvenue: afficherBienvenue,
   accueil: afficherAccueil,
   reglages: afficherReglages,
   activites: afficherActivites,
   activite: afficherActivite,
+  agenda: afficherAgenda,
 };
 // Écrans accessibles sans identifiants (F-04).
 const ROUTES_PUBLIQUES = ['bienvenue', 'reglages'];
+
+// Paramètres de l'ancre (ex. #/agenda?vue=mois&date=2026-11-22 -> { vue, date }).
+function parametresCourants() {
+  return Object.fromEntries(new URLSearchParams(location.hash.split('?')[1] ?? ''));
+}
 
 // Lit "#/route/param?..." et renvoie les segments du chemin (ex. ['activite', 'i123']).
 function segmentsCourants() {
@@ -38,7 +45,7 @@ async function afficherRoute() {
   navigation.classList.toggle('masque', !connecte);
   const onglet = route === 'activite' ? 'activites' : route; // le détail dépend de l'onglet Activités
   navigation.querySelectorAll('a').forEach((a) => a.classList.toggle('actif', a.dataset.onglet === onglet));
-  await ROUTES[route](conteneur, segments);
+  await ROUTES[route](conteneur, segments, parametresCourants());
   window.scrollTo(0, 0);
 }
 

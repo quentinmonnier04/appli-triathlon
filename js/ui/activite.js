@@ -9,7 +9,7 @@ import {
 import { sport } from '../logique/sports.js';
 import { bandeauHorsLigne, messageErreurApi, pastilleSport, stat, squelette } from './composants.js';
 
-const enteteRetour = `<div class="entete"><a class="icone-bouton" href="#/activites" aria-label="Retour aux activités">←</a>
+const enteteRetour = `<div class="entete"><a class="icone-bouton" href="#/activites" aria-label="Retour">←</a>
   <span class="titre-petit">Activité</span><span class="espace-bouton"></span></div>`;
 
 // Valeur suivie de son unité, ou null si absente.
@@ -77,6 +77,10 @@ export async function afficherActivite(conteneur, segments) {
   const id = decodeURIComponent(segments[1] ?? '');
   const zone = () => conteneur.querySelector('#detail');
   conteneur.innerHTML = `${enteteRetour}<div id="etat"></div><div id="detail"></div>`;
+  // Retour à l'écran précédent (fil, agenda ou accueil) ; sans historique, retour au fil.
+  conteneur.querySelector('.entete a').addEventListener('click', (ev) => {
+    if (history.length > 1) { ev.preventDefault(); history.back(); }
+  });
 
   // 5.5 : cache d'abord, puis Intervals.icu si le cache a plus de 5 min.
   const cache = await lireDetailEnCache(id);

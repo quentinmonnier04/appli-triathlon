@@ -509,6 +509,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | D-09 | 22/11/2026 | Arborescence ajustée en L0 : `api/session.js` (identifiants, connexion, déconnexion ; l'affichage ne reçoit jamais la clé), `logique/connexion.js` (contrôle des identifiants, en-tête d'authentification), `logique/messages.js` (messages 9.5), `js/version.js` (`VERSION_APP`), `creer_icones.py` (icônes). |
 | D-10 | 22/11/2026 | L1 : ajout de `logique/activites.js` (filtre, fusion des pages, zones, validité du cache). Fil chargé par pages de 20 (`limit` + `newest`), avec `fields` limité aux champs des cartes. Durée affichée = temps en mouvement (`moving_time`), sinon temps total. Champ `a_gps` reporté à L7 (champ de position à vérifier dans la documentation). Le cache est vidé à chaque nouvelle connexion. |
 | D-11 | 22/11/2026 | L2 : ajout de `api/tableau.js` (chargement groupé du tableau de bord, mis en cache), `logique/dates.js`, `logique/forme.js`, `logique/totaux.js`, `logique/graphique.js`. « Durée ce mois-ci » comparée au mois précédent **à la même date** (comparaison juste en cours de mois). CTL, ATL arrondis à l'entier comme sur Intervals.icu, TSB = CTL - ATL. Séances prévues lues dans la catégorie `WORKOUT`. Le mini-calendrier (F-24) ouvrira l'Agenda quand l'écran Agenda existera (L3). |
+| D-12 | 22/11/2026 | L3 : ajout de `api/agenda.js` (cache par période) et `logique/agenda.js`. Adresse de l'agenda complétée d'un paramètre facultatif `jour` (jour choisi dans la vue mois, F-34), en plus de `vue` et `date` (9.1). Vue 30 jours : seuls les jours avec du prévu ou du réalisé sont listés. Le mini-calendrier de l'accueil ouvre l'agenda du mois (widget entier cliquable, ENF-17). Le bouton retour du détail d'une activité revient à l'écran précédent. |
 
 ---
 
@@ -519,8 +520,9 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | L0 | Validé le 22/11/2026 (connexion réelle à Intervals.icu OK) ; installation sur téléphone à faire après la mise en ligne |
 | L1 | Code écrit, recette PC faite ; vérification avec mes vraies activités à faire |
 | L2 | Code écrit, recette PC faite ; vérification avec mes vraies données à faire |
-| L3 à L7 | À faire |
+| L3 | Code écrit, recette PC faite ; vérification avec mes vraies données à faire |
+| L4 à L7 | À faire |
 
 **Ancien code v1.0** : supprimé (commit « Suppression du code v1.0 »), récupérable dans l'historique git.
 
-**Prochaine étape :** valider L1 et L2 avec mes vraies données (critères 9.7), puis mise en ligne (GitHub Pages) ou lot L3.
+**Prochaine étape :** valider L1 à L3 avec mes vraies données (critères 9.7), puis lot L4 (programmation).
