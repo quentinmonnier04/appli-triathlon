@@ -5,6 +5,7 @@ import { lireRoute } from './ui/commun.js';
 import { initialiser } from './db/migrations.js';
 import { afficherAujourdhui } from './ui/aujourdhui.js';
 import { afficherSeance } from './ui/seance.js';
+import { afficherRealisation } from './ui/realisation.js';
 
 const conteneur = document.getElementById('app');
 
@@ -15,6 +16,7 @@ const contexte = {};
 const ROUTES = {
   aujourdhui: afficherAujourdhui,
   seance: afficherSeance,
+  realisation: afficherRealisation,
   sauvegarde: async (c) => { c.innerHTML = '<h1>Sauvegarde</h1>'; },
 };
 

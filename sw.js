@@ -1,6 +1,6 @@
 // Service worker : met l'application en cache pour fonctionner hors ligne (ENF-05).
 // Changer VERSION à chaque mise en ligne (identique à VERSION_APP dans js/ui/commun.js).
-const VERSION = 'v1.1.6';
+const VERSION = 'v1.1.7';
 const CACHE = `triathlon-${VERSION}`;
 
 // Tous les fichiers de l'application (stratégie "cache d'abord").
@@ -18,6 +18,7 @@ const FICHIERS = [
   './js/db/migrations.js',
   './js/ui/aujourdhui.js',
   './js/ui/seance.js',
+  './js/ui/realisation.js',
 ];
 
 // Installation : copie des fichiers dans le cache de cette version.
