@@ -2,6 +2,7 @@
 // Routes : #/aujourdhui, #/seance/..., #/realisation/..., #/sauvegarde
 
 import { lireRoute } from './ui/commun.js';
+import { initialiser } from './db/migrations.js';
 
 const conteneur = document.getElementById('app');
 
@@ -61,6 +62,8 @@ function enregistrerServiceWorker() {
 
 async function demarrer() {
   enregistrerServiceWorker();
+  // Ouverture de la base, migration éventuelle, premier lancement (5.6, C-01)
+  Object.assign(contexte, await initialiser());
   window.addEventListener('hashchange', afficherRoute);
   await afficherRoute();
 }
