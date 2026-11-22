@@ -4,6 +4,7 @@
 import { lireRoute } from './ui/commun.js';
 import { initialiser } from './db/migrations.js';
 import { afficherAujourdhui } from './ui/aujourdhui.js';
+import { afficherSeance } from './ui/seance.js';
 
 const conteneur = document.getElementById('app');
 
@@ -13,6 +14,7 @@ const contexte = {};
 // Table des écrans : segment de route -> fonction d'affichage.
 const ROUTES = {
   aujourdhui: afficherAujourdhui,
+  seance: afficherSeance,
   sauvegarde: async (c) => { c.innerHTML = '<h1>Sauvegarde</h1>'; },
 };
 
