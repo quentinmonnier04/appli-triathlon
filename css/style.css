@@ -217,3 +217,111 @@ a { color: var(--accent); }
 }
 #maj .bandeau { margin: 8px 16px 0; }
 .bandeau .bouton { width: auto; }
+
+/* ===== L1 : activités ===== */
+
+/* Couleur de chaque sport (9.3, ENF-18) */
+.sport-NATATION { --couleur-sport: #1565C0; }
+.sport-VELO { --couleur-sport: #E65100; }
+.sport-CAP { --couleur-sport: #2E7D32; }
+.sport-RENFO { --couleur-sport: #6A1B9A; }
+.sport-ENCHAINEMENT { --couleur-sport: #C62828; }
+.sport-REPOS { --couleur-sport: #616161; }
+.sport-AUTRE { --couleur-sport: #455A64; }
+
+.pastille {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--couleur-sport);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+}
+
+.carte-lien, .carte-activite { display: block; color: inherit; text-decoration: none; position: relative; }
+.carte-lien:active, .carte-activite:active { transform: scale(0.99); }
+.lien-fleche { position: absolute; right: 18px; top: 18px; color: var(--accent); font-size: 1.3rem; }
+.carte-activite-tete { display: flex; align-items: center; gap: 12px; }
+.carte-activite-titre { display: flex; flex-direction: column; min-width: 0; }
+.carte-activite-titre strong { font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carte-activite-titre .doux { font-size: 0.9rem; }
+
+/* Statistiques : grands chiffres (ENF-15) */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 12px; margin-top: 14px; }
+.stat { display: flex; flex-direction: column; min-width: 0; }
+.stat-valeur { font-size: 1.15rem; font-weight: 700; white-space: nowrap; }
+.stat-etiquette { color: var(--texte-doux); font-size: 0.8rem; }
+.resume { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+.resume .stat-valeur { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
+.grille-stats { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); margin-top: 0; }
+@media (max-width: 380px) { .resume .stat-valeur { font-size: 1.3rem; } }
+
+/* Filtres par sport (F-12) : défilement horizontal limité à la rangée */
+.filtres { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 8px; scrollbar-width: none; }
+.filtres::-webkit-scrollbar { display: none; }
+.filtre {
+  flex: none;
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--bordure);
+  background: var(--surface);
+  color: var(--texte);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.filtre.actif { background: var(--texte); color: var(--fond); border-color: var(--texte); font-weight: 700; }
+
+/* Tirer pour rafraîchir (F-14) */
+.tirage { height: 0; overflow: hidden; color: var(--texte-doux); font-size: 0.85rem; transition: height 0.15s; display: flex; align-items: flex-end; justify-content: center; }
+.tirage.pret { color: var(--accent); }
+.icone-bouton.tourne { animation: tourne 0.9s linear infinite; }
+@keyframes tourne { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .icone-bouton.tourne { animation: none; opacity: 0.6; } }
+button.icone-bouton { cursor: pointer; font: inherit; font-size: 1.25rem; }
+.espace-bouton { width: var(--tactile); }
+.sentinelle { height: 1px; }
+.fin-liste { text-align: center; font-size: 0.85rem; margin: 16px 0; }
+
+/* Zones de temps (F-13) */
+.zone { display: grid; grid-template-columns: 30px 1fr 64px 44px; align-items: center; gap: 8px; margin: 8px 0; }
+.zone-nom { font-weight: 700; font-size: 0.9rem; }
+.zone-barre { height: 12px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
+.zone-remplie { display: block; height: 100%; width: 0; border-radius: 6px; background: var(--accent); }
+.zone-Z1 { background: #8FA3B8; }
+.zone-Z2 { background: #4CC25A; }
+.zone-Z3 { background: #E8C547; }
+.zone-Z4 { background: #FF8A3D; }
+.zone-Z5 { background: #FF5A4E; }
+.zone-Z6, .zone-Z7 { background: #C44DFF; }
+.zone-temps { text-align: right; font-variant-numeric: tabular-nums; font-size: 0.9rem; }
+.zone-pct { text-align: right; font-size: 0.85rem; }
+
+/* Tours et intervalles (F-13) */
+.tableau-defilant { overflow-x: auto; margin: 0 -18px; padding: 0 18px; }
+.intervalles { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.intervalles th { text-align: left; color: var(--texte-doux); font-weight: 600; padding: 6px 8px 8px 0; white-space: nowrap; }
+.intervalles td { padding: 8px 8px 8px 0; border-top: 1px solid var(--bordure); white-space: nowrap; }
+.intervalles tr.recup td { color: var(--texte-doux); }
+
+/* Ajustements des cartes et du résumé (ENF-02) */
+.stats-carte { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.badge-charge {
+  margin-left: auto;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 52px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-weight: 800;
+  line-height: 1.2;
+}
+.badge-charge small { font-weight: 500; font-size: 0.7rem; color: var(--texte-doux); }
+.resume .stat-valeur { white-space: normal; font-size: 1.45rem; line-height: 1.15; }

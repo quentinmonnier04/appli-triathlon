@@ -1,7 +1,7 @@
 // Session Intervals.icu : identifiants, connexion, déconnexion (F-01 à F-04, ENF-13, ENF-14).
 // L'affichage passe par ce module ; il ne reçoit jamais la clé enregistrée.
 
-import { initialiserStockage, lireReglages, ecrireReglages, toutEffacer } from '../cache/stockage.js';
+import { initialiserStockage, lireReglages, ecrireReglages, toutEffacer, viderCache } from '../cache/stockage.js';
 import { testerConnexion, memoriserAthlete } from './athlete.js';
 
 // Prépare le stockage au démarrage (4.2).
@@ -28,6 +28,7 @@ export async function connecter(athleteId, cleSaisie) {
   const cle = cleSaisie || cleEnregistree;
   const athlete = await testerConnexion(athleteId, cle);
   await ecrireReglages({ athleteId, cle });
+  await viderCache(); // un autre compte ne doit pas hériter du cache précédent (ENF-08)
   await memoriserAthlete(athlete);
   return athlete;
 }

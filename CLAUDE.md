@@ -507,6 +507,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | D-07 | 22/11/2026 | Serveur local lancé avec `--bind 127.0.0.1` (accès limité au PC). |
 | D-08 | 22/11/2026 | Test CORS réussi : Intervals.icu accepte les appels depuis le navigateur (en-tête `Authorization` autorisé, origine renvoyée telle quelle, y compris pour une origine GitHub Pages). Plan B (relais) inutile. |
 | D-09 | 22/11/2026 | Arborescence ajustée en L0 : `api/session.js` (identifiants, connexion, déconnexion ; l'affichage ne reçoit jamais la clé), `logique/connexion.js` (contrôle des identifiants, en-tête d'authentification), `logique/messages.js` (messages 9.5), `js/version.js` (`VERSION_APP`), `creer_icones.py` (icônes). |
+| D-10 | 22/11/2026 | L1 : ajout de `logique/activites.js` (filtre, fusion des pages, zones, validité du cache). Fil chargé par pages de 20 (`limit` + `newest`), avec `fields` limité aux champs des cartes. Durée affichée = temps en mouvement (`moving_time`), sinon temps total. Champ `a_gps` reporté à L7 (champ de position à vérifier dans la documentation). Le cache est vidé à chaque nouvelle connexion. |
 
 ---
 
@@ -515,8 +516,9 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | Lot | Statut |
 |---|---|
 | L0 | Validé le 22/11/2026 (connexion réelle à Intervals.icu OK) ; installation sur téléphone à faire après la mise en ligne |
-| L1 à L7 | À faire |
+| L1 | Code écrit, recette PC faite ; vérification avec mes vraies activités à faire |
+| L2 à L7 | À faire |
 
 **Ancien code v1.0** : supprimé (commit « Suppression du code v1.0 »), récupérable dans l'historique git.
 
-**Prochaine étape :** lot L1 (Activités).
+**Prochaine étape :** valider L1 avec mes vraies activités (critère 9.7), puis lot L2.

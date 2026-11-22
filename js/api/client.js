@@ -2,6 +2,7 @@
 // La clé API n'est jamais écrite dans la console ni dans les messages d'erreur (ENF-13).
 
 import { enteteAuthorization } from '../logique/connexion.js';
+import { lireReglages } from '../cache/stockage.js';
 
 const BASE = 'https://intervals.icu/api/v1';
 
@@ -20,10 +21,12 @@ export function typeErreurHttp(statut) {
 }
 
 // Requête GET authentifiée ; renvoie le JSON ou lève une ErreurApi.
-export async function requeteGet(chemin, cle) {
+// params : paramètres de requête facultatifs ({ oldest: '2026-01-01', ... }).
+export async function requeteGet(chemin, cle, params = null) {
   let reponse;
+  const requete = params ? `?${new URLSearchParams(params)}` : '';
   try {
-    reponse = await fetch(BASE + chemin, {
+    reponse = await fetch(BASE + chemin + requete, {
       headers: { Authorization: enteteAuthorization(cle), Accept: 'application/json' },
     });
   } catch {
@@ -31,4 +34,11 @@ export async function requeteGet(chemin, cle) {
   }
   if (!reponse.ok) throw new ErreurApi(typeErreurHttp(reponse.status), reponse.status);
   return reponse.json();
+}
+
+// Requête GET avec la clé enregistrée sur l'appareil (ENF-13 : la clé ne sort pas de api/ et cache/).
+export async function requeteAuthentifiee(chemin, params = null) {
+  const { cle } = await lireReglages();
+  if (!cle) throw new ErreurApi('IDENTIFIANTS');
+  return requeteGet(chemin, cle, params);
 }

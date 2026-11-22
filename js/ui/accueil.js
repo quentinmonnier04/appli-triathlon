@@ -20,6 +20,11 @@ export async function afficherAccueil(conteneur) {
         <div class="grand-chiffre">${echapperHtml(athlete.nom)}</div>
         <p class="doux">Connecté à Intervals.icu.</p>
       </div>
+      <a class="carte carte-lien" href="#/activites">
+        <h2>Mes activités</h2>
+        <p class="doux">Parcours tes activités réalisées et leurs détails.</p>
+        <span class="lien-fleche" aria-hidden="true">→</span>
+      </a>
       <div class="carte">
         <h2>Tableau de bord</h2>
         <p class="doux">Ta séance du jour, ta dernière activité et ta forme s'afficheront ici.</p>

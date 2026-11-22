@@ -84,8 +84,14 @@ export async function lireCache(cle) {
   return (await lire('cache', cle)) ?? null;
 }
 
-export async function ecrireCache(cle, donnees) {
-  await ecrire('cache', cle, { donnees, charge_le: new Date().toISOString() });
+// chargeLe : date de chargement à conserver (ajout d'une page à des données déjà chargées).
+export async function ecrireCache(cle, donnees, chargeLe = new Date().toISOString()) {
+  await ecrire('cache', cle, { donnees, charge_le: chargeLe });
+}
+
+// Vide le cache seul (ENF-08 : tout se recharge depuis Intervals.icu).
+export async function viderCache() {
+  await vider(['cache']);
 }
 
 // "Se déconnecter" (F-03, ENF-14) : identifiants et cache effacés.

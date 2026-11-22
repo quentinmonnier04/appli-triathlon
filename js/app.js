@@ -4,26 +4,31 @@ import { demarrerSession, estConnecte } from './api/session.js';
 import { afficherBienvenue } from './ui/bienvenue.js';
 import { afficherAccueil } from './ui/accueil.js';
 import { afficherReglages } from './ui/reglages.js';
+import { afficherActivites } from './ui/activites.js';
+import { afficherActivite } from './ui/activite.js';
 
 const conteneur = document.getElementById('app');
 const navigation = document.getElementById('navigation');
 
-// Écrans livrés en L0 (9.1).
+// Écrans livrés (9.1) : L0 (bienvenue, accueil, réglages), L1 (activités, détail).
 const ROUTES = {
   bienvenue: afficherBienvenue,
   accueil: afficherAccueil,
   reglages: afficherReglages,
+  activites: afficherActivites,
+  activite: afficherActivite,
 };
 // Écrans accessibles sans identifiants (F-04).
 const ROUTES_PUBLIQUES = ['bienvenue', 'reglages'];
 
-// Lit "#/route/..." et renvoie le nom de la route.
-function routeCourante() {
-  return location.hash.replace(/^#\/?/, '').split(/[/?]/)[0];
+// Lit "#/route/param?..." et renvoie les segments du chemin (ex. ['activite', 'i123']).
+function segmentsCourants() {
+  return location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean);
 }
 
 async function afficherRoute() {
-  const route = routeCourante();
+  const segments = segmentsCourants();
+  const route = segments[0] ?? '';
   const connecte = await estConnecte();
   // F-04 : sans identifiants, tout renvoie vers l'écran de bienvenue (sauf Réglages)
   if (!connecte && !ROUTES_PUBLIQUES.includes(route)) return location.replace('#/bienvenue');
@@ -31,8 +36,9 @@ async function afficherRoute() {
   if (!ROUTES[route]) return location.replace('#/bienvenue');
 
   navigation.classList.toggle('masque', !connecte);
-  navigation.querySelectorAll('a').forEach((a) => a.classList.toggle('actif', a.dataset.onglet === route));
-  await ROUTES[route](conteneur);
+  const onglet = route === 'activite' ? 'activites' : route; // le détail dépend de l'onglet Activités
+  navigation.querySelectorAll('a').forEach((a) => a.classList.toggle('actif', a.dataset.onglet === onglet));
+  await ROUTES[route](conteneur, segments);
   window.scrollTo(0, 0);
 }
 
