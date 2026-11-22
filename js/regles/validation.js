@@ -76,3 +76,14 @@ export function formaterDistanceSaisie(m, sport) {
   if (sport === 'NATATION') return String(m);
   return String(m / 1000).replace('.', ',');
 }
+
+// --- Allure (4.4, F-22) : calculée, jamais stockée ---
+
+// CAP : "m:ss /km" ; natation : "m:ss /100 m" ; vélo : "xx,x km/h" ; sinon null.
+export function calculerAllure(sport, duree_s, distance_m) {
+  if (!(duree_s > 0) || !(distance_m > 0)) return null;
+  if (sport === 'CAP') return `${formaterDureeCourte(duree_s / (distance_m / 1000))} /km`;
+  if (sport === 'NATATION') return `${formaterDureeCourte(duree_s / (distance_m / 100))} /100 m`;
+  if (sport === 'VELO') return `${((distance_m / 1000) / (duree_s / 3600)).toFixed(1).replace('.', ',')} km/h`;
+  return null;
+}
