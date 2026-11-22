@@ -62,7 +62,7 @@ export function volumeSemaine(prevues, activites, lundi) {
   const dans = (e) => e.date >= lundi && e.date <= dimanche;
   const p = prevues.filter(dans);
   const r = activites.filter(dans);
-  return SPORTS.map((s) => s.code)
+  return SPORTS.map((s) => s.code).filter((code) => code !== 'REPOS') // le repos n'a pas de volume (F-46)
     .filter((code) => p.some((e) => e.sport === code) || r.some((e) => e.sport === code))
     .map((code) => ({
       sport: code,

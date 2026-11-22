@@ -7,11 +7,12 @@ import { afficherReglages } from './ui/reglages.js';
 import { afficherActivites } from './ui/activites.js';
 import { afficherActivite } from './ui/activite.js';
 import { afficherAgenda } from './ui/agenda.js';
+import { afficherProgrammer } from './ui/programmer.js';
 
 const conteneur = document.getElementById('app');
 const navigation = document.getElementById('navigation');
 
-// Écrans livrés (9.1) : L0 (bienvenue, accueil, réglages), L1 (activités, détail), L3 (agenda).
+// Écrans livrés (9.1) : L0 (bienvenue, accueil, réglages), L1 (activités, détail), L3 (agenda), L4 (programmer).
 const ROUTES = {
   bienvenue: afficherBienvenue,
   accueil: afficherAccueil,
@@ -19,6 +20,7 @@ const ROUTES = {
   activites: afficherActivites,
   activite: afficherActivite,
   agenda: afficherAgenda,
+  seance: afficherProgrammer,
 };
 // Écrans accessibles sans identifiants (F-04).
 const ROUTES_PUBLIQUES = ['bienvenue', 'reglages'];

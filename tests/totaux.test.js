@@ -35,6 +35,11 @@ test('sports de chaque jour, sans doublon (F-24)', () => {
   assert.deepEqual(s['2026-11-22'], ['CAP']);
 });
 
+test('volume de la semaine : le repos n\'est pas un sport à comptabiliser (F-25, F-46)', () => {
+  const v = volumeSemaine([{ date: '2026-11-18', sport: 'REPOS', duree_s: null }], [], '2026-11-16');
+  assert.deepEqual(v, []);
+});
+
 test('volume de la semaine prévu et réalisé par sport (F-25)', () => {
   const prevues = [{ date: '2026-11-17', sport: 'CAP', duree_s: 3600 }, { date: '2026-11-21', sport: 'NATATION', duree_s: 2700 },
     { date: '2026-11-23', sport: 'CAP', duree_s: 9999 }];

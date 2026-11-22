@@ -60,7 +60,8 @@ function vueListe(debut, fin, parJour, aujourdhui, tousLesJours) {
   if (!jours.length) return '<p class="doux jour-vide">Rien sur cette période.</p>';
   return jours.map((d) => `<section class="jour-agenda">
     <h2 class="titre-jour${d === aujourdhui ? ' aujourdhui' : ''}">${echapperHtml(formaterDateHeure(d, null))}${d === aujourdhui ? ' · aujourd\'hui' : ''}</h2>
-    ${contenuJour(parJour[d])}</section>`).join('');
+    ${contenuJour(parJour[d])}
+    ${tousLesJours ? `<a class="lien-action lien-programmer" href="#/seance/nouvelle?date=${d}">+ Programmer</a>` : ''}</section>`).join('');
 }
 
 export async function afficherAgenda(conteneur, segments, params = {}) {
@@ -99,7 +100,8 @@ export async function afficherAgenda(conteneur, segments, params = {}) {
     if (vue !== 'mois' || !donnees) return;
     const parJour = elementsParJour(donnees.activites, donnees.prevues);
     $('#jour').innerHTML = jourChoisi
-      ? `<h2 class="titre-jour">${echapperHtml(formaterDateHeure(jourChoisi, null))}</h2>${contenuJour(parJour[jourChoisi])}`
+      ? `<h2 class="titre-jour">${echapperHtml(formaterDateHeure(jourChoisi, null))}</h2>${contenuJour(parJour[jourChoisi])}
+        <a class="bouton bouton-programmer" href="#/seance/nouvelle?date=${jourChoisi}">+ Programmer ce jour</a>`
       : '';
   }
 

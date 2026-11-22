@@ -4,7 +4,43 @@ import assert from 'node:assert/strict';
 import { convertirAthlete } from '../js/api/athlete.js';
 import { typeErreurHttp } from '../js/api/client.js';
 import { convertirActivite, convertirIntervalle, CHAMPS_FIL } from '../js/api/activites.js';
-import { convertirSeancePrevue } from '../js/api/evenements.js';
+import { convertirSeancePrevue, versEvenement, estAffichable } from '../js/api/evenements.js';
+import { convertirModele } from '../js/api/bibliotheque.js';
+
+test('séance structurée -> corps EventEx : texte de séance dans description, sans durée imposée (F-42)', () => {
+  const blocs = [{ type: 'REPETITIONS', cible: 'HR', repetitions: 5, effort: { duree_s: 240, zone: 4 }, recup: { duree_s: 120, zone: 1 } }];
+  assert.deepEqual(versEvenement({ date: '2026-11-24', sport: 'VELO', titre: 'PMA', blocs, description: 'ignorée' }), {
+    category: 'WORKOUT', start_date_local: '2026-11-24T00:00:00', type: 'Ride', name: 'PMA',
+    description: 'Série 5x\n- 4m Z4 HR\n- Récup 2m Z1 HR',
+  });
+});
+
+test('séance simple -> corps EventEx avec durée, distance et description (F-40)', () => {
+  assert.deepEqual(versEvenement({ date: '2026-11-25', sport: 'CAP', titre: 'Footing', duree_s: 2700, distance_m: 8000, description: 'Tranquille', blocs: [] }), {
+    category: 'WORKOUT', start_date_local: '2026-11-25T00:00:00', type: 'Run', name: 'Footing', description: 'Tranquille', moving_time: 2700, distance: 8000,
+  });
+});
+
+test('repos -> note du calendrier (F-46)', () => {
+  assert.deepEqual(versEvenement({ date: '2026-11-26', sport: 'REPOS', titre: 'Repos', description: '' }), {
+    category: 'NOTE', start_date_local: '2026-11-26T00:00:00', name: 'Repos', description: '',
+  });
+});
+
+test('lecture : note "Repos" = séance de repos ; autres notes ignorées ; blocs relus', () => {
+  const repos = convertirSeancePrevue({ id: 9, start_date_local: '2026-11-26T00:00:00', category: 'NOTE', name: 'Repos' });
+  assert.equal(repos.sport, 'REPOS');
+  assert.equal(estAffichable({ category: 'NOTE', name: 'Repos complet' }), true);
+  assert.equal(estAffichable({ category: 'NOTE', name: 'Anniversaire' }), false);
+  assert.equal(estAffichable({ category: 'WORKOUT', name: 'x' }), true);
+  const s = convertirSeancePrevue({ id: 3, start_date_local: '2026-11-24T00:00:00', category: 'WORKOUT', type: 'Ride', name: 'PMA', description: 'Série 5x\n- 4m Z4 HR' });
+  assert.deepEqual(s.blocs, [{ type: 'REPETITIONS', cible: 'HR', repetitions: 5, effort: { duree_s: 240, zone: 4 }, recup: null }]);
+});
+
+test('modèle de la bibliothèque Intervals.icu -> objet interne (F-47)', () => {
+  assert.deepEqual(convertirModele({ id: 12, name: 'Sweet spot', type: 'Ride', description: '- 20m 90%', moving_time: 3600, folder_id: 2 }),
+    { id: '12', titre: 'Sweet spot', sport: 'VELO', description: '- 20m 90%', duree_s: 3600, distance_m: null, blocs: null });
+});
 import { convertirForme } from '../js/api/wellness.js';
 
 test('événement WORKOUT -> objet interne SeancePrevue (9.2)', () => {

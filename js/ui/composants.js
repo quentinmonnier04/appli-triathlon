@@ -44,15 +44,15 @@ export function stat(etiquette, valeur) {
   return `<div class="stat"><span class="stat-valeur">${echapperHtml(valeur)}</span><span class="stat-etiquette">${echapperHtml(etiquette)}</span></div>`;
 }
 
-// Carte d'une séance prévue, dessinée en contour pour la distinguer du réalisé (F-32).
+// Carte d'une séance prévue, dessinée en contour pour la distinguer du réalisé (F-32) ; elle ouvre la modification (F-43).
 export function carteSeancePrevue(s) {
   const details = [formaterDuree(s.duree_s), formaterDistance(s.distance_m, s.sport)].filter(Boolean).join(' · ');
   const sp = sport(s.sport);
-  return `<div class="carte carte-prevue sport-${sp.code}">
+  return `<a class="carte carte-prevue sport-${sp.code}" href="#/seance/${encodeURIComponent(s.id)}">
     <div class="carte-activite-tete"><span class="pastille pastille-contour sport-${sp.code}" role="img" aria-label="${echapperHtml(sp.libelle)}">${sp.icone}</span>
       <div class="carte-activite-titre"><strong>${echapperHtml(s.titre)}</strong>
         <span class="doux">Prévu · ${echapperHtml(sp.libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
-    ${s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : ''}</div>`;
+    ${s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : ''}</a>`;
 }
 
 // Carte d'une activité dans le fil (F-11) : sport, titre, date et heure, distance, durée, vitesse ou allure, charge.

@@ -20,25 +20,36 @@ export function typeErreurHttp(statut) {
   return statut === 401 || statut === 403 ? 'IDENTIFIANTS' : 'SERVEUR';
 }
 
-// Requête GET authentifiée ; renvoie le JSON ou lève une ErreurApi.
-// params : paramètres de requête facultatifs ({ oldest: '2026-01-01', ... }).
-export async function requeteGet(chemin, cle, params = null) {
+// Requête authentifiée ; renvoie le JSON (ou null si la réponse est vide) ou lève une ErreurApi.
+// options : { methode: 'GET' | 'POST' | 'PUT' | 'DELETE', params: {...}, corps: objet envoyé en JSON }.
+export async function requete(chemin, cle, { methode = 'GET', params = null, corps = undefined } = {}) {
+  const enTetes = { Authorization: enteteAuthorization(cle), Accept: 'application/json' };
+  if (corps !== undefined) enTetes['Content-Type'] = 'application/json';
+  const parametres = params ? `?${new URLSearchParams(params)}` : '';
   let reponse;
-  const requete = params ? `?${new URLSearchParams(params)}` : '';
   try {
-    reponse = await fetch(BASE + chemin + requete, {
-      headers: { Authorization: enteteAuthorization(cle), Accept: 'application/json' },
+    reponse = await fetch(BASE + chemin + parametres, {
+      method: methode,
+      headers: enTetes,
+      body: corps === undefined ? undefined : JSON.stringify(corps),
     });
   } catch {
     throw new ErreurApi('RESEAU');
   }
   if (!reponse.ok) throw new ErreurApi(typeErreurHttp(reponse.status), reponse.status);
-  return reponse.json();
+  const texte = await reponse.text();
+  return texte ? JSON.parse(texte) : null;
 }
 
-// Requête GET avec la clé enregistrée sur l'appareil (ENF-13 : la clé ne sort pas de api/ et cache/).
-export async function requeteAuthentifiee(chemin, params = null) {
+// Requête GET avec une clé donnée (test de connexion, F-01).
+export async function requeteGet(chemin, cle, params = null) {
+  return requete(chemin, cle, { params });
+}
+
+// Requête avec la clé enregistrée sur l'appareil (ENF-13 : la clé ne sort pas de api/ et cache/).
+// Deuxième argument : paramètres de requête (lecture) ; troisième : méthode et corps (écriture, L4).
+export async function requeteAuthentifiee(chemin, params = null, options = {}) {
   const { cle } = await lireReglages();
   if (!cle) throw new ErreurApi('IDENTIFIANTS');
-  return requeteGet(chemin, cle, params);
+  return requete(chemin, cle, { ...options, params });
 }

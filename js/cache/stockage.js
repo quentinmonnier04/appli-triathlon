@@ -89,6 +89,17 @@ export async function ecrireCache(cle, donnees, chargeLe = new Date().toISOStrin
   await ecrire('cache', cle, { donnees, charge_le: chargeLe });
 }
 
+// Supprime les entrées du cache dont la clé commence par le préfixe donné (après une écriture, L4).
+export async function supprimerCachePrefixe(prefixe) {
+  const db = await ouvrir();
+  const tx = db.transaction('cache', 'readwrite');
+  const store = tx.objectStore('cache');
+  store.getAllKeys().onsuccess = (ev) => {
+    for (const cle of ev.target.result) if (String(cle).startsWith(prefixe)) store.delete(cle);
+  };
+  await finTransaction(tx);
+}
+
 // Vide le cache seul (ENF-08 : tout se recharge depuis Intervals.icu).
 export async function viderCache() {
   await vider(['cache']);

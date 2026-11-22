@@ -27,15 +27,16 @@ function widgetSeanceDuJour(prevues, jour) {
   if (!duJour.length) {
     return `<div class="carte"><div class="etiquette-carte">Séance du jour</div>
       <div class="carte-activite-tete">${pastilleSport('REPOS')}
-        <div class="carte-activite-titre"><strong>Repos</strong><span class="doux">Rien n'est prévu aujourd'hui.</span></div></div></div>`;
+        <div class="carte-activite-titre"><strong>Repos</strong><span class="doux">Rien n'est prévu aujourd'hui.</span></div></div>
+      <a class="bouton" href="#/seance/nouvelle?date=${jour}">Programmer une séance</a></div>`;
   }
   return `<div class="carte"><div class="etiquette-carte">Séance du jour</div>
     ${duJour.map((s) => {
     const details = [formaterDuree(s.duree_s), formaterDistance(s.distance_m, s.sport)].filter(Boolean).join(' · ');
-    return `<div class="seance-du-jour"><div class="carte-activite-tete">${pastilleSport(s.sport)}
+    return `<a class="seance-du-jour" href="#/seance/${encodeURIComponent(s.id)}"><div class="carte-activite-tete">${pastilleSport(s.sport)}
         <div class="carte-activite-titre"><strong>${echapperHtml(s.titre)}</strong>
           <span class="doux">${echapperHtml(sport(s.sport).libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
-        ${s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : ''}</div>`;
+        ${s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : ''}</a>`;
   }).join('')}</div>`;
 }
 
