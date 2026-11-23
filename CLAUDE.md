@@ -526,10 +526,10 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | L2 | Validé le 23/11/2026 |
 | L3 | Validé le 23/11/2026 |
 | L4 | Validé le 23/11/2026 |
-| L5 | Code écrit, recette PC faite (réponses simulées) ; vérification avec mes vraies données à faire (totaux et seuils comparés à Intervals.icu) |
-| L6 | Code écrit, recette PC faite (réponses simulées) ; test réel à faire (RPE et bilan visibles dans Intervals.icu) |
+| L5 | Validé le 23/11/2026 (seuils, zones et totaux conformes à Intervals.icu) |
+| L6 | Validé le 23/11/2026 (conversions conformes à Intervals.icu) |
 | L7 | À faire |
 
 **Ancien code v1.0** : supprimé (commit « Suppression du code v1.0 »), récupérable dans l'historique git.
 
-**Prochaine étape :** valider L5 et L6 avec mes vraies données (critères 9.7), puis lot L7 (cartes).
+**Prochaine étape :** lot L7 (cartes de parcours).
