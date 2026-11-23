@@ -18,6 +18,13 @@ export const CHAMPS_EVENEMENTS = [
 
 const ou = (v) => (v === undefined ? null : v);
 
+// Heure d'une séance dans start_date_local ("AAAA-MM-JJThh:mm:ss") ; minuit = sans heure (F-40, F-81).
+const heureDe = (debut) => {
+  const h = String(debut ?? '').slice(11, 16);
+  return h && h !== '00:00' ? h : null;
+};
+const debutLocal = (date, heure) => `${date}T${heure ?? '00:00'}:00`;
+
 // Une note est une séance de repos si son titre commence par "Repos" (F-46) ; les autres notes ne sont pas affichées.
 // La course objectif (RACE_A) est affichée dans l'agenda et sur l'accueil (F-80).
 const estRepos = (brut) => brut.category === 'NOTE' && /^repos/i.test(brut.name ?? '');
@@ -30,13 +37,14 @@ export function convertirSeancePrevue(brut) {
   const code = estRepos(brut) ? 'REPOS' : sportDepuisType(brut.type);
   if (brut.category === 'RACE_A') {
     return {
-      id: String(brut.id), date: (brut.start_date_local ?? '').slice(0, 10), sport: code, titre: brut.name || 'Objectif',
+      id: String(brut.id), date: (brut.start_date_local ?? '').slice(0, 10), heure: heureDe(brut.start_date_local), sport: code, titre: brut.name || 'Objectif',
       duree_s: null, distance_m: null, description: null, blocs: null, objectif: true,
     };
   }
   return {
     id: String(brut.id),
     date: (brut.start_date_local ?? '').slice(0, 10),
+    heure: heureDe(brut.start_date_local),
     sport: code,
     titre: brut.name || sport(code).libelle,
     duree_s: ou(brut.moving_time ?? brut.time_target),
@@ -49,7 +57,7 @@ export function convertirSeancePrevue(brut) {
 // Séance de l'appli -> corps EventEx pour la création ou la modification (F-40, F-42, F-46).
 // Séance structurée : seul le texte de séance est envoyé ; Intervals.icu en déduit la durée.
 export function versEvenement(s) {
-  const base = { start_date_local: `${s.date}T00:00:00` };
+  const base = { start_date_local: debutLocal(s.date, s.heure) };
   if (s.sport === 'REPOS') return { category: 'NOTE', ...base, name: s.titre || 'Repos', description: s.description ?? '' };
   const corps = { category: 'WORKOUT', ...base, type: sportVersType(s.sport), name: s.titre };
   if (s.blocs?.length) {
@@ -98,8 +106,13 @@ export async function modifierSeance(id, s) {
 }
 
 // Déplacement vers une autre date (F-44) : seule la date est envoyée.
-export async function deplacerSeance(id, date) {
-  const brut = await requeteAuthentifiee(chemin(id), null, { methode: 'PUT', corps: { start_date_local: `${date}T00:00:00` } });
+// Corps du déplacement : la nouvelle date, à la même heure (F-44).
+export function corpsDeplacement(date, heure) {
+  return { start_date_local: debutLocal(date, heure) };
+}
+
+export async function deplacerSeance(id, date, heure = null) {
+  const brut = await requeteAuthentifiee(chemin(id), null, { methode: 'PUT', corps: corpsDeplacement(date, heure) });
   await invaliderCaches();
   return convertirSeancePrevue(brut);
 }

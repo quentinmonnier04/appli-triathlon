@@ -46,7 +46,7 @@ import { convertirForme } from '../js/api/wellness.js';
 test('événement WORKOUT -> objet interne SeancePrevue (9.2)', () => {
   assert.deepEqual(convertirSeancePrevue({ id: 77, start_date_local: '2026-11-22T00:00:00', category: 'WORKOUT', type: 'Run',
     name: 'Fractionné', moving_time: 3600, distance: 10000, description: '5x1km' }), {
-    id: '77', date: '2026-11-22', sport: 'CAP', titre: 'Fractionné', duree_s: 3600, distance_m: 10000, description: '5x1km', blocs: null,
+    id: '77', date: '2026-11-22', heure: null, sport: 'CAP', titre: 'Fractionné', duree_s: 3600, distance_m: 10000, description: '5x1km', blocs: null,
   });
 });
 

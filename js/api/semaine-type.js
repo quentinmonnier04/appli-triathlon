@@ -53,6 +53,7 @@ export function texteVersReglages(texte) {
 // Séance type (jour 1 = lundi ... 7 = dimanche) -> corps WorkoutEx.
 export function versSeanceBibliotheque(s, folderId) {
   const tags = [ETIQUETTE, `jour-${s.jour}`];
+  if (s.heure) tags.push(`heure-${s.heure}`); // le modèle Workout n'a pas de champ d'heure
   if (s.sport === 'REPOS') {
     return { name: s.titre || 'Repos', type: 'Other', folder_id: folderId, tags: [...tags, 'repos'], description: s.description ?? '' };
   }
@@ -68,14 +69,16 @@ export function versSeanceBibliotheque(s, folderId) {
 export function convertirSeanceType(brut) {
   const tags = brut.tags ?? [];
   const jour = Number(tags.find((t) => /^jour-[1-7]$/.test(t))?.slice(5) ?? 1);
+  const heure = tags.find((t) => /^heure-([01]\d|2[0-3]):[0-5]\d$/.test(t))?.slice(6) ?? null;
   if (tags.includes('repos')) {
-    return { id: String(brut.id), jour, sport: 'REPOS', titre: brut.name || 'Repos', duree_s: null, distance_m: null, description: brut.description ?? '', blocs: null };
+    return { id: String(brut.id), jour, heure, sport: 'REPOS', titre: brut.name || 'Repos', duree_s: null, distance_m: null, description: brut.description ?? '', blocs: null };
   }
   const code = sportDepuisType(brut.type);
   const blocs = texteVersBlocs(brut.description);
   return {
     id: String(brut.id),
     jour,
+    heure,
     sport: code,
     titre: brut.name || sport(code).libelle,
     duree_s: ou(brut.moving_time),

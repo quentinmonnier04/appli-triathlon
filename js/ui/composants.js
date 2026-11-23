@@ -52,7 +52,7 @@ export function carteSeancePrevue(s) {
   return `<a class="carte carte-prevue sport-${sp.code}" href="#/seance/${encodeURIComponent(s.id)}">
     <div class="carte-activite-tete"><span class="pastille pastille-contour sport-${sp.code}" role="img" aria-label="${echapperHtml(sp.libelle)}">${sp.icone}</span>
       <div class="carte-activite-titre"><strong>${echapperHtml(s.titre)}</strong>
-        <span class="doux">Prévu · ${echapperHtml(sp.libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
+        <span class="doux">Prévu · ${s.heure ? `${s.heure} · ` : ''}${echapperHtml(sp.libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
     ${s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : ''}</a>`;
 }
 

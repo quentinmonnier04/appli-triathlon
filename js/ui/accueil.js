@@ -37,7 +37,7 @@ function widgetSeanceDuJour(prevues, jour) {
     const details = [formaterDuree(s.duree_s), formaterDistance(s.distance_m, s.sport)].filter(Boolean).join(' · ');
     return `<a class="seance-du-jour" href="#/seance/${encodeURIComponent(s.id)}"><div class="carte-activite-tete">${pastilleSport(s.sport)}
         <div class="carte-activite-titre"><strong>${echapperHtml(s.titre)}</strong>
-          <span class="doux">${echapperHtml(sport(s.sport).libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
+          <span class="doux">${s.heure ? `${s.heure} · ` : ''}${echapperHtml(sport(s.sport).libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
         ${s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : ''}</a>`;
   }).join('')}</div>`;
 }

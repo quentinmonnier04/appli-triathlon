@@ -2,7 +2,8 @@
 // de texte Intervals.icu (F-42), modification et suppression (F-43), déplacement (F-44), duplication (F-45),
 // repos (F-46), bibliothèque Intervals.icu (F-47). Écriture en ligne seulement (ENF-07, D-05).
 // Routes : #/seance/nouvelle?date=...&depuis=...  et  #/seance/{id}
-// L8 : le même éditeur sert aux séances de la semaine type (F-81) : #/seance-type/nouvelle?jour=N et #/seance-type/{id}.
+// L8 : le même éditeur sert aux séances de la semaine type (F-81) : #/seance-type/nouvelle?jour=N&heure=hh:mm et #/seance-type/{id}.
+// Heure facultative pour toutes les séances (F-40, F-81).
 
 import { lireSeance, creerSeance, modifierSeance, deplacerSeance, supprimerSeance } from '../api/evenements.js';
 import { listerModeles } from '../api/bibliotheque.js';
@@ -93,6 +94,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   // État du formulaire : nouvelle séance, copie (F-45) ou séance existante (F-43).
   let etat = { date: params.date || jourISO(), sport: 'CAP', titre: '', duree_s: null, distance_m: null, description: '', blocs: [] };
   if (modeType) etat.jour = Math.min(7, Math.max(1, Number(params.jour) || 1));
+  etat.heure = /^\d{2}:\d{2}$/.test(params.heure ?? '') ? params.heure : null;
   let structuree = false;
   try {
     const source = id ?? (modeType ? null : params.depuis);
@@ -121,6 +123,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
         ${modeType
     ? `<div class="champ"><label for="jour">Jour</label><select id="jour">${JOURS.map((j, i) => `<option value="${i + 1}" ${etat.jour === i + 1 ? 'selected' : ''}>${j}</option>`).join('')}</select></div>`
     : `<div class="champ"><label for="date">Date</label><input type="date" id="date" value="${etat.date}" required></div>`}
+        <div class="champ"><label for="heure">Heure (facultatif)</label><input type="time" id="heure" value="${etat.heure ?? ''}"></div>
         <div class="champ"><label for="titre">Titre</label><input id="titre" maxlength="80" value="${echapperHtml(etat.titre)}" placeholder="Ex. Fractionné 6 x 800 m"></div>
         <div id="zone-bibliotheque"></div>
       </div>
@@ -221,6 +224,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
     etat.titre = $('#titre').value.trim();
     if ($('#date')) etat.date = $('#date').value;
     if ($('#jour')) etat.jour = Number($('#jour').value);
+    etat.heure = $('#heure').value || null;
     if ($('#description')) etat.description = $('#description').value;
     if ($('#duree')) etat.duree_s = $('#duree').value.trim() ? lireDureeSaisie($('#duree').value) ?? -1 : null;
     if ($('#distance')) {
@@ -366,7 +370,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
       const date = $('#nouvelle-date').value;
       if (!date) return;
       try {
-        await deplacerSeance(id, date);
+        await deplacerSeance(id, date, etat.heure); // F-44 : même heure
         location.hash = `#/agenda?vue=semaine&date=${date}`;
       } catch (e) {
         $('#resultat').innerHTML = messageErreurApi(e);

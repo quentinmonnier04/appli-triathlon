@@ -179,6 +179,8 @@ export function validerSeance(s) {
   if (!String(s.titre ?? '').trim()) erreurs.titre = 'Champ obligatoire.';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s.date ?? '')) erreurs.date = 'Choisis une date.';
   if (!s.sport) erreurs.sport = 'Champ obligatoire.';
+  // Heure facultative (F-40, F-81) : hh:mm, de 00:00 à 23:59.
+  if (s.heure !== null && s.heure !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(s.heure)) erreurs.heure = 'Heure attendue au format hh:mm.';
   const etapeValide = (e) => Boolean(e) && ((e.duree_s ?? 0) > 0 || (e.distance_m ?? 0) > 0)
     && (e.zone === null || e.zone === undefined || (Number.isInteger(e.zone) && e.zone >= 1 && e.zone <= 5));
   (s.blocs ?? []).forEach((b, i) => {

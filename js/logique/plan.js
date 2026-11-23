@@ -163,7 +163,11 @@ export function externalId(objectifId, numero, date, index) {
 export function genererPlan({ semaineType, reglages, dateCourse, allures = {}, objectifId }) {
   const lundis = lundisDuPlan(reglages.debut, dateCourse);
   const coefficients = coefficientsPlan(lundis.length, reglages, volumeSemaine_s(semaineType, allures));
-  const ordre = semaineType.map((s, i) => ({ s, i })).sort((a, b) => a.s.jour - b.s.jour || a.i - b.i).map((x) => x.s);
+  // Ordre : jour, puis heure (sans heure en premier), puis ordre de la semaine type.
+  const cle = (s) => s.heure ?? '';
+  const ordre = semaineType.map((s, i) => ({ s, i }))
+    .sort((a, b) => a.s.jour - b.s.jour || (cle(a.s) < cle(b.s) ? -1 : cle(a.s) > cle(b.s) ? 1 : 0) || a.i - b.i)
+    .map((x) => x.s);
   return coefficients.map((c, i) => {
     const lundi = lundis[i];
     const seances = ordre

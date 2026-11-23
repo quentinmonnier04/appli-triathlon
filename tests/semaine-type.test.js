@@ -20,7 +20,7 @@ test('réglages <-> texte lisible de la description du dossier', () => {
   assert.deepEqual(texteVersReglages(null), REGLAGES_PAR_DEFAUT);
 });
 
-const structuree = { jour: 2, sport: 'CAP', titre: 'Fractionné', duree_s: null, distance_m: null, description: null, blocs: [
+const structuree = { jour: 2, heure: null, sport: 'CAP', titre: 'Fractionné', duree_s: null, distance_m: null, description: null, blocs: [
   { type: 'ECHAUFFEMENT', cible: 'PACE', etape: { duree_s: 900, zone: 2 } },
   { type: 'REPETITIONS', cible: 'PACE', repetitions: 5, effort: { duree_s: 240, zone: 4 }, recup: { duree_s: 120, zone: 1 } }] };
 
@@ -34,11 +34,11 @@ test('séance type structurée -> séance de bibliothèque et retour', () => {
 });
 
 test('séance type simple et repos -> bibliothèque et retour', () => {
-  const simple = { jour: 7, sport: 'VELO', titre: 'Sortie longue', duree_s: 7200, distance_m: 60000, description: 'Tranquille', blocs: null };
+  const simple = { jour: 7, heure: null, sport: 'VELO', titre: 'Sortie longue', duree_s: 7200, distance_m: 60000, description: 'Tranquille', blocs: null };
   const w = versSeanceBibliotheque(simple, 42);
   assert.deepEqual(w, { name: 'Sortie longue', type: 'Ride', folder_id: 42, tags: ['semaine-type', 'jour-7'], description: 'Tranquille', moving_time: 7200, distance: 60000 });
   assert.deepEqual(convertirSeanceType({ id: 8, ...w }), { id: '8', ...simple });
-  const repos = { jour: 1, sport: 'REPOS', titre: 'Repos', duree_s: null, distance_m: null, description: '', blocs: null };
+  const repos = { jour: 1, heure: null, sport: 'REPOS', titre: 'Repos', duree_s: null, distance_m: null, description: '', blocs: null };
   const wr = versSeanceBibliotheque(repos, 42);
   assert.deepEqual(wr.tags, ['semaine-type', 'jour-1', 'repos']);
   assert.equal(wr.type, 'Other');
