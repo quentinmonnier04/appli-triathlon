@@ -512,6 +512,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | D-12 | 22/11/2026 | L3 : ajout de `api/agenda.js` (cache par période) et `logique/agenda.js`. Adresse de l'agenda complétée d'un paramètre facultatif `jour` (jour choisi dans la vue mois, F-34), en plus de `vue` et `date` (9.1). Vue 30 jours : seuls les jours avec du prévu ou du réalisé sont listés. Le mini-calendrier de l'accueil ouvre l'agenda du mois (widget entier cliquable, ENF-17). Le bouton retour du détail d'une activité revient à l'écran précédent. |
 | D-13 | 22/11/2026 | L4, cible des blocs : chaque bloc choisit sa cible (FC, allure ou puissance) ; par défaut allure en course et natation, FC ailleurs. Texte de séance au format natif Intervals.icu, syntaxe vérifiée sur le forum officiel (fils 1163 et 9973) : `- ` pour une étape, `m` = minutes, `mtr` = mètres, `km`, `Série Nx` entourée de lignes vides, `Z4` = puissance, `Z4 HR` = FC, `Z4 Pace` = allure. |
 | D-14 | 22/11/2026 | L4, choix d'organisation : `ui/programmer.js` (E-05), `api/bibliotheque.js` (F-47), `logique/seance.js` (blocs vers texte et relecture du texte produit par l'appli). Une séance créée sur le site s'ouvre en mode « simple » avec sa description intacte. Séance structurée : pas de description libre (le texte envoyé est uniquement la séance). Repos (F-46) = note du calendrier dont le titre commence par « Repos » ; les autres notes ne sont pas affichées. Sports programmables : natation, vélo, course, renfo, autre, repos. Après une écriture, les caches du tableau de bord et de l'agenda sont vidés. |
+| D-15 | 23/11/2026 | L5 : ajout de `api/profil.js` (réglages par sport via `GET /athlete/{id}/sport-settings`, activités de l'année, mis en cache) et `logique/profil.js`. Unités vérifiées sur le forum officiel : `threshold_pace` en m/s, `power_zones` en % de la FTP, `pace_zones` en % de l'allure seuil, `hr_zones` en bpm (borne haute). Proportion par sport calculée sur la durée. Nom de la montre stocké dans `reglages` (défaut « Suunto 9 Baro »), réglable dans Réglages. Réglages ouverts depuis l'engrenage du Profil (onglet Profil ajouté à la barre). |
 
 ---
 
@@ -520,12 +521,13 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | Lot | Statut |
 |---|---|
 | L0 | Validé le 22/11/2026 (connexion réelle à Intervals.icu OK) ; installation sur téléphone à faire après la mise en ligne |
-| L1 | Code écrit, recette PC faite ; vérification avec mes vraies activités à faire |
-| L2 | Code écrit, recette PC faite ; vérification avec mes vraies données à faire |
-| L3 | Code écrit, recette PC faite ; vérification avec mes vraies données à faire |
-| L4 | Code écrit, recette PC faite ; test réel à faire (séance structurée dans Intervals.icu puis sur la montre) |
-| L5 à L7 | À faire |
+| L1 | Validé le 23/11/2026 |
+| L2 | Validé le 23/11/2026 |
+| L3 | Validé le 23/11/2026 |
+| L4 | Validé le 23/11/2026 |
+| L5 | Code écrit ; vérification avec mes vraies données à faire (totaux et seuils comparés à Intervals.icu) |
+| L6 à L7 | À faire |
 
 **Ancien code v1.0** : supprimé (commit « Suppression du code v1.0 »), récupérable dans l'historique git.
 
-**Prochaine étape :** valider L1 à L4 avec mes vraies données et ma montre (critères 9.7), puis lot L5 (profil).
+**Prochaine étape :** valider L5 avec mes vraies données (critères 9.7), puis lot L6.

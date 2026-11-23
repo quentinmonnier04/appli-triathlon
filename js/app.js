@@ -8,11 +8,12 @@ import { afficherActivites } from './ui/activites.js';
 import { afficherActivite } from './ui/activite.js';
 import { afficherAgenda } from './ui/agenda.js';
 import { afficherProgrammer } from './ui/programmer.js';
+import { afficherProfil } from './ui/profil.js';
 
 const conteneur = document.getElementById('app');
 const navigation = document.getElementById('navigation');
 
-// Écrans livrés (9.1) : L0 (bienvenue, accueil, réglages), L1 (activités, détail), L3 (agenda), L4 (programmer).
+// Écrans livrés (9.1) : L0 (bienvenue, accueil, réglages), L1 (activités, détail), L3 (agenda), L4 (programmer), L5 (profil).
 const ROUTES = {
   bienvenue: afficherBienvenue,
   accueil: afficherAccueil,
@@ -21,6 +22,7 @@ const ROUTES = {
   activite: afficherActivite,
   agenda: afficherAgenda,
   seance: afficherProgrammer,
+  profil: afficherProfil,
 };
 // Écrans accessibles sans identifiants (F-04).
 const ROUTES_PUBLIQUES = ['bienvenue', 'reglages'];
@@ -45,7 +47,8 @@ async function afficherRoute() {
   if (!ROUTES[route]) return location.replace('#/bienvenue');
 
   navigation.classList.toggle('masque', !connecte);
-  const onglet = route === 'activite' ? 'activites' : route; // le détail dépend de l'onglet Activités
+  // Le détail dépend de l'onglet Activités ; les Réglages s'ouvrent depuis le Profil (9.1).
+  const onglet = { activite: 'activites', reglages: 'profil' }[route] ?? route;
   navigation.querySelectorAll('a').forEach((a) => a.classList.toggle('actif', a.dataset.onglet === onglet));
   await ROUTES[route](conteneur, segments, parametresCourants());
   window.scrollTo(0, 0);

@@ -43,6 +43,11 @@ export function formaterDistance(m, sportCode) {
   return `${(m / 1000).toFixed(2).replace('.', ',')} km`;
 }
 
+// Distance totale en kilomètres entiers (F-51, F-52) : 2345678 -> "2 346 km".
+export function formaterKm(m) {
+  return `${formaterEntier((m ?? 0) / 1000)} km`;
+}
+
 // Allure m:ss à partir d'un nombre de secondes.
 function allure(secondes) {
   const total = Math.round(secondes);

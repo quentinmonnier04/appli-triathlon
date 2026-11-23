@@ -1,7 +1,9 @@
 // Écran E-07 "Réglages" : identifiants Intervals.icu, test de connexion, déconnexion (F-01, F-02, F-03).
 // La clé est saisie masquée et n'est jamais réaffichée (ENF-13).
 
-import { lireIdentifiantsAffichables, connecter, seDeconnecter, estConnecte } from '../api/session.js';
+import {
+  lireIdentifiantsAffichables, connecter, seDeconnecter, estConnecte, lireMontre, enregistrerMontre,
+} from '../api/session.js';
 import { validerIdentifiants } from '../logique/connexion.js';
 import { MESSAGES, formaterMessage } from '../logique/messages.js';
 import { echapperHtml } from '../logique/format.js';
@@ -11,10 +13,11 @@ import { message, messageErreurApi } from './composants.js';
 export async function afficherReglages(conteneur) {
   const { athleteId, cleEnregistree } = await lireIdentifiantsAffichables();
   const connecte = await estConnecte();
+  const montre = await lireMontre();
 
   conteneur.innerHTML = `
     <div class="entete"><span class="titre-petit">Réglages</span>
-      ${connecte ? '<a class="icone-bouton" href="#/accueil" aria-label="Retour à l\'accueil">✕</a>' : '<a class="icone-bouton" href="#/bienvenue" aria-label="Retour">←</a>'}</div>
+      ${connecte ? '<a class="icone-bouton" href="#/profil" aria-label="Retour au profil">✕</a>' : '<a class="icone-bouton" href="#/bienvenue" aria-label="Retour">←</a>'}</div>
     <h1>Intervals.icu</h1>
     <p class="doux">Identifiant et clé se trouvent dans les réglages d'Intervals.icu, section Developer Settings.</p>
     <form class="carte" novalidate>
@@ -32,6 +35,11 @@ export async function afficherReglages(conteneur) {
       <button type="submit" class="bouton principal" id="tester">Tester la connexion</button>
       <div id="resultat" aria-live="polite"></div>
     </form>
+    ${connecte ? `<form class="carte" id="form-montre" novalidate><h2>Montre</h2>
+      <div class="champ"><label for="montre">Nom affiché sur le profil</label>
+        <input id="montre" maxlength="40" value="${echapperHtml(montre)}"></div>
+      <button type="submit" class="bouton">Enregistrer</button>
+      <div id="resultat-montre" aria-live="polite"></div></form>` : ''}
     ${connecte ? `<div class="carte"><h2>Compte</h2>
       <p class="doux">Efface la clé et les données en cache de cet appareil.</p>
       <button type="button" class="bouton danger" id="deconnecter">Se déconnecter</button></div>` : ''}
@@ -86,6 +94,14 @@ export async function afficherReglages(conteneur) {
     await afficherReglages(conteneur);
     conteneur.querySelector('#resultat').innerHTML = resultatHtml;
   }
+
+  // F-50 : nom de la montre, enregistré sur l'appareil.
+  conteneur.querySelector('#form-montre')?.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    await enregistrerMontre(ev.target.montre.value);
+    ev.target.montre.value = await lireMontre();
+    conteneur.querySelector('#resultat-montre').innerHTML = message('succes', 'Montre enregistrée.');
+  });
 
   // F-03 : "Se déconnecter" après confirmation M-06, puis retour à l'écran de bienvenue.
   conteneur.querySelector('#deconnecter')?.addEventListener('click', async () => {

@@ -21,6 +21,18 @@ export async function lireIdentifiantsAffichables() {
   return { athleteId: athleteId ?? '', cleEnregistree: Boolean(cle) };
 }
 
+// Nom de la montre affiché sur le profil (F-50), réglable dans Réglages ; stocké sur l'appareil (4.2).
+export const MONTRE_PAR_DEFAUT = 'Suunto 9 Baro';
+
+export async function lireMontre() {
+  const { montre } = await lireReglages();
+  return montre || MONTRE_PAR_DEFAUT;
+}
+
+export async function enregistrerMontre(texte) {
+  await ecrireReglages({ montre: String(texte ?? '').trim() || MONTRE_PAR_DEFAUT });
+}
+
 // "Tester la connexion" (F-01, F-02) : une clé vide reprend la clé déjà enregistrée.
 // Les identifiants ne sont enregistrés que si Intervals.icu les accepte. Renvoie l'Athlete.
 export async function connecter(athleteId, cleSaisie) {
