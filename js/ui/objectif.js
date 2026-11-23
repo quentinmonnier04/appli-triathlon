@@ -62,8 +62,9 @@ function sectionSemaineType(seances, allures) {
       <div class="grille-defilement"><div class="grille-corps" data-hauteur="${(GRILLE.heureFin - GRILLE.heureDebut) * GRILLE.pxParHeure}">
         <div class="grille-heures" aria-hidden="true">${heures.map((h) => `<span data-haut="${(h - GRILLE.heureDebut) * GRILLE.pxParHeure}">${h} h</span>`).join('')}</div>
         ${jours.map((j) => `<div class="grille-jour" data-jour="${j.jour}">${blocs.filter((b) => b.jour === j.jour).map((b) => lienSeance(b.seance,
-    `<span aria-hidden="true">${sport(b.seance.sport).icone}</span><span class="grille-bloc-heure">${b.seance.heure}</span>`, 'grille-bloc')
-    .replace('<a ', `<a data-haut="${b.haut_px}" data-hauteur="${b.hauteur_px}" data-colonne="${b.colonne}" data-nb="${b.nbColonnes}" `)).join('')}</div>`).join('')}
+    `<span class="grille-bloc-visuel" data-decalage="${b.haut_px - b.toucher_haut_px}" data-hauteur-visuel="${b.hauteur_px}">
+      <span aria-hidden="true">${sport(b.seance.sport).icone}</span><span class="grille-bloc-heure">${b.seance.heure}</span></span>`, 'grille-bloc')
+    .replace('<a ', `<a data-haut="${b.toucher_haut_px}" data-hauteur="${b.toucher_hauteur_px}" data-colonne="${b.colonne}" data-nb="${b.nbColonnes}" `)).join('')}</div>`).join('')}
       </div></div>
     </div></div>`;
 }
@@ -80,6 +81,11 @@ function brancherGrille(zone) {
       el.style.left = `${(Number(el.dataset.colonne) / Number(el.dataset.nb)) * 100}%`;
       el.style.width = `${100 / Number(el.dataset.nb)}%`;
     }
+  });
+  // Le lien couvre la zone de toucher (44 px au moins) ; le bloc coloré garde la hauteur de la séance.
+  corps.querySelectorAll('.grille-bloc-visuel').forEach((v) => {
+    v.style.marginTop = `${v.dataset.decalage}px`;
+    v.style.height = `${v.dataset.hauteurVisuel}px`;
   });
   corps.querySelectorAll('.grille-jour').forEach((colonne) => {
     colonne.addEventListener('click', (ev) => {

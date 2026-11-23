@@ -10,7 +10,7 @@ const bloc = (r, id) => {
 };
 
 test('réglages de la grille', () => {
-  assert.deepEqual(GRILLE, { heureDebut: 5, heureFin: 23, pxParHeure: 48, hauteurMin: 24 });
+  assert.deepEqual(GRILLE, { heureDebut: 5, heureFin: 23, pxParHeure: 48, hauteurMin: 24, toucherMin: 44 });
 });
 
 test('séance placée à son heure, hauteur = durée', () => {
@@ -65,4 +65,29 @@ test('heure de la case touchée', () => {
   assert.equal(heureDepuisPosition(650), '18:00');
   assert.equal(heureDepuisPosition(5000), '22:00');
   assert.equal(heureDepuisPosition(-10), '05:00');
+});
+
+test('revue : un bloc court agrandi à 24 px ne recouvre pas le suivant', () => {
+  // gainage 10 min à 07:00 (dessiné jusqu'à 07:30), course à 07:15 : côte à côte
+  const r = dispositionSemaine([s('g', 2, '07:00', 600), s('c', 2, '07:15', 3600)]);
+  assert.deepEqual([bloc(r, 'g').colonne, bloc(r, 'g').nbColonnes], [0, 2]);
+  assert.deepEqual([bloc(r, 'c').colonne, bloc(r, 'c').nbColonnes], [1, 2]);
+});
+
+test('revue : deux séances ramenées en haut de la grille ne se cachent pas', () => {
+  // 04:00 (30 min) et 05:00 (1 h) commencent toutes deux en haut de la grille
+  const r = dispositionSemaine([s('a', 1, '04:00', 1800), s('b', 1, '05:00', 3600)]);
+  assert.equal(bloc(r, 'a').nbColonnes, 2);
+  assert.notEqual(bloc(r, 'a').colonne, bloc(r, 'b').colonne);
+});
+
+test("revue : la zone de toucher d'un petit bloc fait au moins 44 px, centrée sur le bloc", () => {
+  const r = dispositionSemaine([s('g', 2, '07:00', 600), s('h', 3, '07:00', 3600)]);
+  const g = r.blocs.find((b) => b.seance.id === 'g');
+  assert.deepEqual([g.haut_px, g.hauteur_px, g.toucher_haut_px, g.toucher_hauteur_px], [96, 24, 86, 44]);
+  const h = r.blocs.find((b) => b.seance.id === 'h');
+  assert.deepEqual([h.toucher_haut_px, h.toucher_hauteur_px], [96, 48]);
+  // en haut de la grille, la zone ne sort pas par le haut
+  const t = dispositionSemaine([s('t', 1, '05:00', 600)]).blocs[0];
+  assert.deepEqual([t.toucher_haut_px, t.toucher_hauteur_px], [0, 44]);
 });

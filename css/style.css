@@ -710,8 +710,8 @@ a.carte-prevue, a.seance-du-jour { display: block; color: inherit; text-decorati
 .grille-heures span { position: absolute; left: 0; font-size: 0.65rem; color: var(--texte-doux); transform: translateY(-1px); }
 .grille-jour { position: relative; cursor: pointer; border-radius: 6px; }
 .grille-jour:active { background: var(--surface-2); }
-.grille-bloc {
-  position: absolute;
+.grille-bloc { position: absolute; display: block; text-decoration: none; color: #FFFFFF; }
+.grille-bloc-visuel {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -722,10 +722,9 @@ a.carte-prevue, a.seance-du-jour { display: block; color: inherit; text-decorati
   border-radius: 6px;
   border: 1px solid var(--fond);
   background: var(--couleur-sport);
-  color: #FFFFFF;
-  text-decoration: none;
   font-size: 0.85rem;
 }
+.grille-bloc:focus-visible .grille-bloc-visuel { outline: 2px solid var(--accent); }
 .grille-bloc-heure { font-size: 0.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 
 /* Graphique des séances (F-41, F-84, F-20) */

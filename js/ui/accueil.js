@@ -4,6 +4,7 @@
 import { lireTableauEnCache, rafraichirTableau } from '../api/tableau.js';
 import { lireAthlete } from '../api/athlete.js';
 import { lireObjectif } from '../api/objectif.js';
+import { lireAlluresSeuil } from '../api/profil.js';
 import { estPerime } from '../logique/activites.js';
 import { comparaisonMois, sportsParJour, volumeSemaine } from '../logique/totaux.js';
 import { phraseForme } from '../logique/forme.js';
@@ -24,7 +25,7 @@ const HAUTEUR_COURBE = 64;
 const CLASSES_FORME = { Frais: 'frais', 'Équilibré': 'equilibre', 'En charge': 'charge', 'Fatigue élevée': 'fatigue' };
 
 // F-20 : séances prévues du jour, ou "Repos" si rien n'est prévu.
-function widgetSeanceDuJour(prevues, jour) {
+function widgetSeanceDuJour(prevues, jour, allures) {
   const duJour = prevues.filter((s) => s.date === jour && !s.objectif); // la course du jour a son propre widget (F-80)
   if (!duJour.length) {
     return `<div class="carte"><div class="etiquette-carte">Séance du jour</div>
@@ -38,7 +39,7 @@ function widgetSeanceDuJour(prevues, jour) {
     return `<a class="seance-du-jour" href="#/seance/${encodeURIComponent(s.id)}"><div class="carte-activite-tete">${pastilleSport(s.sport)}
         <div class="carte-activite-titre"><strong>${echapperHtml(s.titre)}</strong>
           <span class="doux">${s.heure ? `${s.heure} · ` : ''}${echapperHtml(sport(s.sport).libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
-        ${s.blocs?.length ? graphiqueSeance(s, {}, { compact: true }) : (s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : '')}</a>`;
+        ${s.blocs?.length ? graphiqueSeance(s, allures, { compact: true }) : (s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : '')}</a>`;
   }).join('')}</div>`;
 }
 
@@ -150,9 +151,9 @@ function widgetCalendrier(activites, jour) {
     </div></a>`;
 }
 
-function rendreTableau(t) {
+function rendreTableau(t, allures) {
   return `${rappelRpe(t.activites, t.jour)}
-    ${widgetSeanceDuJour(t.prevues, t.jour)}
+    ${widgetSeanceDuJour(t.prevues, t.jour, allures)}
     ${widgetDerniereActivite(t.derniere)}
     ${widgetForme(t.forme, t.jour)}
     ${lienBilan(t.jour)}
@@ -178,6 +179,8 @@ export async function afficherAccueil(conteneur) {
   const $ = (sel) => conteneur.querySelector(sel);
   const zone = $('#tableau');
   let tableau = null;
+  // Allures seuil du profil en cache : graphique de la Séance du jour (revue I-2, F-20).
+  const allures = await lireAlluresSeuil();
 
   // Objectif (F-80), sans bloquer l'affichage ; rien en cas d'erreur (le tableau affiche déjà l'état réseau).
   lireObjectif().then((o) => { if ($('#objectif')) $('#objectif').innerHTML = widgetObjectif(o); }).catch(() => {});
@@ -186,7 +189,7 @@ export async function afficherAccueil(conteneur) {
   lireAthlete().then((a) => { if ($('#bonjour')) $('#bonjour').textContent = `Bonjour ${a.nom}`; }).catch(() => {});
 
   function afficher(t) {
-    zone.innerHTML = rendreTableau(t);
+    zone.innerHTML = rendreTableau(t, allures);
     appliquerBarres(zone);
   }
 
