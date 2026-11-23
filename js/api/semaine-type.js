@@ -13,6 +13,7 @@ import { lireCache, ecrireCache, supprimerCachePrefixe } from '../cache/stockage
 import { sportDepuisType, sport } from '../logique/sports.js';
 import { blocsVersTexte, texteVersBlocs, sportVersType } from '../logique/seance.js';
 import { REGLAGES_PAR_DEFAUT } from '../logique/plan.js';
+import { estPerime } from '../logique/activites.js';
 
 export const NOM_DOSSIER = 'Semaine type (appli triathlon)';
 const ETIQUETTE = 'semaine-type';
@@ -26,13 +27,14 @@ const ENTETE = "Réglages du plan (gérés par l'appli) : ";
 export function reglagesVersTexte(r) {
   return `${ENTETE}hausse ${r.hausse} ; semaines ${r.semainesHausse} ; coupure ${r.coupure} ; `
     + `affûtage ${r.affutage.length ? r.affutage.join('/') : 'aucun'} ; `
-    + `plafond ${r.plafond_h ? `${r.plafond_h} h` : 'aucun'} ; début ${r.debut ?? 'aucun'}`;
+    + `plafond ${r.plafond_h ? `${r.plafond_h} h` : 'aucun'} ; début ${r.debut ?? 'aucun'}`
+    + (r.debut && r.objectifDebut ? ` (objectif ${r.objectifDebut})` : '');
 }
 
 // Texte -> réglages ; un texte illisible (modifié à la main) redonne les réglages par défaut.
 export function texteVersReglages(texte) {
   const m = String(texte ?? '').match(
-    /hausse (\d+) ; semaines (\d+) ; coupure (\d+) ; affûtage ([\d/]+|aucun) ; plafond (?:([\d.]+) h|aucun) ; début (\d{4}-\d{2}-\d{2}|aucun)/,
+    /hausse (\d+) ; semaines (\d+) ; coupure (\d+) ; affûtage ([\d/]+|aucun) ; plafond (?:([\d.]+) h|aucun) ; début (\d{4}-\d{2}-\d{2}|aucun)(?: \(objectif ([^)]+)\))?/,
   );
   if (!m) return { ...REGLAGES_PAR_DEFAUT, affutage: [...REGLAGES_PAR_DEFAUT.affutage] };
   return {
@@ -42,6 +44,7 @@ export function texteVersReglages(texte) {
     affutage: m[4] === 'aucun' ? [] : m[4].split('/').map(Number),
     plafond_h: m[5] ? Number(m[5]) : null,
     debut: m[6] === 'aucun' ? null : m[6],
+    objectifDebut: m[6] !== 'aucun' && m[7] ? m[7] : null,
   };
 }
 
@@ -84,11 +87,18 @@ export function convertirSeanceType(brut) {
 
 // --- Lecture et écriture ---
 
-// Semaine type : { dossierId, seances, reglages }. Le cache n'expire pas : il est vidé à chaque écriture.
+// Semaine type : { dossierId, seances, reglages }. Cache de 5 min (ENF-11), vidé à chaque écriture ;
+// une modification faite sur un autre appareil ou sur le site est donc vue (revue I-5). Hors ligne, le cache fait foi.
 export async function lireSemaineType({ forcer = false } = {}) {
   const cache = await lireCache('semaine-type');
-  if (cache && !forcer) return cache.donnees;
-  const dossiers = (await requeteAuthentifiee('/athlete/0/folders')) ?? [];
+  if (cache && !forcer && !estPerime(cache.charge_le)) return cache.donnees;
+  let dossiers;
+  try {
+    dossiers = (await requeteAuthentifiee('/athlete/0/folders')) ?? [];
+  } catch (e) {
+    if (cache && e.type === 'RESEAU') return cache.donnees;
+    throw e;
+  }
   const dossier = dossiers.find((d) => d.type === 'FOLDER' && d.name === NOM_DOSSIER);
   let donnees = { dossierId: null, seances: [], reglages: texteVersReglages(null) };
   if (dossier) {
@@ -106,9 +116,10 @@ async function invaliderCaches() {
   await supprimerCachePrefixe('bibliotheque');
 }
 
-// Identifiant du dossier, créé avec les réglages par défaut s'il n'existe pas encore.
+// Identifiant du dossier, créé avec les réglages par défaut s'il n'existe pas encore. Relecture forcée avant
+// toute création : un dossier créé depuis un autre appareil n'est pas créé une seconde fois (revue I-5).
 async function dossierId() {
-  const { dossierId: id } = await lireSemaineType();
+  const { dossierId: id } = await lireSemaineType({ forcer: true });
   if (id) return id;
   const dossier = await requeteAuthentifiee('/athlete/0/folders', null, {
     methode: 'POST', corps: { type: 'FOLDER', name: NOM_DOSSIER, description: reglagesVersTexte(REGLAGES_PAR_DEFAUT) },

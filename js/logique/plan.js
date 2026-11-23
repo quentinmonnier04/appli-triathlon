@@ -7,7 +7,8 @@
 import { lundiDe, ajouterJours } from './dates.js';
 
 // Réglages par défaut (conception L8, section 6) ; plafond_h null = sans plafond ; debut null = lundi suivant.
-export const REGLAGES_PAR_DEFAUT = { hausse: 8, semainesHausse: 3, coupure: 70, affutage: [70, 50], plafond_h: null, debut: null };
+// objectifDebut : objectif pour lequel la date de début a été enregistrée (revue I-4).
+export const REGLAGES_PAR_DEFAUT = { hausse: 8, semainesHausse: 3, coupure: 70, affutage: [70, 50], plafond_h: null, debut: null, objectifDebut: null };
 
 // Plafond proposé : 1,5 fois le volume de la semaine type, arrondi à l'heure supérieure, au moins 1 h.
 export function plafondParDefaut(volumeBase_s) {
@@ -209,4 +210,24 @@ export function lireReglagesSaisis(champs) {
     plafond_h: !plafond ? null : /^\d+(\.\d+)?$/.test(plafond) ? Number(plafond) : NaN,
     debut: champs.debut || null,
   };
+}
+
+// Bornes d'écriture du plan (F-85 à F-87, revue I-1 et I-2) :
+// - creation : première date des séances envoyées (début du plan, jamais avant le lundi suivant) ;
+// - regeneration : les séances du plan sont remplacées à partir du lundi suivant, quel que soit le début
+//   (un début reculé ne laisse pas de séances orphelines) ; la semaine en cours n'est pas touchée ;
+// - suppression : supprimer le plan ou l'objectif retire toutes les séances futures du plan, dès demain.
+export function bornesPlan(aujourdhui, debut) {
+  const regeneration = lundiSuivant(aujourdhui);
+  return {
+    creation: debut > regeneration ? debut : regeneration,
+    regeneration,
+    suppression: ajouterJours(aujourdhui, 1),
+  };
+}
+
+// Date de début du plan pour cet objectif (revue I-4) : la date enregistrée ne vaut que pour l'objectif
+// avec lequel elle a été enregistrée ; sinon, début par défaut.
+export function debutEffectif(reglages, objectifId, defaut) {
+  return reglages.debut && reglages.objectifDebut === objectifId ? reglages.debut : defaut;
 }

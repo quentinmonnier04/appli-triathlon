@@ -23,6 +23,21 @@ export function seancesASupprimer(evenements, prefixe, apartirDe) {
     .map((e) => e.id);
 }
 
+// Garde-fou (revue I-3) : Intervals.icu doit renvoyer l'étiquette des séances créées ; sinon une régénération
+// ne pourrait pas les retrouver et chaque envoi ajouterait un plan complet en double.
+export function etiquettesConservees(envoyes, recus) {
+  if (!Array.isArray(recus) || recus.length !== envoyes.length) return false;
+  return envoyes.every((e, i) => recus[i]?.external_id === e.external_id);
+}
+
+// Erreur levée quand le garde-fou se déclenche ; une seule séance a alors été créée.
+export class ErreurEtiquette extends Error {
+  constructor() {
+    super("Intervals.icu n'a pas conservé l'étiquette des séances du plan.");
+    this.type = 'ETIQUETTE';
+  }
+}
+
 // Séance générée -> corps EventEx, avec son étiquette.
 export function versEvenementPlan(seance) {
   return { ...versEvenement(seance), external_id: seance.external_id };
@@ -46,19 +61,24 @@ async function invaliderCaches() {
   await supprimerCachePrefixe('agenda:');
 }
 
-// Envoie le plan (F-85) ou le régénère (F-86) : les séances du plan à partir de "apartirDe" sont d'abord
-// supprimées, puis les séances générées à partir de cette date sont créées par lots.
+// Envoie le plan (F-85) ou le régénère (F-86) : les séances du plan datées à partir de "bornes.regeneration"
+// sont d'abord supprimées, puis les séances générées à partir de "bornes.creation" sont créées par lots.
+// La première séance part seule pour vérifier que son étiquette est conservée (revue I-3).
 // surProgression(fait, total) est appelé après chaque lot. Renvoie le nombre de séances créées.
-export async function envoyerPlan(plan, objectifId, apartirDe, surProgression = () => {}) {
-  const seances = plan.flatMap((semaine) => semaine.seances).filter((s) => s.date >= apartirDe);
-  await supprimerSeancesDuPlan(objectifId, apartirDe);
+export async function envoyerPlan(plan, objectifId, bornes, surProgression = () => {}) {
+  const seances = plan.flatMap((semaine) => semaine.seances).filter((s) => s.date >= bornes.creation);
+  await supprimerSeancesDuPlan(objectifId, bornes.regeneration);
   let fait = 0;
   surProgression(0, seances.length);
   try {
-    for (let i = 0; i < seances.length; i += TAILLE_LOT) {
-      const lot = seances.slice(i, i + TAILLE_LOT).map(versEvenementPlan);
-      await requeteAuthentifiee('/athlete/0/events/bulk', { upsertOnUid: 'false' }, { methode: 'POST', corps: lot });
+    let i = 0;
+    while (i < seances.length) {
+      const taille = i === 0 ? 1 : TAILLE_LOT;
+      const lot = seances.slice(i, i + taille).map(versEvenementPlan);
+      const recus = await requeteAuthentifiee('/athlete/0/events/bulk', { upsertOnUid: 'false' }, { methode: 'POST', corps: lot });
+      if (i === 0 && !etiquettesConservees(lot, recus)) throw new ErreurEtiquette();
       fait += lot.length;
+      i += taille;
       surProgression(fait, seances.length);
     }
   } finally {

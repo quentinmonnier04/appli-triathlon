@@ -4,12 +4,12 @@ import assert from 'node:assert/strict';
 import {
   NOM_DOSSIER, reglagesVersTexte, texteVersReglages, versSeanceBibliotheque, convertirSeanceType,
 } from '../js/api/semaine-type.js';
-import { seancesASupprimer, versEvenementPlan, TAILLE_LOT } from '../js/api/plan.js';
+import { seancesASupprimer, versEvenementPlan, TAILLE_LOT, etiquettesConservees } from '../js/api/plan.js';
 import { estModeleAffichable } from '../js/api/bibliotheque.js';
 import { REGLAGES_PAR_DEFAUT } from '../js/logique/plan.js';
 
 test('réglages <-> texte lisible de la description du dossier', () => {
-  const r = { hausse: 8, semainesHausse: 3, coupure: 70, affutage: [70, 50], plafond_h: 8, debut: '2026-11-30' };
+  const r = { hausse: 8, semainesHausse: 3, coupure: 70, affutage: [70, 50], plafond_h: 8, debut: '2026-11-30', objectifDebut: null };
   const texte = reglagesVersTexte(r);
   assert.equal(texte, "Réglages du plan (gérés par l'appli) : hausse 8 ; semaines 3 ; coupure 70 ; affûtage 70/50 ; plafond 8 h ; début 2026-11-30");
   assert.deepEqual(texteVersReglages(texte), r);
@@ -70,4 +70,18 @@ test('séance du plan -> événement avec son étiquette', () => {
   assert.equal(corps.moving_time, 2940);
   assert.equal(corps.external_id, 'plan-77-s2-2026-12-08-0');
   assert.equal(TAILLE_LOT, 50);
+});
+
+test("réglages : le début garde l'identifiant de son objectif (revue I-4)", () => {
+  const r = { hausse: 8, semainesHausse: 3, coupure: 70, affutage: [70, 50], plafond_h: null, debut: '2026-11-30', objectifDebut: '123' };
+  assert.match(reglagesVersTexte(r), /début 2026-11-30 \(objectif 123\)$/);
+  assert.deepEqual(texteVersReglages(reglagesVersTexte(r)), r);
+  assert.equal(texteVersReglages(reglagesVersTexte({ ...r, debut: null, objectifDebut: null })).objectifDebut, null);
+});
+
+test("garde-fou : Intervals.icu doit renvoyer l'étiquette des séances créées (revue I-3)", () => {
+  const envoyes = [{ external_id: 'plan-1-s1-2026-12-01-0' }];
+  assert.equal(etiquettesConservees(envoyes, [{ id: 5, external_id: 'plan-1-s1-2026-12-01-0' }]), true);
+  assert.equal(etiquettesConservees(envoyes, [{ id: 5 }]), false);
+  assert.equal(etiquettesConservees(envoyes, null), false);
 });

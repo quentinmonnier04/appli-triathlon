@@ -7,7 +7,7 @@ import { lireSemaineType, enregistrerReglages } from '../api/semaine-type.js';
 import { envoyerPlan, supprimerPlan } from '../api/plan.js';
 import { lireProfilEnCache } from '../api/profil.js';
 import {
-  genererPlan, validerReglages, validerObjectif, lireReglagesSaisis, lundiSuivant, plafondParDefaut,
+  genererPlan, validerReglages, validerObjectif, lireReglagesSaisis, lundiSuivant, plafondParDefaut, bornesPlan, debutEffectif,
   volumeSeance_s, volumeSemaine_s, distanceSansAllure,
 } from '../logique/plan.js';
 import { jourISO, ajouterJours } from '../logique/dates.js';
@@ -123,10 +123,14 @@ export async function afficherObjectif(conteneur) {
 
   const aujourdhui = jourISO();
   const debutParDefaut = lundiSuivant(aujourdhui);
-  const reglages = { ...semaine.reglages, debut: semaine.reglages.debut ?? debutParDefaut };
+  // La date de début enregistrée ne vaut que pour l'objectif courant (revue I-4).
+  const debutEnregistre = objectif ? debutEffectif(semaine.reglages, objectif.id, null) : null;
+  const reglages = { ...semaine.reglages, debut: debutEnregistre ?? debutParDefaut, objectifDebut: objectif?.id ?? null };
   const volumeBase = volumeSemaine_s(semaine.seances, allures);
-  // Première semaine envoyée ou régénérée : le lundi suivant, ou le début du plan s'il est plus tard (F-86).
-  const apartirDe = reglages.debut > debutParDefaut ? reglages.debut : debutParDefaut;
+  // Bornes d'écriture (revue I-1, I-2) : création à partir du début, régénération à partir du lundi suivant,
+  // suppression du plan ou de l'objectif dès demain.
+  const bornes = bornesPlan(aujourdhui, reglages.debut);
+  const apartirDe = bornes.creation;
 
   let apercu;
   if (!objectif) apercu = `<div class="carte"><h2>Aperçu du plan</h2>${message('info', "Définis d'abord ton objectif.")}</div>`;
@@ -167,7 +171,7 @@ export async function afficherObjectif(conteneur) {
   $('#supprimer-objectif')?.addEventListener('click', async () => {
     if (!confirm("Supprimer l'objectif ? Les séances à venir du plan seront aussi supprimées de ton calendrier Intervals.icu.")) return;
     try {
-      await supprimerPlan(objectif.id, apartirDe);
+      await supprimerPlan(objectif.id, bornes.suppression);
       await supprimerObjectif(objectif.id);
       recharger('Objectif et plan à venir supprimés.');
     } catch (e) { echec('#erreurs-objectif', e); }
@@ -177,7 +181,7 @@ export async function afficherObjectif(conteneur) {
   $('#form-reglages').addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const champs = Object.fromEntries(['hausse', 'semainesHausse', 'coupure', 'affutage', 'plafond', 'debut'].map((k) => [k, $(`#${k}`).value]));
-    const r = lireReglagesSaisis(champs);
+    const r = { ...lireReglagesSaisis(champs), objectifDebut: objectif?.id ?? null };
     const erreurs = validerReglages(r);
     if (Object.keys(erreurs).length) { $('#erreurs-reglages').innerHTML = message('erreur', Object.values(erreurs).join(' ')); return; }
     try {
@@ -193,20 +197,22 @@ export async function afficherObjectif(conteneur) {
     const zoneProgres = $('#progression-envoi');
     try {
       // La date de début est enregistrée au premier envoi : la numérotation des semaines ne glisse plus (F-86).
-      if (!semaine.reglages.debut) await enregistrerReglages(reglages);
-      const n = await envoyerPlan(plan, objectif.id, apartirDe, (fait, total) => {
+      if (debutEnregistre !== reglages.debut) await enregistrerReglages(reglages);
+      const n = await envoyerPlan(plan, objectif.id, bornes, (fait, total) => {
         zoneProgres.textContent = `Envoi en cours : ${fait} / ${total}...`; // ENF-10
       });
       recharger(`${n} séance${n > 1 ? 's' : ''} envoyée${n > 1 ? 's' : ''} dans Intervals.icu. Elles partiront sur ta montre comme d'habitude.`);
     } catch (e) {
-      zoneProgres.innerHTML = `${messageErreurApi(e)}<p class="doux">Renvoie le plan : les séances déjà créées seront remplacées.</p>`;
+      zoneProgres.innerHTML = e.type === 'ETIQUETTE'
+        ? message('erreur', "Envoi arrêté : Intervals.icu n'a pas gardé l'étiquette des séances du plan, l'appli ne pourrait pas les remplacer ensuite. Une seule séance a été créée ; supprime-la sur le site.")
+        : `${messageErreurApi(e)}<p class="doux">Renvoie le plan : les séances déjà créées seront remplacées.</p>`;
       bouton.disabled = !navigator.onLine;
     }
   });
   $('#supprimer-plan')?.addEventListener('click', async () => {
-    if (!confirm(`Supprimer les séances du plan à partir du ${jjmm(apartirDe)} ? Les semaines passées restent.`)) return;
+    if (!confirm(`Supprimer les séances du plan à partir du ${jjmm(bornes.suppression)} ? Les séances passées restent.`)) return;
     try {
-      const n = await supprimerPlan(objectif.id, apartirDe);
+      const n = await supprimerPlan(objectif.id, bornes.suppression);
       recharger(`${n} séance${n > 1 ? 's' : ''} du plan supprimée${n > 1 ? 's' : ''}.`);
     } catch (e) { echec('#progression-envoi', e); }
   });

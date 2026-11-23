@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   REGLAGES_PAR_DEFAUT, plafondParDefaut, lundisDuPlan, coefficientsPlan, validerReglages,
-  lireReglagesSaisis, lundiSuivant, surchargerSeance, volumeSeance_s, volumeSemaine_s, distanceSansAllure, genererPlan, prefixePlan, externalId,
+  lireReglagesSaisis, lundiSuivant, bornesPlan, debutEffectif, surchargerSeance, volumeSeance_s, volumeSemaine_s, distanceSansAllure, genererPlan, prefixePlan, externalId,
 } from '../js/logique/plan.js';
 
 const types = (plan) => plan.map((s) => [s.type[0], s.pct]);
@@ -167,4 +167,17 @@ test('lecture du formulaire des réglages', () => {
 test('lundi suivant', () => {
   assert.equal(lundiSuivant('2026-11-23'), '2026-11-30'); // un lundi
   assert.equal(lundiSuivant('2026-11-29'), '2026-11-30'); // un dimanche
+});
+
+test('bornes : début reculé, la suppression part quand même du lundi suivant (revue I-1)', () => {
+  assert.deepEqual(bornesPlan('2026-11-23', '2026-12-14'), { creation: '2026-12-14', regeneration: '2026-11-30', suppression: '2026-11-24' });
+  assert.deepEqual(bornesPlan('2026-11-25', '2026-11-30'), { creation: '2026-11-30', regeneration: '2026-11-30', suppression: '2026-11-26' });
+  // début dans le passé : la semaine en cours n'est jamais régénérée
+  assert.equal(bornesPlan('2026-12-02', '2026-11-30').creation, '2026-12-07');
+});
+
+test("début du plan propre à l'objectif (revue I-4)", () => {
+  assert.equal(debutEffectif({ debut: '2026-11-30', objectifDebut: '77' }, '77', '2026-12-07'), '2026-11-30');
+  assert.equal(debutEffectif({ debut: '2026-05-04', objectifDebut: '12' }, '77', '2026-12-07'), '2026-12-07');
+  assert.equal(debutEffectif({ debut: null, objectifDebut: null }, '77', '2026-12-07'), '2026-12-07');
 });
