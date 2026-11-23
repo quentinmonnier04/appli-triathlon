@@ -24,11 +24,16 @@ export function convertirModele(brut) {
   };
 }
 
+// Les séances de la semaine type (L8, étiquette "semaine-type") ne sont pas proposées comme modèles.
+export function estModeleAffichable(brut) {
+  return !(brut.tags ?? []).includes('semaine-type');
+}
+
 // Modèles de la bibliothèque, depuis le cache s'il a moins de 5 min (ENF-11).
 export async function listerModeles({ forcer = false } = {}) {
   const cache = await lireCache('bibliotheque');
   if (cache && !forcer && !estPerime(cache.charge_le)) return cache.donnees;
-  const modeles = (await requeteAuthentifiee('/athlete/0/workouts')).map(convertirModele);
+  const modeles = (await requeteAuthentifiee('/athlete/0/workouts')).filter(estModeleAffichable).map(convertirModele);
   await ecrireCache('bibliotheque', modeles);
   return modeles;
 }
