@@ -68,3 +68,115 @@ export function validerReglages(r) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(r.debut ?? '')) erreurs.debut = 'Choisis une date de début.';
   return erreurs;
 }
+
+// --- Surcharge des séances (F-83) : règle mixte, conception L8 section 5.4 ---
+
+// Durée surchargée : à la minute, aux 5 minutes au-delà d'une heure ; au moins 1 minute.
+function arrondirDuree(s) {
+  const pas = s > 3600 ? 300 : 60;
+  return Math.max(60, Math.round(s / pas) * pas);
+}
+
+// Distance surchargée : aux 100 m en natation, aux 500 m ailleurs ; au moins une unité.
+function arrondirDistance(m, sportCode) {
+  const pas = sportCode === 'NATATION' ? 100 : 500;
+  return Math.max(pas, Math.round(m / pas) * pas);
+}
+
+// Étape continue : la durée (ou la distance) est multipliée par k ; la zone ne change pas.
+function surchargerEtape(e, k, sportCode) {
+  if (!e) return e;
+  if (e.distance_m) return { ...e, distance_m: arrondirDistance(e.distance_m * k, sportCode) };
+  if (e.duree_s) return { ...e, duree_s: arrondirDuree(e.duree_s * k) };
+  return { ...e };
+}
+
+// Séance surchargée à "pct" % : blocs continus en durée ou distance, répétitions en nombre (au moins 1),
+// zones et cibles inchangées, repos recopié. À 100 %, copie exacte de la séance type.
+export function surchargerSeance(seance, pct) {
+  const copie = structuredClone(seance);
+  if (pct === 100 || seance.sport === 'REPOS') return copie;
+  const k = pct / 100;
+  if (copie.blocs?.length) {
+    copie.blocs = copie.blocs.map((b) => (b.type === 'REPETITIONS'
+      ? { ...b, repetitions: Math.max(1, Math.round(b.repetitions * k)) }
+      : { ...b, etape: surchargerEtape(b.etape, k, seance.sport) }));
+    return copie;
+  }
+  if (copie.duree_s) copie.duree_s = arrondirDuree(copie.duree_s * k);
+  if (copie.distance_m) copie.distance_m = arrondirDistance(copie.distance_m * k, seance.sport);
+  return copie;
+}
+
+// --- Volumes (F-84) ---
+
+// Durée d'une étape : sa durée, ou sa distance divisée par l'allure seuil du sport (m/s) ; 0 si inconnue.
+function dureeEtape(e, allure) {
+  if (!e) return 0;
+  if (e.duree_s) return e.duree_s;
+  if (e.distance_m && allure > 0) return e.distance_m / allure;
+  return 0;
+}
+
+// Volume d'une séance en secondes ; allures = { CAP: m/s, NATATION: m/s, VELO: m/s }.
+export function volumeSeance_s(seance, allures = {}) {
+  if (seance.sport === 'REPOS') return 0;
+  const allure = allures[seance.sport];
+  if (seance.blocs?.length) {
+    return Math.round(seance.blocs.reduce((t, b) => t + (b.type === 'REPETITIONS'
+      ? b.repetitions * (dureeEtape(b.effort, allure) + dureeEtape(b.recup, allure))
+      : dureeEtape(b.etape, allure)), 0));
+  }
+  return Math.round(dureeEtape(seance, allure));
+}
+
+export function volumeSemaine_s(seances, allures = {}) {
+  return seances.reduce((t, s) => t + volumeSeance_s(s, allures), 0);
+}
+
+// Vrai si une étape en distance n'a pas pu être convertie en durée (pas d'allure seuil pour ce sport).
+export function distanceSansAllure(seances, allures = {}) {
+  const sansDuree = (e) => Boolean(e && !e.duree_s && e.distance_m);
+  return seances.some((s) => {
+    if (s.sport === 'REPOS' || allures[s.sport] > 0) return false;
+    if (s.blocs?.length) return s.blocs.some((b) => (b.type === 'REPETITIONS' ? sansDuree(b.effort) || sansDuree(b.recup) : sansDuree(b.etape)));
+    return sansDuree(s);
+  });
+}
+
+// --- Génération du plan (F-83, F-84, F-85) ---
+
+// Étiquette invisible (external_id) des séances d'un plan : elle permet de les retrouver sans toucher
+// aux séances programmées à la main (F-86, F-87).
+export function prefixePlan(objectifId) {
+  return `plan-${objectifId}-`;
+}
+
+export function externalId(objectifId, numero, date, index) {
+  return `${prefixePlan(objectifId)}s${numero}-${date}-${index}`;
+}
+
+// Plan complet : [{ numero, lundi, type, pct, seances, volume_s }]. Chaque séance de la semaine type
+// (jour 1 = lundi ... 7 = dimanche) devient une séance datée, surchargée, titrée "{titre} S{n}" (sauf repos),
+// avec son external_id ; aucune séance le jour de la course ni après.
+export function genererPlan({ semaineType, reglages, dateCourse, allures = {}, objectifId }) {
+  const lundis = lundisDuPlan(reglages.debut, dateCourse);
+  const coefficients = coefficientsPlan(lundis.length, reglages, volumeSemaine_s(semaineType, allures));
+  const ordre = semaineType.map((s, i) => ({ s, i })).sort((a, b) => a.s.jour - b.s.jour || a.i - b.i).map((x) => x.s);
+  return coefficients.map((c, i) => {
+    const lundi = lundis[i];
+    const seances = ordre
+      .map((type) => ({ type, date: ajouterJours(lundi, type.jour - 1) }))
+      .filter(({ date }) => date < dateCourse)
+      .map(({ type, date }, index) => {
+        const { id, jour, ...seance } = surchargerSeance(type, c.pct);
+        return {
+          ...seance,
+          date,
+          titre: type.sport === 'REPOS' ? type.titre : `${type.titre} S${c.numero}`,
+          external_id: externalId(objectifId, c.numero, date, index),
+        };
+      });
+    return { ...c, lundi, seances, volume_s: volumeSemaine_s(seances, allures) };
+  });
+}
