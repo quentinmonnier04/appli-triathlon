@@ -678,3 +678,52 @@ a.carte-prevue, a.seance-du-jour { display: block; color: inherit; text-decorati
 .seances-semaine li { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.9rem; }
 .carte-interieure { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--bordure); }
 .erreurs:empty { display: none; }
+
+/* Grille hebdomadaire du planificateur (F-81) */
+.grille { --colonne-heures: 34px; margin-top: 8px; }
+.grille-ligne { display: grid; grid-template-columns: var(--colonne-heures) repeat(7, minmax(0, 1fr)); gap: 2px; }
+.grille-entete span { text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--texte-doux); padding-bottom: 4px; }
+.grille-sans-heure { border-bottom: 1px solid var(--bordure); padding-bottom: 6px; margin-bottom: 4px; }
+.grille-libelle { font-size: 0.65rem; color: var(--texte-doux); line-height: 1.1; align-self: center; }
+.grille-cellule { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 44px; justify-content: center; }
+.grille-puce, .grille-ajout {
+  width: 100%;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--texte);
+}
+.grille-puce { background: var(--couleur-sport); }
+.grille-ajout { color: var(--texte-doux); border: 1px dashed var(--bordure); font-size: 1.1rem; min-height: 44px; }
+.grille-defilement { max-height: 480px; overflow-y: auto; overscroll-behavior: contain; }
+.grille-corps {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--colonne-heures) repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  background-image: repeating-linear-gradient(to bottom, var(--bordure) 0 1px, transparent 1px 48px);
+}
+.grille-heures { position: relative; }
+.grille-heures span { position: absolute; left: 0; font-size: 0.65rem; color: var(--texte-doux); transform: translateY(-1px); }
+.grille-jour { position: relative; cursor: pointer; border-radius: 6px; }
+.grille-jour:active { background: var(--surface-2); }
+.grille-bloc {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1px;
+  padding: 2px 1px;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 1px solid var(--fond);
+  background: var(--couleur-sport);
+  color: #FFFFFF;
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+.grille-bloc-heure { font-size: 0.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }

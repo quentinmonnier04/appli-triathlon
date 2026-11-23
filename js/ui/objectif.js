@@ -11,6 +11,7 @@ import {
   volumeSeance_s, volumeSemaine_s, distanceSansAllure,
 } from '../logique/plan.js';
 import { jourISO, ajouterJours } from '../logique/dates.js';
+import { GRILLE, dispositionSemaine, heureDepuisPosition } from '../logique/grille.js';
 import { sport } from '../logique/sports.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
 import { message, messageErreurApi, squelette, pastilleSport, groupeChoix, brancherChoix, surveillerReseau } from './composants.js';
@@ -47,19 +48,54 @@ function sectionObjectif(o) {
   </form>`;
 }
 
+// F-81 : semaine type en grille horaire (lundi à dimanche, 5 h à 23 h). Un bloc ouvre la séance type ;
+// toucher une case vide crée une séance type à ce jour et à cette heure. Positions calculées par logique/grille.js.
 function sectionSemaineType(seances, allures) {
-  const lignes = JOURS.map((nom, i) => {
-    const duJour = seances.filter((s) => s.jour === i + 1);
-    return `<div class="jour-type"><div class="jour-type-tete"><strong>${nom}</strong>
-        <a class="icone-bouton petit" href="#/seance-type/nouvelle?jour=${i + 1}" aria-label="Ajouter une séance le ${nom.toLowerCase()}">+</a></div>
-      ${duJour.length ? duJour.map((s) => `<a class="seance-type" href="#/seance-type/${encodeURIComponent(s.id)}">${pastilleSport(s.sport)}
-          <span class="seance-type-titre">${echapperHtml(s.titre)}</span>
-          <span class="doux">${s.sport === 'REPOS' ? '' : formaterDureeLongue(volumeSeance_s(s, allures))}</span></a>`).join('')
-    : '<p class="doux petit-texte">Repos</p>'}</div>`;
-  }).join('');
+  const { blocs, sansHeure } = dispositionSemaine(seances, allures);
+  const heures = Array.from({ length: GRILLE.heureFin - GRILLE.heureDebut }, (_, i) => GRILLE.heureDebut + i);
+  const jours = JOURS.map((nom, i) => ({ nom, jour: i + 1 }));
+  const lienSeance = (x, contenu, classe) => `<a class="${classe} sport-${x.sport}" href="#/seance-type/${encodeURIComponent(x.id)}"
+    aria-label="${echapperHtml(`${JOURS[x.jour - 1]} ${x.heure ?? ''} ${x.titre}`)}" title="${echapperHtml(x.titre)}">${contenu}</a>`;
   return `<div class="carte"><h2>Semaine type</h2>
-    <p class="doux">Volume : <strong>${formaterDureeLongue(volumeSemaine_s(seances, allures))}</strong> par semaine. Elle est rangée dans ta bibliothèque Intervals.icu.</p>
-    ${lignes}</div>`;
+    <p class="doux">Volume : <strong>${formaterDureeLongue(volumeSemaine_s(seances, allures))}</strong> par semaine.
+      Touche une case vide pour ajouter une séance à cette heure. Elle est rangée dans ta bibliothèque Intervals.icu.</p>
+    <div class="grille">
+      <div class="grille-ligne grille-entete"><span></span>${jours.map((j) => `<span>${j.nom.slice(0, 3)}</span>`).join('')}</div>
+      <div class="grille-ligne grille-sans-heure"><span class="grille-libelle">Sans heure</span>
+        ${jours.map((j) => `<div class="grille-cellule">${sansHeure.filter((x) => x.jour === j.jour)
+    .map((x) => lienSeance(x, `<span aria-hidden="true">${sport(x.sport).icone}</span>`, 'grille-puce')).join('')}
+          <a class="grille-ajout" href="#/seance-type/nouvelle?jour=${j.jour}" aria-label="Ajouter une séance sans heure le ${j.nom.toLowerCase()}">+</a></div>`).join('')}</div>
+      <div class="grille-defilement"><div class="grille-corps" data-hauteur="${(GRILLE.heureFin - GRILLE.heureDebut) * GRILLE.pxParHeure}">
+        <div class="grille-heures" aria-hidden="true">${heures.map((h) => `<span data-haut="${(h - GRILLE.heureDebut) * GRILLE.pxParHeure}">${h} h</span>`).join('')}</div>
+        ${jours.map((j) => `<div class="grille-jour" data-jour="${j.jour}">${blocs.filter((b) => b.jour === j.jour).map((b) => lienSeance(b.seance,
+    `<span aria-hidden="true">${sport(b.seance.sport).icone}</span><span class="grille-bloc-heure">${b.seance.heure}</span>`, 'grille-bloc')
+    .replace('<a ', `<a data-haut="${b.haut_px}" data-hauteur="${b.hauteur_px}" data-colonne="${b.colonne}" data-nb="${b.nbColonnes}" `)).join('')}</div>`).join('')}
+      </div></div>
+    </div></div>`;
+}
+
+// Positions de la grille (CSP : pas de style dans le HTML, element.style est permis) et toucher d'une case vide.
+function brancherGrille(zone) {
+  const corps = zone.querySelector('.grille-corps');
+  if (!corps) return;
+  corps.style.height = `${corps.dataset.hauteur}px`;
+  corps.querySelectorAll('[data-haut]').forEach((el) => {
+    el.style.top = `${el.dataset.haut}px`;
+    if (el.dataset.hauteur) {
+      el.style.height = `${el.dataset.hauteur}px`;
+      el.style.left = `${(Number(el.dataset.colonne) / Number(el.dataset.nb)) * 100}%`;
+      el.style.width = `${100 / Number(el.dataset.nb)}%`;
+    }
+  });
+  corps.querySelectorAll('.grille-jour').forEach((colonne) => {
+    colonne.addEventListener('click', (ev) => {
+      if (ev.target !== colonne) return; // un bloc a été touché
+      const y = ev.clientY - colonne.getBoundingClientRect().top;
+      location.hash = `#/seance-type/nouvelle?jour=${colonne.dataset.jour}&heure=${heureDepuisPosition(y)}`;
+    });
+  });
+  // La journée commence affichée à 6 h.
+  zone.querySelector('.grille-defilement').scrollTop = (6 - GRILLE.heureDebut) * GRILLE.pxParHeure;
 }
 
 function sectionReglages(r, volumeBase_s, debutParDefaut) {
@@ -148,6 +184,7 @@ export async function afficherObjectif(conteneur) {
     ${sectionObjectif(objectif)}${sectionSemaineType(semaine.seances, allures)}${sectionReglages(reglages, volumeBase, debutParDefaut)}${apercu}`;
   messageEnAttente = '';
   zone.querySelectorAll('.barre-remplie').forEach((b) => { b.style.width = `${b.dataset.pct}%`; });
+  brancherGrille(zone);
   const $ = (sel) => zone.querySelector(sel);
   surveillerReseau(zone, $('#hors-ligne-objectif'), [...zone.querySelectorAll('.ecriture')].filter((b) => !b.disabled)); // ENF-07
 
