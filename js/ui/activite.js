@@ -1,6 +1,7 @@
 // Écran E-03 "Détail d'une activité" (F-13) : résumé, FC moyenne et max, puissance moyenne si présente,
 // dénivelé, charge, zones de temps si présentes, tours ou intervalles si présents.
 // L6 : saisie du RPE, du ressenti et d'un commentaire, enregistrés dans Intervals.icu (F-60, F-61, ENF-07).
+// L7 : carte du parcours pour une activité GPS (F-70).
 
 import { lireDetailEnCache, rafraichirDetail, enregistrerRessenti } from '../api/activites.js';
 import { estPerime, repartitionZones } from '../logique/activites.js';
@@ -12,6 +13,7 @@ import { ECHELLE_RPE, RESSENTIS, libelleEchelle, validerRessenti } from '../logi
 import {
   bandeauHorsLigne, messageErreurApi, pastilleSport, stat, squelette, message, groupeChoix, brancherChoix, surveillerReseau,
 } from './composants.js';
+import { afficherCarteParcours } from './carte.js';
 
 const enteteRetour = `<div class="entete"><a class="icone-bouton" href="#/activites" aria-label="Retour">←</a>
   <span class="titre-petit">Activité</span><span class="espace-bouton"></span></div>`;
@@ -99,7 +101,7 @@ function appliquerBarres(conteneur) {
 export async function afficherActivite(conteneur, segments) {
   const id = decodeURIComponent(segments[1] ?? '');
   const zone = () => conteneur.querySelector('#detail');
-  conteneur.innerHTML = `${enteteRetour}<div id="etat"></div><div id="detail"></div><div id="ressenti"></div><div id="detail-bas"></div>`;
+  conteneur.innerHTML = `${enteteRetour}<div id="etat"></div><div id="detail"></div><div id="parcours"></div><div id="ressenti"></div><div id="detail-bas"></div>`;
   // Retour à l'écran précédent (fil, agenda ou accueil) ; sans historique, retour au fil.
   conteneur.querySelector('.entete a').addEventListener('click', (ev) => {
     if (history.length > 1) { ev.preventDefault(); history.back(); }
@@ -144,8 +146,25 @@ export async function afficherActivite(conteneur, segments) {
     });
   }
 
+  // F-70 : carte du parcours, créée une seule fois (elle n'est pas redessinée au rechargement des données).
+  let carteDemandee = false;
+  function afficherParcours(a) {
+    if (carteDemandee || !a.a_gps) return;
+    carteDemandee = true;
+    const zoneParcours = conteneur.querySelector('#parcours');
+    zoneParcours.innerHTML = '<div class="carte carte-parcours"><div class="carte-leaflet" role="region" aria-label="Carte du parcours"></div></div>';
+    afficherCarteParcours(zoneParcours.querySelector('.carte-leaflet'), id, a.sport)
+      .then((affichee) => { if (!affichee) zoneParcours.innerHTML = ''; })
+      .catch(() => {
+        // Hors ligne sans tracé en cache, ou Leaflet indisponible : message discret à la place de la carte.
+        zoneParcours.innerHTML = `<div class="carte"><p class="doux">Carte du parcours indisponible pour le moment.</p></div>`;
+        carteDemandee = false;
+      });
+  }
+
   function afficherDetail(d) {
     zone().innerHTML = rendreHaut(d);
+    afficherParcours(d.activite);
     conteneur.querySelector('#detail-bas').innerHTML = rendreBas(d);
     appliquerBarres(conteneur);
     if (!modifiee) afficherRessenti(d.activite);

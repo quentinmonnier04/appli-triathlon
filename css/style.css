@@ -636,3 +636,15 @@ a.carte-prevue, a.seance-du-jour { display: block; color: inherit; text-decorati
 .lien-fleche-ligne { margin-left: auto; color: var(--accent); font-size: 1.2rem; }
 .choix-quatre { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .choix-quatre .filtre { padding: 8px 4px; }
+
+/* Cartes de parcours (F-70, F-71) */
+.carte-parcours { padding: 0; overflow: hidden; }
+.carte-leaflet { height: 280px; width: 100%; background: var(--surface-2); }
+/* Thème sombre (ENF-15) : tuiles assombries ; le tracé et les repères gardent leurs couleurs. */
+.carte-leaflet .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.6); }
+.carte-leaflet .leaflet-control-attribution { background: rgba(14, 16, 19, 0.75); color: var(--texte-doux); }
+.carte-leaflet .leaflet-control-attribution a { color: var(--accent); }
+.carte-leaflet .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; background: var(--surface); color: var(--texte); border-bottom-color: var(--bordure); }
+.apercu-trace { display: block; height: 72px; margin-top: 12px; border-radius: 10px; background: var(--surface-2); }
+.apercu-trace svg { display: block; width: 100%; height: 100%; }
+.apercu-trace path { fill: none; stroke: var(--couleur-sport); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }

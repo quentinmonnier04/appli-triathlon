@@ -56,18 +56,19 @@ export function carteSeancePrevue(s) {
 }
 
 // Carte d'une activité dans le fil (F-11) : sport, titre, date et heure, distance, durée, vitesse ou allure, charge.
-export function carteActivite(a) {
+// apercu : place réservée pour l'aperçu du tracé GPS (F-71), remplie par ui/carte.js.
+export function carteActivite(a, { apercu = false } = {}) {
   const vitesse = formaterVitesse(a.sport, a.distance_m, a.duree_s);
   return `<a class="carte carte-activite" href="#/activite/${encodeURIComponent(a.id)}">
     <div class="carte-activite-tete">${pastilleSport(a.sport)}
       <div class="carte-activite-titre"><strong>${echapperHtml(a.titre)}</strong>
         <span class="doux">${echapperHtml(formaterDateHeure(a.date, a.heure))}</span></div>
       ${a.charge !== null && a.charge !== undefined ? `<span class="badge-charge" title="Charge">${formaterEntier(a.charge)}<small>charge</small></span>` : ''}</div>
-    <div class="stats stats-carte">
+    <div class="carte-activite-corps"><div class="stats stats-carte">
       ${stat('Distance', formaterDistance(a.distance_m, a.sport))}
       ${stat('Durée', formaterDuree(a.duree_s))}
       ${stat(a.sport === 'VELO' ? 'Vitesse' : 'Allure', vitesse)}
-    </div></a>`;
+    </div>${apercu && a.a_gps ? `<span class="apercu-trace sport-${a.sport}" data-apercu="${echapperHtml(a.id)}"></span>` : ''}</div></a>`;
 }
 
 // Groupe de boutons à choix unique (F-60, F-62) : options [{ valeur, libelle, icone? }].

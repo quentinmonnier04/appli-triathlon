@@ -7,7 +7,8 @@ const VERSION_BASE = 2;
 const STORES = ['reglages', 'cache', 'meta'];
 // Format du cache (4.2) : l'incrémenter vide simplement le cache.
 // Version 2 (L6) : les activités en cache portent le RPE (rappel F-63).
-const SCHEMA_VERSION = 2;
+// Version 3 (L7) : les activités en cache indiquent si elles ont un tracé GPS (a_gps).
+const SCHEMA_VERSION = 3;
 
 let connexion = null;
 

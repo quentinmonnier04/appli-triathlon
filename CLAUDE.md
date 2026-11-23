@@ -514,6 +514,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | D-14 | 22/11/2026 | L4, choix d'organisation : `ui/programmer.js` (E-05), `api/bibliotheque.js` (F-47), `logique/seance.js` (blocs vers texte et relecture du texte produit par l'appli). Une séance créée sur le site s'ouvre en mode « simple » avec sa description intacte. Séance structurée : pas de description libre (le texte envoyé est uniquement la séance). Repos (F-46) = note du calendrier dont le titre commence par « Repos » ; les autres notes ne sont pas affichées. Sports programmables : natation, vélo, course, renfo, autre, repos. Après une écriture, les caches du tableau de bord et de l'agenda sont vidés. |
 | D-15 | 23/11/2026 | L5 : ajout de `api/profil.js` (réglages par sport via `GET /athlete/{id}/sport-settings`, activités de l'année, mis en cache) et `logique/profil.js`. Unités vérifiées sur le forum officiel : `threshold_pace` en m/s, `power_zones` en % de la FTP, `pace_zones` en % de l'allure seuil, `hr_zones` en bpm (borne haute). Proportion par sport calculée sur la durée. Nom de la montre stocké dans `reglages` (défaut « Suunto 9 Baro »), réglable dans Réglages. Réglages ouverts depuis l'engrenage du Profil (onglet Profil ajouté à la barre). |
 | D-16 | 23/11/2026 | L6 : ajout de `logique/ressenti.js` (échelles, contrôles, rappel F-63) et de l'écran `ui/bilan.js` (E-08). Champs et échelles vérifiés (spécification OpenAPI et forum officiel) : RPE = `icu_rpe` (1-10), ressenti = `feel` (1 = très bien ... 5 = mauvais), commentaire = `description` de l'activité (modifiable, contrairement aux messages), écrits par `PUT /activity/{id}`. Bilan = `PUT /athlete/{id}/wellness/{date}` : `fatigue`, `sleepQuality`, `soreness` (1 à 4, 1 = meilleur état ; la valeur 0 citée par certaines sources n'est pas proposée), `weight`, `comments`. Un appui sur un choix déjà sélectionné le retire (valeur effacée dans Intervals.icu). Le fil demande désormais `icu_rpe` ; `schema_version` du cache passe à 2. Hors ligne : boutons désactivés avec M-04 (ENF-07). Accès au bilan par une carte de l'accueil. |
+| D-17 | 23/11/2026 | L7 : D-03 confirmé (tuiles OpenStreetMap). Leaflet 1.9.4 copié dans `lib/leaflet/` (empreintes SHA-256 conformes aux valeurs officielles), chargé seulement à l'ouverture d'une carte. Tracé lu par `GET /activity/{id}/map` (`latlngs`), mis en cache sans expiration (un tracé ne change pas) et allégé à 3000 points ; une coupure GPS découpe le tracé en segments. `a_gps` = `stream_types` contient `latlng` (champ ajouté au fil ; `schema_version` passe à 3). Aperçu du fil (F-71) dessiné en SVG sans tuiles, chargé quand la carte devient visible, pour limiter les requêtes. CSP : `img-src` autorise `tile.openstreetmap.org` ; les tuiles envoient l'origine en Referer (exigé par OpenStreetMap). Sur téléphone, la carte se zoome à deux doigts ; un doigt fait défiler la page. Nouveaux fichiers : `logique/carte.js`, `ui/carte.js`. |
 
 ---
 
@@ -528,8 +529,8 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | L4 | Validé le 23/11/2026 |
 | L5 | Validé le 23/11/2026 (seuils, zones et totaux conformes à Intervals.icu) |
 | L6 | Validé le 23/11/2026 (conversions conformes à Intervals.icu) |
-| L7 | À faire |
+| L7 | Code écrit, recette PC faite (réponses simulées) ; test réel à faire (tracé de ma dernière sortie vélo) |
 
 **Ancien code v1.0** : supprimé (commit « Suppression du code v1.0 »), récupérable dans l'historique git.
 
-**Prochaine étape :** lot L7 (cartes de parcours).
+**Prochaine étape :** valider L7 avec une vraie sortie vélo (critère 9.7), puis mise en ligne sur GitHub Pages pour installer l'appli sur le téléphone, et bilan d'usage après 4 semaines (section 7).

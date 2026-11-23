@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <!-- ENF-12 : seul intervals.icu est joignable ; aucun script, police ou style externe (ENF-21) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://intervals.icu; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <!-- ENF-12 : seul intervals.icu est joignable, plus les tuiles OpenStreetMap (images, L7) ; aucun script, police ou style externe (ENF-21) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self' https://intervals.icu; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#0E1013">
   <meta name="color-scheme" content="dark">

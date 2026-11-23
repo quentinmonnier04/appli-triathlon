@@ -1,5 +1,6 @@
 // Écran E-02 "Activités" : fil du plus récent au plus ancien (F-10, F-11), filtre par sport (F-12),
-// tirer vers le bas pour rafraîchir (F-14), consultation hors ligne depuis le cache (ENF-06, 5.5).
+// tirer vers le bas pour rafraîchir (F-14), consultation hors ligne depuis le cache (ENF-06, 5.5),
+// aperçu du tracé GPS sur chaque carte (F-71).
 
 import { lireFilEnCache, rafraichirFil, chargerSuite } from '../api/activites.js';
 import { filtrerParSport, estPerime } from '../logique/activites.js';
@@ -7,6 +8,7 @@ import { SPORTS } from '../logique/sports.js';
 import { MESSAGES } from '../logique/messages.js';
 import { echapperHtml } from '../logique/format.js';
 import { carteActivite, bandeauHorsLigne, message, messageErreurApi, squelette } from './composants.js';
+import { remplirApercus } from './carte.js';
 
 // Filtre choisi, conservé pendant la session.
 let filtreCourant = null;
@@ -51,7 +53,8 @@ export async function afficherActivites(conteneur) {
     } else if (!visibles.length && fil.fin) {
       liste.innerHTML = message('info', 'Aucune activité de ce sport.');
     } else {
-      liste.innerHTML = visibles.map(carteActivite).join('');
+      liste.innerHTML = visibles.map((a) => carteActivite(a, { apercu: true })).join('');
+      remplirApercus(liste); // F-71 : aperçus des tracés GPS
     }
     bas.innerHTML = fil.fin && fil.activites.length ? '<p class="fin-liste doux">Fin de la liste</p>' : '';
     // Relance l'observation : si la sentinelle est encore visible, la page suivante se charge.

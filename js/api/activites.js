@@ -4,21 +4,29 @@
 //   GET /api/v1/activity/{id}                                                     -> Activity
 //   GET /api/v1/activity/{id}/intervals                                           -> IntervalsDTO (icu_intervals)
 //   PUT /api/v1/activity/{id}   (corps Activity, champs icu_rpe, feel, description)  -> Activity  (L6)
+//   GET /api/v1/activity/{id}/map                                                 -> MapData (latlngs, bounds)  (L7)
+// Une activité a un tracé GPS si son champ stream_types contient "latlng" (L7).
 // L'identifiant athlète "0" désigne le propriétaire de la clé (5.4).
 
 import { requeteAuthentifiee } from './client.js';
 import { lireCache, ecrireCache, supprimerCachePrefixe } from '../cache/stockage.js';
 import { sportDepuisType, sport } from '../logique/sports.js';
 import { fusionnerActivites } from '../logique/activites.js';
+import { decouperSegments, alleger } from '../logique/carte.js';
 
 // Nombre d'activités par page du fil (F-10).
 export const TAILLE_PAGE = 20;
 
-// Champs demandés pour le fil : uniquement ceux des cartes (ENF-11), plus le RPE pour le rappel (F-63).
+// Champs demandés pour le fil : uniquement ceux des cartes (ENF-11), plus le RPE pour le rappel (F-63)
+// et la liste des flux de données pour savoir si l'activité a un tracé GPS (F-71).
 export const CHAMPS_FIL = [
   'id', 'start_date_local', 'type', 'name', 'moving_time', 'elapsed_time', 'distance', 'icu_distance',
-  'total_elevation_gain', 'icu_training_load', 'icu_rpe',
+  'total_elevation_gain', 'icu_training_load', 'icu_rpe', 'stream_types',
 ];
+
+// Nombre de points gardés : carte du détail (F-70) et aperçu du fil (F-71).
+export const POINTS_CARTE = 3000;
+export const POINTS_APERCU = 150;
 
 // Valeur ou null (les réponses avec "fields" omettent les champs nuls).
 const ou = (v) => (v === undefined ? null : v);
@@ -44,6 +52,7 @@ export function convertirActivite(brut) {
     rpe: ou(brut.icu_rpe),
     ressenti: ou(brut.feel),
     commentaire: brut.description || null,
+    a_gps: Array.isArray(brut.stream_types) && brut.stream_types.includes('latlng'),
     zones_fc: ou(brut.icu_hr_zone_times),
     zones_puissance: ou(brut.icu_zone_times),
     zones_allure: ou(brut.pace_zone_times),
@@ -152,4 +161,26 @@ export async function enregistrerRessenti(id, saisie) {
   await supprimerCachePrefixe('tableau');
   await supprimerCachePrefixe('agenda:');
   return activite;
+}
+
+// MapData (Intervals.icu) -> tracé interne : segments de points [lat, lng], allégés pour la carte (F-70).
+export function convertirTrace(brut) {
+  return { segments: alleger(decouperSegments(brut?.latlngs), POINTS_CARTE) };
+}
+
+// Tracé GPS d'une activité (F-70, F-71). Un tracé ne change pas : une fois en cache, il n'est jamais
+// redemandé à Intervals.icu (ENF-11). Renvoie { segments } (liste vide si pas de position).
+export async function lireTrace(id) {
+  const cle = `trace:${id}`;
+  const cache = await lireCache(cle);
+  if (cache) return cache.donnees;
+  const trace = convertirTrace(await requeteAuthentifiee(`/activity/${encodeURIComponent(id)}/map`));
+  await ecrireCache(cle, trace);
+  return trace;
+}
+
+// Aperçu du tracé pour le fil (F-71) : version très allégée du tracé.
+export async function lireApercuTrace(id) {
+  const { segments } = await lireTrace(id);
+  return { segments: alleger(segments, POINTS_APERCU) };
 }
