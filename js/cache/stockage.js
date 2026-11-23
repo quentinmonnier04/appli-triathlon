@@ -6,7 +6,8 @@ const NOM_BASE = 'triathlon-app';
 const VERSION_BASE = 2;
 const STORES = ['reglages', 'cache', 'meta'];
 // Format du cache (4.2) : l'incrémenter vide simplement le cache.
-const SCHEMA_VERSION = 1;
+// Version 2 (L6) : les activités en cache portent le RPE (rappel F-63).
+const SCHEMA_VERSION = 2;
 
 let connexion = null;
 

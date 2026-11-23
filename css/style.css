@@ -613,3 +613,26 @@ a.carte-prevue, a.seance-du-jour { display: block; color: inherit; text-decorati
 .liste-zones { list-style: none; margin: 0 0 12px; padding: 0; }
 .liste-zones li { display: flex; gap: 12px; padding: 6px 0; font-variant-numeric: tabular-nums; font-size: 0.95rem; }
 .liste-zones .zone-nom { min-width: 64px; color: var(--texte-doux); }
+
+/* Ressenti et bilan du jour (F-60 à F-63) */
+.choix-groupe { display: flex; flex-wrap: wrap; gap: 8px; }
+.choix-court { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.choix-court .filtre { padding: 8px 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.filtre[aria-checked="true"] { background: var(--texte); color: var(--fond); border-color: var(--texte); font-weight: 700; }
+.choix-groupe + .aide:empty { display: none; }
+.rappel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tactile);
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: var(--rayon-petit);
+  background: var(--alerte-fond);
+  color: var(--texte);
+  text-decoration: none;
+}
+.rappel .pastille { width: 32px; height: 32px; font-size: 1rem; flex: none; }
+.lien-fleche-ligne { margin-left: auto; color: var(--accent); font-size: 1.2rem; }
+.choix-quatre { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.choix-quatre .filtre { padding: 8px 4px; }

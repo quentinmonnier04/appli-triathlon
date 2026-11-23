@@ -69,3 +69,46 @@ export function carteActivite(a) {
       ${stat(a.sport === 'VELO' ? 'Vitesse' : 'Allure', vitesse)}
     </div></a>`;
 }
+
+// Groupe de boutons à choix unique (F-60, F-62) : options [{ valeur, libelle, icone? }].
+// "court" : affiche la valeur au lieu du libellé (grille du RPE), le libellé passe en info-bulle.
+export function groupeChoix(champ, etiquette, options, valeur, { court = false } = {}) {
+  return `<div class="champ"><span class="etiquette-champ" id="etiquette-${champ}">${echapperHtml(etiquette)}</span>
+    <div class="choix-groupe${court ? ' choix-court' : ''}${options.length === 4 ? ' choix-quatre' : ''}" role="radiogroup" aria-labelledby="etiquette-${champ}">
+      ${options.map((o) => `<button type="button" class="filtre" role="radio" aria-checked="${o.valeur === valeur}"
+        data-champ="${champ}" data-valeur="${o.valeur}"${court ? ` title="${echapperHtml(o.libelle)}" aria-label="${o.valeur} : ${echapperHtml(o.libelle)}"` : ''}>
+        ${o.icone ? `<span aria-hidden="true">${o.icone}</span> ` : ''}${court ? o.valeur : echapperHtml(o.libelle)}</button>`).join('')}
+    </div><div class="aide" id="aide-${champ}"></div></div>`;
+}
+
+// Branche les groupes de choix d'un formulaire : un appui choisit, un second appui retire le choix.
+// surChangement(champ, valeur ou null) est appelé à chaque changement.
+export function brancherChoix(racine, surChangement) {
+  racine.querySelectorAll('[role="radio"][data-champ]').forEach((bouton) => {
+    bouton.addEventListener('click', () => {
+      const champ = bouton.dataset.champ;
+      const choisi = bouton.getAttribute('aria-checked') !== 'true';
+      racine.querySelectorAll(`[data-champ="${champ}"]`).forEach((b) => b.setAttribute('aria-checked', 'false'));
+      bouton.setAttribute('aria-checked', String(choisi));
+      surChangement(champ, choisi ? Number(bouton.dataset.valeur) : null);
+    });
+  });
+}
+
+// ENF-07 : sans réseau, les boutons d'écriture sont désactivés avec le message M-04.
+// Les écouteurs se retirent d'eux-mêmes quand le formulaire quitte la page.
+export function surveillerReseau(formulaire, zoneMessage, boutons) {
+  function maj() {
+    if (!formulaire.isConnected) {
+      window.removeEventListener('online', maj);
+      window.removeEventListener('offline', maj);
+      return;
+    }
+    const enLigne = navigator.onLine;
+    zoneMessage.innerHTML = enLigne ? '' : message('info', MESSAGES['M-04']);
+    boutons.forEach((b) => { b.disabled = !enLigne; });
+  }
+  window.addEventListener('online', maj);
+  window.addEventListener('offline', maj);
+  maj();
+}

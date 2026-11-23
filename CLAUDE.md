@@ -513,6 +513,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | D-13 | 22/11/2026 | L4, cible des blocs : chaque bloc choisit sa cible (FC, allure ou puissance) ; par défaut allure en course et natation, FC ailleurs. Texte de séance au format natif Intervals.icu, syntaxe vérifiée sur le forum officiel (fils 1163 et 9973) : `- ` pour une étape, `m` = minutes, `mtr` = mètres, `km`, `Série Nx` entourée de lignes vides, `Z4` = puissance, `Z4 HR` = FC, `Z4 Pace` = allure. |
 | D-14 | 22/11/2026 | L4, choix d'organisation : `ui/programmer.js` (E-05), `api/bibliotheque.js` (F-47), `logique/seance.js` (blocs vers texte et relecture du texte produit par l'appli). Une séance créée sur le site s'ouvre en mode « simple » avec sa description intacte. Séance structurée : pas de description libre (le texte envoyé est uniquement la séance). Repos (F-46) = note du calendrier dont le titre commence par « Repos » ; les autres notes ne sont pas affichées. Sports programmables : natation, vélo, course, renfo, autre, repos. Après une écriture, les caches du tableau de bord et de l'agenda sont vidés. |
 | D-15 | 23/11/2026 | L5 : ajout de `api/profil.js` (réglages par sport via `GET /athlete/{id}/sport-settings`, activités de l'année, mis en cache) et `logique/profil.js`. Unités vérifiées sur le forum officiel : `threshold_pace` en m/s, `power_zones` en % de la FTP, `pace_zones` en % de l'allure seuil, `hr_zones` en bpm (borne haute). Proportion par sport calculée sur la durée. Nom de la montre stocké dans `reglages` (défaut « Suunto 9 Baro »), réglable dans Réglages. Réglages ouverts depuis l'engrenage du Profil (onglet Profil ajouté à la barre). |
+| D-16 | 23/11/2026 | L6 : ajout de `logique/ressenti.js` (échelles, contrôles, rappel F-63) et de l'écran `ui/bilan.js` (E-08). Champs et échelles vérifiés (spécification OpenAPI et forum officiel) : RPE = `icu_rpe` (1-10), ressenti = `feel` (1 = très bien ... 5 = mauvais), commentaire = `description` de l'activité (modifiable, contrairement aux messages), écrits par `PUT /activity/{id}`. Bilan = `PUT /athlete/{id}/wellness/{date}` : `fatigue`, `sleepQuality`, `soreness` (1 à 4, 1 = meilleur état ; la valeur 0 citée par certaines sources n'est pas proposée), `weight`, `comments`. Un appui sur un choix déjà sélectionné le retire (valeur effacée dans Intervals.icu). Le fil demande désormais `icu_rpe` ; `schema_version` du cache passe à 2. Hors ligne : boutons désactivés avec M-04 (ENF-07). Accès au bilan par une carte de l'accueil. |
 
 ---
 
@@ -525,9 +526,10 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | L2 | Validé le 23/11/2026 |
 | L3 | Validé le 23/11/2026 |
 | L4 | Validé le 23/11/2026 |
-| L5 | Code écrit ; vérification avec mes vraies données à faire (totaux et seuils comparés à Intervals.icu) |
-| L6 à L7 | À faire |
+| L5 | Code écrit, recette PC faite (réponses simulées) ; vérification avec mes vraies données à faire (totaux et seuils comparés à Intervals.icu) |
+| L6 | Code écrit, recette PC faite (réponses simulées) ; test réel à faire (RPE et bilan visibles dans Intervals.icu) |
+| L7 | À faire |
 
 **Ancien code v1.0** : supprimé (commit « Suppression du code v1.0 »), récupérable dans l'historique git.
 
-**Prochaine étape :** valider L5 avec mes vraies données (critères 9.7), puis lot L6.
+**Prochaine étape :** valider L5 et L6 avec mes vraies données (critères 9.7), puis lot L7 (cartes).

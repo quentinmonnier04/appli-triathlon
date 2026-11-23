@@ -1,4 +1,4 @@
-// Écran E-01 "Tableau de bord" (F-20 à F-25) : affiché depuis le cache en moins d'une seconde,
+// Écran E-01 "Tableau de bord" (F-20 à F-25, rappel du RPE F-63, accès au bilan F-62) : affiché depuis le cache en moins d'une seconde,
 // puis mis à jour depuis Intervals.icu si le cache a plus de 5 min (ENF-09, ENF-11, 5.5).
 
 import { lireTableauEnCache, rafraichirTableau } from '../api/tableau.js';
@@ -6,6 +6,7 @@ import { lireAthlete } from '../api/athlete.js';
 import { estPerime } from '../logique/activites.js';
 import { comparaisonMois, sportsParJour, volumeSemaine } from '../logique/totaux.js';
 import { phraseForme } from '../logique/forme.js';
+import { activitesSansRpe } from '../logique/ressenti.js';
 import { cheminCourbe, progression } from '../logique/graphique.js';
 import { grilleMois, libelleMois, lundiDe, memeJourMoisPrecedent } from '../logique/dates.js';
 import { sport } from '../logique/sports.js';
@@ -38,6 +39,20 @@ function widgetSeanceDuJour(prevues, jour) {
           <span class="doux">${echapperHtml(sport(s.sport).libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
         ${s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : ''}</a>`;
   }).join('')}</div>`;
+}
+
+// F-63 : rappel discret pour chaque activité du jour sans RPE.
+function rappelRpe(activites, jour) {
+  return activitesSansRpe(activites, jour).map((a) => `<a class="rappel" href="#/activite/${encodeURIComponent(a.id)}">
+    ${pastilleSport(a.sport)}<span>Note ton ressenti sur <strong>${echapperHtml(a.titre)}</strong></span>
+    <span class="lien-fleche-ligne" aria-hidden="true">→</span></a>`).join('');
+}
+
+// F-62 : accès au bilan du jour.
+function lienBilan(jour) {
+  return `<a class="carte carte-lien" href="#/bilan?date=${jour}">
+    <div class="etiquette-carte">Bilan du jour</div><span class="lien-fleche" aria-hidden="true">→</span>
+    <p class="doux">Fatigue, sommeil, douleurs, poids : note ta journée.</p></a>`;
 }
 
 // F-21 : dernière activité, qui ouvre son détail.
@@ -120,9 +135,11 @@ function widgetCalendrier(activites, jour) {
 }
 
 function rendreTableau(t) {
-  return `${widgetSeanceDuJour(t.prevues, t.jour)}
+  return `${rappelRpe(t.activites, t.jour)}
+    ${widgetSeanceDuJour(t.prevues, t.jour)}
     ${widgetDerniereActivite(t.derniere)}
     ${widgetForme(t.forme, t.jour)}
+    ${lienBilan(t.jour)}
     ${widgetDureeMois(t.activites, t.jour)}
     ${widgetSemaine(t.prevues, t.activites, t.jour)}
     ${widgetCalendrier(t.activites, t.jour)}`;

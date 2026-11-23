@@ -3,20 +3,21 @@
 //   GET /api/v1/athlete/{id}/activities  (oldest obligatoire, newest, limit, fields) -> Activity[] du plus récent au plus ancien
 //   GET /api/v1/activity/{id}                                                     -> Activity
 //   GET /api/v1/activity/{id}/intervals                                           -> IntervalsDTO (icu_intervals)
+//   PUT /api/v1/activity/{id}   (corps Activity, champs icu_rpe, feel, description)  -> Activity  (L6)
 // L'identifiant athlète "0" désigne le propriétaire de la clé (5.4).
 
 import { requeteAuthentifiee } from './client.js';
-import { lireCache, ecrireCache } from '../cache/stockage.js';
+import { lireCache, ecrireCache, supprimerCachePrefixe } from '../cache/stockage.js';
 import { sportDepuisType, sport } from '../logique/sports.js';
 import { fusionnerActivites } from '../logique/activites.js';
 
 // Nombre d'activités par page du fil (F-10).
 export const TAILLE_PAGE = 20;
 
-// Champs demandés pour le fil : uniquement ceux des cartes (ENF-11).
+// Champs demandés pour le fil : uniquement ceux des cartes (ENF-11), plus le RPE pour le rappel (F-63).
 export const CHAMPS_FIL = [
   'id', 'start_date_local', 'type', 'name', 'moving_time', 'elapsed_time', 'distance', 'icu_distance',
-  'total_elevation_gain', 'icu_training_load',
+  'total_elevation_gain', 'icu_training_load', 'icu_rpe',
 ];
 
 // Valeur ou null (les réponses avec "fields" omettent les champs nuls).
@@ -42,6 +43,7 @@ export function convertirActivite(brut) {
     charge: ou(brut.icu_training_load),
     rpe: ou(brut.icu_rpe),
     ressenti: ou(brut.feel),
+    commentaire: brut.description || null,
     zones_fc: ou(brut.icu_hr_zone_times),
     zones_puissance: ou(brut.icu_zone_times),
     zones_allure: ou(brut.pace_zone_times),
@@ -132,4 +134,22 @@ export async function rafraichirDetail(id) {
   const donnees = { activite: convertirActivite(brut), intervalles: intervalles.map(convertirIntervalle) };
   await ecrireCache(`activite:${id}`, donnees);
   return { ...donnees, charge_le: (await lireCache(`activite:${id}`)).charge_le };
+}
+
+// Saisie du ressenti -> corps Activity (F-60, F-61) : RPE (icu_rpe), ressenti (feel), commentaire (description).
+export function versRessenti(s) {
+  return { icu_rpe: s.rpe ?? null, feel: s.ressenti ?? null, description: s.commentaire ?? '' };
+}
+
+// Enregistre le RPE, le ressenti et le commentaire dans Intervals.icu (F-60, F-61) ; renvoie l'activité à jour.
+// Le détail en cache est mis à jour ; le fil, le tableau de bord et l'agenda seront rechargés (rappel F-63).
+export async function enregistrerRessenti(id, saisie) {
+  const brut = await requeteAuthentifiee(`/activity/${encodeURIComponent(id)}`, null, { methode: 'PUT', corps: versRessenti(saisie) });
+  const activite = convertirActivite(brut);
+  const cache = await lireCache(`activite:${id}`);
+  if (cache) await ecrireCache(`activite:${id}`, { ...cache.donnees, activite }, cache.charge_le);
+  await supprimerCachePrefixe('fil');
+  await supprimerCachePrefixe('tableau');
+  await supprimerCachePrefixe('agenda:');
+  return activite;
 }

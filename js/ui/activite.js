@@ -1,13 +1,17 @@
 // Écran E-03 "Détail d'une activité" (F-13) : résumé, FC moyenne et max, puissance moyenne si présente,
 // dénivelé, charge, zones de temps si présentes, tours ou intervalles si présents.
+// L6 : saisie du RPE, du ressenti et d'un commentaire, enregistrés dans Intervals.icu (F-60, F-61, ENF-07).
 
-import { lireDetailEnCache, rafraichirDetail } from '../api/activites.js';
+import { lireDetailEnCache, rafraichirDetail, enregistrerRessenti } from '../api/activites.js';
 import { estPerime, repartitionZones } from '../logique/activites.js';
 import {
   echapperHtml, formaterDuree, formaterDistance, formaterVitesse, formaterDateHeure, formaterEntier,
 } from '../logique/format.js';
 import { sport } from '../logique/sports.js';
-import { bandeauHorsLigne, messageErreurApi, pastilleSport, stat, squelette } from './composants.js';
+import { ECHELLE_RPE, RESSENTIS, libelleEchelle, validerRessenti } from '../logique/ressenti.js';
+import {
+  bandeauHorsLigne, messageErreurApi, pastilleSport, stat, squelette, message, groupeChoix, brancherChoix, surveillerReseau,
+} from './composants.js';
 
 const enteteRetour = `<div class="entete"><a class="icone-bouton" href="#/activites" aria-label="Retour">←</a>
   <span class="titre-petit">Activité</span><span class="espace-bouton"></span></div>`;
@@ -42,7 +46,8 @@ function blocIntervalles(intervalles, sportCode) {
     </table></div></div>`;
 }
 
-function rendreDetail({ activite: a, intervalles }) {
+// Haut du détail : résumé (F-13).
+function rendreHaut({ activite: a }) {
   const vitesse = formaterVitesse(a.sport, a.distance_m, a.duree_s);
   return `
     <div class="carte hero">
@@ -54,7 +59,12 @@ function rendreDetail({ activite: a, intervalles }) {
         ${stat('Distance', formaterDistance(a.distance_m, a.sport))}
         ${stat(a.sport === 'VELO' ? 'Vitesse moy.' : 'Allure moy.', vitesse)}
       </div>
-    </div>
+    </div>`;
+}
+
+// Bas du détail : FC, puissance, dénivelé, charge, zones, tours (F-13).
+function rendreBas({ activite: a, intervalles }) {
+  return `
     <div class="carte"><div class="stats grille-stats">
       ${stat('FC moyenne', avecUnite(a.fc_moy, 'bpm'))}
       ${stat('FC max', avecUnite(a.fc_max, 'bpm'))}
@@ -68,6 +78,19 @@ function rendreDetail({ activite: a, intervalles }) {
     ${blocIntervalles(intervalles, a.sport)}`;
 }
 
+// Formulaire de ressenti (F-60, F-61), prérempli avec les valeurs d'Intervals.icu.
+function rendreRessenti(saisie) {
+  return `<form class="carte" id="form-ressenti" novalidate><h2>Mon ressenti</h2>
+    ${groupeChoix('rpe', 'Effort perçu (RPE)', ECHELLE_RPE, saisie.rpe, { court: true })}
+    ${groupeChoix('ressenti', 'Ressenti', RESSENTIS, saisie.ressenti)}
+    <div class="champ"><label for="commentaire">Commentaire</label>
+      <textarea id="commentaire" rows="3" maxlength="2000" placeholder="Comment s'est passée la séance ?">${echapperHtml(saisie.commentaire)}</textarea></div>
+    <div id="hors-ligne-ressenti"></div>
+    <div id="resultat-ressenti" aria-live="polite"></div>
+    <button type="submit" class="bouton principal" id="enregistrer-ressenti">Enregistrer dans Intervals.icu</button>
+  </form>`;
+}
+
 // Largeur des barres de zones (CSP : pas de style inline dans le HTML, mais element.style est permis).
 function appliquerBarres(conteneur) {
   conteneur.querySelectorAll('.zone-remplie').forEach((b) => { b.style.width = `${b.dataset.pct}%`; });
@@ -76,23 +99,68 @@ function appliquerBarres(conteneur) {
 export async function afficherActivite(conteneur, segments) {
   const id = decodeURIComponent(segments[1] ?? '');
   const zone = () => conteneur.querySelector('#detail');
-  conteneur.innerHTML = `${enteteRetour}<div id="etat"></div><div id="detail"></div>`;
+  conteneur.innerHTML = `${enteteRetour}<div id="etat"></div><div id="detail"></div><div id="ressenti"></div><div id="detail-bas"></div>`;
   // Retour à l'écran précédent (fil, agenda ou accueil) ; sans historique, retour au fil.
   conteneur.querySelector('.entete a').addEventListener('click', (ev) => {
     if (history.length > 1) { ev.preventDefault(); history.back(); }
   });
 
+  // Saisie du ressenti (F-60, F-61) : elle n'est pas écrasée par un rechargement si l'utilisateur l'a modifiée.
+  let saisie = null;
+  let modifiee = false;
+
+  function afficherRessenti(a, resultatHtml = '') {
+    saisie = { rpe: a.rpe, ressenti: a.ressenti, commentaire: a.commentaire ?? '' };
+    modifiee = false;
+    const zoneRessenti = conteneur.querySelector('#ressenti');
+    zoneRessenti.innerHTML = rendreRessenti(saisie);
+    const form = zoneRessenti.querySelector('form');
+    const aideRpe = () => { form.querySelector('#aide-rpe').textContent = libelleEchelle(ECHELLE_RPE, saisie.rpe) ?? ''; };
+    aideRpe();
+    form.querySelector('#resultat-ressenti').innerHTML = resultatHtml;
+    brancherChoix(form, (champ, valeur) => { saisie[champ] = valeur; modifiee = true; aideRpe(); });
+    form.querySelector('#commentaire').addEventListener('input', () => { modifiee = true; });
+    const bouton = form.querySelector('#enregistrer-ressenti');
+    surveillerReseau(form, form.querySelector('#hors-ligne-ressenti'), [bouton]); // ENF-07
+
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      saisie.commentaire = form.querySelector('#commentaire').value.trim();
+      const erreurs = validerRessenti(saisie);
+      const resultat = form.querySelector('#resultat-ressenti');
+      if (Object.keys(erreurs).length) { resultat.innerHTML = message('erreur', Object.values(erreurs).join(' ')); return; }
+      bouton.disabled = true;
+      bouton.textContent = 'Enregistrement...'; // ENF-10 : retour visuel immédiat
+      try {
+        const a2 = await enregistrerRessenti(id, saisie);
+        if (!form.isConnected) return;
+        afficherRessenti(a2, message('succes', 'Ressenti enregistré dans Intervals.icu.'));
+      } catch (e) {
+        if (!form.isConnected) return;
+        resultat.innerHTML = messageErreurApi(e); // la saisie reste dans le formulaire (ENF-07)
+        bouton.disabled = !navigator.onLine;
+        bouton.textContent = 'Enregistrer dans Intervals.icu';
+      }
+    });
+  }
+
+  function afficherDetail(d) {
+    zone().innerHTML = rendreHaut(d);
+    conteneur.querySelector('#detail-bas').innerHTML = rendreBas(d);
+    appliquerBarres(conteneur);
+    if (!modifiee) afficherRessenti(d.activite);
+  }
+
   // 5.5 : cache d'abord, puis Intervals.icu si le cache a plus de 5 min.
   const cache = await lireDetailEnCache(id);
-  if (cache) { zone().innerHTML = rendreDetail(cache); appliquerBarres(conteneur); }
+  if (cache) afficherDetail(cache);
   else zone().innerHTML = squelette() + squelette(); // ENF-22 : chargement
   if (cache && !estPerime(cache.charge_le)) return;
 
   try {
     const frais = await rafraichirDetail(id);
     if (!conteneur.contains(zone())) return; // écran quitté entre-temps
-    zone().innerHTML = rendreDetail(frais);
-    appliquerBarres(conteneur);
+    afficherDetail(frais);
   } catch (e) {
     if (!zone()) return;
     if (cache && e.type !== 'IDENTIFIANTS') {

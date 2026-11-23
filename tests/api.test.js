@@ -89,7 +89,7 @@ test('activité Intervals.icu -> objet interne Activite (9.2)', () => {
   };
   assert.deepEqual(convertirActivite(brut), {
     id: 'i123', date: '2026-11-20', heure: '07:30', sport: 'VELO', titre: 'Sortie', duree_s: 6000, distance_m: 48380.5,
-    denivele_m: 420.4, fc_moy: 142, fc_max: 171, puissance_moy_w: 188, charge: 95, rpe: 6, ressenti: 2,
+    denivele_m: 420.4, fc_moy: 142, fc_max: 171, puissance_moy_w: 188, charge: 95, rpe: 6, ressenti: 2, commentaire: null,
     zones_fc: [600, 3000], zones_puissance: [{ id: 'Z1', secs: 100 }], zones_allure: null, nb_tours: 3,
   });
 });
