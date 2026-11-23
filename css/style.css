@@ -648,3 +648,10 @@ a.carte-prevue, a.seance-du-jour { display: block; color: inherit; text-decorati
 .apercu-trace { display: block; height: 72px; margin-top: 12px; border-radius: 10px; background: var(--surface-2); }
 .apercu-trace svg { display: block; width: 100%; height: 100%; }
 .apercu-trace path { fill: none; stroke: var(--couleur-sport); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Objectif (F-80) */
+.pastille-objectif { background: var(--surface-2); }
+.carte-objectif { border-color: #E8C547; }
+.objectif-ligne { display: flex; align-items: center; gap: 12px; margin-top: 4px; padding-right: 28px; }
+.objectif-ligne .carte-activite-titre { flex: 1; }
+.compte-rebours { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: #E8C547; white-space: nowrap; }

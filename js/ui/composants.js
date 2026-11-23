@@ -46,6 +46,7 @@ export function stat(etiquette, valeur) {
 
 // Carte d'une séance prévue, dessinée en contour pour la distinguer du réalisé (F-32) ; elle ouvre la modification (F-43).
 export function carteSeancePrevue(s) {
+  if (s.objectif) return carteObjectif(s);
   const details = [formaterDuree(s.duree_s), formaterDistance(s.distance_m, s.sport)].filter(Boolean).join(' · ');
   const sp = sport(s.sport);
   return `<a class="carte carte-prevue sport-${sp.code}" href="#/seance/${encodeURIComponent(s.id)}">
@@ -53,6 +54,15 @@ export function carteSeancePrevue(s) {
       <div class="carte-activite-titre"><strong>${echapperHtml(s.titre)}</strong>
         <span class="doux">Prévu · ${echapperHtml(sp.libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
     ${s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : ''}</a>`;
+}
+
+// Carte de la course objectif dans l'agenda (F-80) : elle ouvre l'écran Objectif.
+function carteObjectif(s) {
+  const sp = sport(s.sport);
+  return `<a class="carte carte-prevue carte-objectif" href="#/objectif">
+    <div class="carte-activite-tete"><span class="pastille pastille-objectif" role="img" aria-label="Objectif">🏁</span>
+      <div class="carte-activite-titre"><strong>${echapperHtml(s.titre)}</strong>
+        <span class="doux">Objectif · ${echapperHtml(s.sport === 'ENCHAINEMENT' ? 'Triathlon' : sp.libelle)}</span></div></div></a>`;
 }
 
 // Carte d'une activité dans le fil (F-11) : sport, titre, date et heure, distance, durée, vitesse ou allure, charge.

@@ -19,14 +19,21 @@ export const CHAMPS_EVENEMENTS = [
 const ou = (v) => (v === undefined ? null : v);
 
 // Une note est une séance de repos si son titre commence par "Repos" (F-46) ; les autres notes ne sont pas affichées.
+// La course objectif (RACE_A) est affichée dans l'agenda et sur l'accueil (F-80).
 const estRepos = (brut) => brut.category === 'NOTE' && /^repos/i.test(brut.name ?? '');
 export function estAffichable(brut) {
-  return brut.category === 'WORKOUT' || estRepos(brut);
+  return brut.category === 'WORKOUT' || brut.category === 'RACE_A' || estRepos(brut);
 }
 
 // Event (Intervals.icu) -> objet interne SeancePrevue (9.2) ; les blocs sont relus si le texte vient de l'appli.
 export function convertirSeancePrevue(brut) {
   const code = estRepos(brut) ? 'REPOS' : sportDepuisType(brut.type);
+  if (brut.category === 'RACE_A') {
+    return {
+      id: String(brut.id), date: (brut.start_date_local ?? '').slice(0, 10), sport: code, titre: brut.name || 'Objectif',
+      duree_s: null, distance_m: null, description: null, blocs: null, objectif: true,
+    };
+  }
   return {
     id: String(brut.id),
     date: (brut.start_date_local ?? '').slice(0, 10),
@@ -58,7 +65,7 @@ export function versEvenement(s) {
 // Séances prévues et repos entre deux jours inclus.
 export async function chargerSeancesPrevues(debut, fin) {
   const bruts = await requeteAuthentifiee('/athlete/0/events', {
-    oldest: debut, newest: fin, category: 'WORKOUT,NOTE', fields: CHAMPS_EVENEMENTS.join(','),
+    oldest: debut, newest: fin, category: 'WORKOUT,NOTE,RACE_A', fields: CHAMPS_EVENEMENTS.join(','),
   });
   return bruts.filter(estAffichable).map(convertirSeancePrevue);
 }

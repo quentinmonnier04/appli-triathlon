@@ -180,3 +180,12 @@ export function genererPlan({ semaineType, reglages, dateCourse, allures = {}, o
     return { ...c, lundi, seances, volume_s: volumeSemaine_s(seances, allures) };
   });
 }
+
+// Contrôle de l'objectif (F-80) : nom, date à venir (au plus tôt aujourd'hui), sport proposé.
+export function validerObjectif(o, aujourdhui) {
+  const erreurs = {};
+  if (!String(o.nom ?? '').trim()) erreurs.nom = 'Donne un nom à ta course.';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(o.date ?? '') || o.date < aujourdhui) erreurs.date = 'Choisis une date à venir.';
+  if (!['ENCHAINEMENT', 'CAP', 'VELO', 'NATATION'].includes(o.sport)) erreurs.sport = 'Choisis un sport.';
+  return erreurs;
+}

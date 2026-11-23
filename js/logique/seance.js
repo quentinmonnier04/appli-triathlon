@@ -27,7 +27,8 @@ export function cibleParDefaut(sportCode) {
 }
 
 // Sport de l'appli -> type d'activité Intervals.icu (liste officielle de la spécification OpenAPI).
-const TYPES_INTERVALS = { NATATION: 'Swim', VELO: 'Ride', CAP: 'Run', RENFO: 'WeightTraining', AUTRE: 'Other' };
+// ENCHAINEMENT -> Transition : type de l'objectif triathlon (F-80), relu en ENCHAINEMENT par logique/sports.js.
+const TYPES_INTERVALS = { NATATION: 'Swim', VELO: 'Ride', CAP: 'Run', RENFO: 'WeightTraining', AUTRE: 'Other', ENCHAINEMENT: 'Transition' };
 export function sportVersType(sportCode) {
   return TYPES_INTERVALS[sportCode] ?? 'Other';
 }

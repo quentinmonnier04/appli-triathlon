@@ -50,6 +50,11 @@ export function grilleMois(iso) {
   return semaines;
 }
 
+// Nombre de jours de "a" à "b" (compte à rebours de l'objectif, F-80).
+export function joursEntre(a, b) {
+  return Math.round((versDate(b) - versDate(a)) / 86400000);
+}
+
 // "novembre 2026".
 export function libelleMois(iso) {
   return `${MOIS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;

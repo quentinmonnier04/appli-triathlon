@@ -3,12 +3,13 @@
 
 import { lireTableauEnCache, rafraichirTableau } from '../api/tableau.js';
 import { lireAthlete } from '../api/athlete.js';
+import { lireObjectif } from '../api/objectif.js';
 import { estPerime } from '../logique/activites.js';
 import { comparaisonMois, sportsParJour, volumeSemaine } from '../logique/totaux.js';
 import { phraseForme } from '../logique/forme.js';
 import { activitesSansRpe } from '../logique/ressenti.js';
 import { cheminCourbe, progression } from '../logique/graphique.js';
-import { grilleMois, libelleMois, lundiDe, memeJourMoisPrecedent } from '../logique/dates.js';
+import { grilleMois, libelleMois, lundiDe, memeJourMoisPrecedent, joursEntre, jourISO } from '../logique/dates.js';
 import { sport } from '../logique/sports.js';
 import {
   echapperHtml, formaterDuree, formaterDistance, formaterDureeLongue, formaterEntier,
@@ -24,7 +25,7 @@ const CLASSES_FORME = { Frais: 'frais', 'Équilibré': 'equilibre', 'En charge':
 
 // F-20 : séances prévues du jour, ou "Repos" si rien n'est prévu.
 function widgetSeanceDuJour(prevues, jour) {
-  const duJour = prevues.filter((s) => s.date === jour);
+  const duJour = prevues.filter((s) => s.date === jour && !s.objectif); // la course du jour a son propre widget (F-80)
   if (!duJour.length) {
     return `<div class="carte"><div class="etiquette-carte">Séance du jour</div>
       <div class="carte-activite-tete">${pastilleSport('REPOS')}
@@ -39,6 +40,21 @@ function widgetSeanceDuJour(prevues, jour) {
           <span class="doux">${echapperHtml(sport(s.sport).libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
         ${s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : ''}</a>`;
   }).join('')}</div>`;
+}
+
+// F-80 : objectif et compte à rebours, ou invitation à en définir un.
+function widgetObjectif(o) {
+  if (!o) {
+    return `<a class="carte carte-lien" href="#/objectif"><div class="etiquette-carte">Objectif</div>
+      <span class="lien-fleche" aria-hidden="true">→</span><p class="doux">Définis ta prochaine course et ton plan d'entraînement.</p></a>`;
+  }
+  const j = joursEntre(jourISO(), o.date);
+  return `<a class="carte carte-lien carte-objectif" href="#/objectif"><div class="etiquette-carte">Objectif</div>
+    <span class="lien-fleche" aria-hidden="true">→</span>
+    <div class="objectif-ligne"><span class="pastille pastille-objectif" aria-hidden="true">🏁</span>
+      <div class="carte-activite-titre"><strong>${echapperHtml(o.nom)}</strong>
+        <span class="doux">${o.date.slice(8, 10)}/${o.date.slice(5, 7)}/${o.date.slice(0, 4)}</span></div>
+      <span class="compte-rebours">${j === 0 ? "Aujourd'hui" : `J-${j}`}</span></div></a>`;
 }
 
 // F-63 : rappel discret pour chaque activité du jour sans RPE.
@@ -157,10 +173,14 @@ export async function afficherAccueil(conteneur) {
         <button type="button" class="icone-bouton" id="rafraichir" aria-label="Rafraîchir">⟳</button>
         <a class="icone-bouton" href="#/reglages" aria-label="Réglages">⚙️</a></span></div>
     <div id="etat"></div>
+    <div id="objectif"></div>
     <div id="tableau"></div>`;
   const $ = (sel) => conteneur.querySelector(sel);
   const zone = $('#tableau');
   let tableau = null;
+
+  // Objectif (F-80), sans bloquer l'affichage ; rien en cas d'erreur (le tableau affiche déjà l'état réseau).
+  lireObjectif().then((o) => { if ($('#objectif')) $('#objectif').innerHTML = widgetObjectif(o); }).catch(() => {});
 
   // Nom de l'athlète (F-02), sans bloquer l'affichage.
   lireAthlete().then((a) => { if ($('#bonjour')) $('#bonjour').textContent = `Bonjour ${a.nom}`; }).catch(() => {});
