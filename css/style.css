@@ -655,3 +655,26 @@ a.carte-prevue, a.seance-du-jour { display: block; color: inherit; text-decorati
 .objectif-ligne { display: flex; align-items: center; gap: 12px; margin-top: 4px; padding-right: 28px; }
 .objectif-ligne .carte-activite-titre { flex: 1; }
 .compte-rebours { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: #E8C547; white-space: nowrap; }
+
+/* Objectif et plan (F-80 à F-87) */
+.jour-type { border-top: 1px solid var(--bordure); padding: 8px 0; }
+.jour-type-tete { display: flex; align-items: center; justify-content: space-between; }
+.seance-type { display: flex; align-items: center; gap: 10px; min-height: var(--tactile); color: inherit; text-decoration: none; }
+.seance-type .pastille, .seances-semaine .pastille { width: 30px; height: 30px; font-size: 0.95rem; flex: none; }
+.seance-type-titre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.liste-semaines { display: flex; flex-direction: column; }
+.semaine-plan { border-top: 1px solid var(--bordure); }
+.semaine-plan summary { display: flex; align-items: center; gap: 10px; min-height: var(--tactile); padding: 6px 0; cursor: pointer; list-style: none; }
+.semaine-plan summary::-webkit-details-marker { display: none; }
+.semaine-num { width: 36px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.semaine-corps { flex: 1; min-width: 0; }
+.semaine-texte { display: flex; justify-content: space-between; gap: 8px; font-size: 0.85rem; margin-bottom: 4px; }
+.barre-plan { background: var(--accent); }
+.type-coupure .barre-plan { background: #8FA3B8; }
+.type-affutage .barre-plan { background: #6FD08C; }
+.type-course .barre-plan { background: #E8C547; }
+.semaine-plan.passee { opacity: 0.5; }
+.seances-semaine { list-style: none; margin: 0 0 10px 46px; padding: 0; }
+.seances-semaine li { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.9rem; }
+.carte-interieure { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--bordure); }
+.erreurs:empty { display: none; }

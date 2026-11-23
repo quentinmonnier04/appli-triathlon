@@ -190,6 +190,19 @@ flowchart LR
 | F-70 | Carte du parcours sur le détail d'une activité GPS (tracé depuis les données de position d'Intervals.icu) | S | L7 |
 | F-71 | Aperçu de carte sur la carte d'activité du fil | C | L7 |
 
+### I. Objectif et plan d'entraînement (ajouté le 23/11/2026, D-18)
+
+| ID | Fonction | Prio | Lot |
+|---|---|---|---|
+| F-80 | Objectif : course A (nom, date, sport) enregistrée dans Intervals.icu, affichée dans l'agenda et sur l'accueil (compte à rebours) | M | L8 |
+| F-81 | Semaine type : séances du lundi au dimanche, éditées avec l'éditeur de séances, rangées dans un dossier de la bibliothèque Intervals.icu | M | L8 |
+| F-82 | Réglages de progression : hausse par semaine, semaines de hausse par bloc, coupure, affûtage, plafond en heures, date de début | M | L8 |
+| F-83 | Calcul du plan par blocs (hausse linéaire, coupure, reprise au volume d'avant la coupure, affûtage, plafond) et surcharge mixte des séances (durée des blocs continus, nombre de répétitions, zones inchangées) | M | L8 |
+| F-84 | Aperçu du plan semaine par semaine avant envoi | M | L8 |
+| F-85 | Envoi groupé des séances du plan dans le calendrier, avec une étiquette propre au plan | M | L8 |
+| F-86 | Régénération des semaines à venir après une modification, sans toucher aux séances manuelles | S | L8 |
+| F-87 | Suppression des séances à venir du plan | S | L8 |
+
 ---
 
 ## 3. Exigences non fonctionnelles
@@ -381,6 +394,7 @@ flowchart LR
 | **L5 Profil** | Voir mes totaux, seuils et zones | F-50 à F-54 | |
 | **L6 Ressenti et bien-être** | Noter mon ressenti au même endroit que mes données | F-60 à F-63 | ENF-07 |
 | **L7 Cartes** | Voir mes parcours | F-70, F-71 | ENF-12, 26 |
+| **L8 Objectif et plan** | Préparer une course avec une semaine type et une surcharge progressive | F-80 à F-87 | ENF-05, 07, 11 |
 
 **Mise en ligne (GitHub Pages)** : quand je le décide, après L2 au plus tôt. Nécessaire pour installer l'appli sur mon téléphone.
 
@@ -430,6 +444,7 @@ flowchart LR
 | E-06 | Profil | `#/profil` | L5 |
 | E-07 | Réglages | `#/reglages` (icône engrenage sur Profil, ou directe avant L5) | L0 |
 | E-08 | Bilan du jour | `#/bilan?date=…` | L6 |
+| E-09 | Objectif et plan | `#/objectif` ; séances de la semaine type : `#/seance-type/nouvelle?jour=N`, `#/seance-type/{id}` | L8 |
 
 **Barre de navigation flottante (bas)** : Accueil · Agenda · Programmer (bouton central +) · Activités · Profil. Les onglets des lots non livrés sont masqués.
 
@@ -491,6 +506,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | L5 | Mes totaux et seuils correspondent à Intervals.icu |
 | L6 | Le RPE saisi dans l'appli apparaît sur l'activité dans Intervals.icu ; le bilan du jour apparaît dans ses données wellness |
 | L7 | Le tracé de ma dernière sortie vélo s'affiche correctement |
+| L8 | Je définis ma course et ma semaine type, l'aperçu suit mes réglages, les séances arrivent dans Intervals.icu puis sur ma montre, et une régénération ne touche pas mes séances manuelles |
 
 ---
 
@@ -515,6 +531,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | D-15 | 23/11/2026 | L5 : ajout de `api/profil.js` (réglages par sport via `GET /athlete/{id}/sport-settings`, activités de l'année, mis en cache) et `logique/profil.js`. Unités vérifiées sur le forum officiel : `threshold_pace` en m/s, `power_zones` en % de la FTP, `pace_zones` en % de l'allure seuil, `hr_zones` en bpm (borne haute). Proportion par sport calculée sur la durée. Nom de la montre stocké dans `reglages` (défaut « Suunto 9 Baro »), réglable dans Réglages. Réglages ouverts depuis l'engrenage du Profil (onglet Profil ajouté à la barre). |
 | D-16 | 23/11/2026 | L6 : ajout de `logique/ressenti.js` (échelles, contrôles, rappel F-63) et de l'écran `ui/bilan.js` (E-08). Champs et échelles vérifiés (spécification OpenAPI et forum officiel) : RPE = `icu_rpe` (1-10), ressenti = `feel` (1 = très bien ... 5 = mauvais), commentaire = `description` de l'activité (modifiable, contrairement aux messages), écrits par `PUT /activity/{id}`. Bilan = `PUT /athlete/{id}/wellness/{date}` : `fatigue`, `sleepQuality`, `soreness` (1 à 4, 1 = meilleur état ; la valeur 0 citée par certaines sources n'est pas proposée), `weight`, `comments`. Un appui sur un choix déjà sélectionné le retire (valeur effacée dans Intervals.icu). Le fil demande désormais `icu_rpe` ; `schema_version` du cache passe à 2. Hors ligne : boutons désactivés avec M-04 (ENF-07). Accès au bilan par une carte de l'accueil. |
 | D-17 | 23/11/2026 | L7 : D-03 confirmé (tuiles OpenStreetMap). Leaflet 1.9.4 copié dans `lib/leaflet/` (empreintes SHA-256 conformes aux valeurs officielles), chargé seulement à l'ouverture d'une carte. Tracé lu par `GET /activity/{id}/map` (`latlngs`), mis en cache sans expiration (un tracé ne change pas) et allégé à 3000 points ; une coupure GPS découpe le tracé en segments. `a_gps` = `stream_types` contient `latlng` (champ ajouté au fil ; `schema_version` passe à 3). Aperçu du fil (F-71) dessiné en SVG sans tuiles, chargé quand la carte devient visible, pour limiter les requêtes. CSP : `img-src` autorise `tile.openstreetmap.org` ; les tuiles envoient l'origine en Referer (exigé par OpenStreetMap). Sur téléphone, la carte se zoome à deux doigts ; un doigt fait défiler la page. Nouveaux fichiers : `logique/carte.js`, `ui/carte.js`. |
+| D-18 | 23/11/2026 | Ajout du lot L8 (objectif, semaine type, surcharge progressive), hors CDC initial. Conception : `docs/superpowers/specs/2026-11-23-objectif-semaine-type-design.md` ; plan : `docs/superpowers/plans/2026-11-23-objectif-semaine-type.md`. Objectif = événement `RACE_A` (triathlon = type `Transition`). Semaine type = dossier `FOLDER` « Semaine type (appli triathlon) » de la bibliothèque, jour dans les étiquettes `jour-1` à `jour-7`, repos étiqueté `repos`, réglages en clair dans la description du dossier ; ces séances ne sont pas proposées comme modèles (F-47). Séances du plan créées par `POST events/bulk` avec `external_id` `plan-{objectif}-s{n}-{date}-{i}`, régénérées par `bulk-delete` à partir du lundi suivant (semaine en cours intacte). Valeurs par défaut : hausse 8 points, 3 semaines, coupure 70 %, affûtage 70 % puis 50 % de la dernière semaine de hausse, plafond proposé 1,5 fois la semaine type. Arrondis : minute (5 min au-delà d'une heure), répétitions entières, 100 m en natation, 500 m ailleurs. La date de début est enregistrée au premier envoi (numérotation stable). Nouveaux fichiers : `logique/plan.js`, `api/objectif.js`, `api/semaine-type.js`, `api/plan.js`, `ui/objectif.js` ; l'éditeur `ui/programmer.js` gère aussi les séances types. |
 
 ---
 
@@ -530,7 +547,8 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | L5 | Validé le 23/11/2026 (seuils, zones et totaux conformes à Intervals.icu) |
 | L6 | Validé le 23/11/2026 (conversions conformes à Intervals.icu) |
 | L7 | Validé le 23/11/2026 |
+| L8 | Code écrit, recette PC faite (Intervals.icu simulé) ; test réel à faire (dossier de bibliothèque gratuit, séances du plan sur la montre) |
 
 **Ancien code v1.0** : supprimé (commit « Suppression du code v1.0 »), récupérable dans l'historique git.
 
-**Prochaine étape :** valider L7 avec une vraie sortie vélo (critère 9.7), puis mise en ligne sur GitHub Pages pour installer l'appli sur le téléphone, et bilan d'usage après 4 semaines (section 7).
+**Prochaine étape :** valider L8 avec mon compte et ma montre (critère 9.7), puis mise en ligne sur GitHub Pages.

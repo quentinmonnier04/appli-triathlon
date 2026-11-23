@@ -17,6 +17,12 @@ function enTete(nom, montre) {
       <span class="doux"><span aria-hidden="true">⌚</span> ${echapperHtml(montre)}</span></div></div>`;
 }
 
+// L8 : accès à l'objectif et au plan d'entraînement (F-80 à F-87).
+function lienObjectif() {
+  return `<a class="carte carte-lien" href="#/objectif"><div class="etiquette-carte">Objectif et plan</div>
+    <span class="lien-fleche" aria-hidden="true">→</span><p class="doux">Ta course, ta semaine type et ta progression.</p></a>`;
+}
+
 // F-51 : totaux depuis le 1er janvier.
 function carteTotaux(p) {
   const t = totauxAnnee(p.activites);
@@ -72,7 +78,7 @@ function carteZones(reglages) {
 }
 
 function rendreProfil(p, montre) {
-  return `${enTete(p.nom, montre)}${carteTotaux(p)}${carteParSport(p.activites)}${carteSeuils(p.reglages)}${carteZones(p.reglages)}`;
+  return `${enTete(p.nom, montre)}${lienObjectif()}${carteTotaux(p)}${carteParSport(p.activites)}${carteSeuils(p.reglages)}${carteZones(p.reglages)}`;
 }
 
 // Largeur des barres (CSP : pas de style inline dans le HTML ; element.style est permis).

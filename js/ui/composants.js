@@ -101,7 +101,8 @@ export function brancherChoix(racine, surChangement) {
       const choisi = bouton.getAttribute('aria-checked') !== 'true';
       racine.querySelectorAll(`[data-champ="${champ}"]`).forEach((b) => b.setAttribute('aria-checked', 'false'));
       bouton.setAttribute('aria-checked', String(choisi));
-      surChangement(champ, choisi ? Number(bouton.dataset.valeur) : null);
+      const v = bouton.dataset.valeur;
+      surChangement(champ, choisi ? (/^\d+$/.test(v) ? Number(v) : v) : null); // valeur numérique ou code (ex. sport)
     });
   });
 }

@@ -31,14 +31,20 @@ export function versEvenementObjectif(o) {
   return { category: 'RACE_A', start_date_local: `${o.date}T00:00:00`, name: o.nom, type: sportVersType(o.sport) };
 }
 
-// Prochain objectif, ou null ; cache de 5 min (ENF-11) sauf si "forcer".
+// Prochain objectif, ou null ; cache de 5 min (ENF-11) sauf si "forcer" ; hors ligne, le cache fait foi.
 export async function lireObjectif({ forcer = false } = {}) {
   const cache = await lireCache('objectif');
   if (cache && !forcer && !estPerime(cache.charge_le)) return cache.donnees;
   const jour = jourISO();
-  const bruts = await requeteAuthentifiee('/athlete/0/events', {
-    oldest: jour, newest: ajouterJours(jour, 730), category: 'RACE_A', fields: 'id,start_date_local,name,type,category',
-  });
+  let bruts;
+  try {
+    bruts = await requeteAuthentifiee('/athlete/0/events', {
+      oldest: jour, newest: ajouterJours(jour, 730), category: 'RACE_A', fields: 'id,start_date_local,name,type,category',
+    });
+  } catch (e) {
+    if (cache && e.type === 'RESEAU') return cache.donnees; // hors ligne : dernier objectif connu (ENF-06)
+    throw e;
+  }
   const objectifs = (bruts ?? []).map(convertirObjectif).sort((a, b) => (a.date < b.date ? -1 : 1));
   const objectif = objectifs[0] ?? null;
   await ecrireCache('objectif', objectif);

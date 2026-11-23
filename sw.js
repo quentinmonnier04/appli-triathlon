@@ -1,7 +1,7 @@
 // Service worker : met les fichiers de l'application en cache (hors ligne, 5.7).
 // Changer VERSION à chaque modification (identique à VERSION_APP dans js/version.js).
 // Les appels à Intervals.icu ne passent jamais par ce cache (données dans IndexedDB via api/).
-const VERSION = 'v2.0.8';
+const VERSION = 'v2.0.9';
 const CACHE = `triathlon-${VERSION}`;
 
 const FICHIERS = [
@@ -23,6 +23,9 @@ const FICHIERS = [
   './js/api/agenda.js',
   './js/api/bibliotheque.js',
   './js/api/profil.js',
+  './js/api/objectif.js',
+  './js/api/semaine-type.js',
+  './js/api/plan.js',
   './js/cache/stockage.js',
   './js/logique/connexion.js',
   './js/logique/format.js',
@@ -38,6 +41,7 @@ const FICHIERS = [
   './js/logique/profil.js',
   './js/logique/ressenti.js',
   './js/logique/carte.js',
+  './js/logique/plan.js',
   './js/ui/composants.js',
   './js/ui/bienvenue.js',
   './js/ui/accueil.js',
@@ -49,6 +53,7 @@ const FICHIERS = [
   './js/ui/profil.js',
   './js/ui/bilan.js',
   './js/ui/carte.js',
+  './js/ui/objectif.js',
   './lib/leaflet/leaflet.js',
   './lib/leaflet/leaflet.css',
 ];

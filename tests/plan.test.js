@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   REGLAGES_PAR_DEFAUT, plafondParDefaut, lundisDuPlan, coefficientsPlan, validerReglages,
-  surchargerSeance, volumeSeance_s, volumeSemaine_s, distanceSansAllure, genererPlan, prefixePlan, externalId,
+  lireReglagesSaisis, lundiSuivant, surchargerSeance, volumeSeance_s, volumeSemaine_s, distanceSansAllure, genererPlan, prefixePlan, externalId,
 } from '../js/logique/plan.js';
 
 const types = (plan) => plan.map((s) => [s.type[0], s.pct]);
@@ -150,4 +150,21 @@ test('génération : course avant le début, semaine type vide', () => {
     dateCourse: '2026-12-20', allures: {}, objectifId: '1' });
   assert.equal(vide.length, 3);
   assert.equal(vide.every((s) => s.seances.length === 0 && s.volume_s === 0), true);
+});
+
+test('lecture du formulaire des réglages', () => {
+  assert.deepEqual(lireReglagesSaisis({ hausse: '8', semainesHausse: '3', coupure: '70', affutage: '70, 50', plafond: '7,5', debut: '2026-11-30' }),
+    { hausse: 8, semainesHausse: 3, coupure: 70, affutage: [70, 50], plafond_h: 7.5, debut: '2026-11-30' });
+  const r = lireReglagesSaisis({ hausse: 'x', semainesHausse: '3', coupure: '70', affutage: '', plafond: '', debut: '' });
+  assert.ok(Number.isNaN(r.hausse));
+  assert.deepEqual(r.affutage, []);
+  assert.equal(r.plafond_h, null);
+  assert.equal(r.debut, null);
+  assert.ok(validerReglages(r).hausse);
+  assert.ok(validerReglages(lireReglagesSaisis({ hausse: '8', semainesHausse: '3', coupure: '70', affutage: '70 x', plafond: 'abc', debut: '2026-11-30' })).affutage);
+});
+
+test('lundi suivant', () => {
+  assert.equal(lundiSuivant('2026-11-23'), '2026-11-30'); // un lundi
+  assert.equal(lundiSuivant('2026-11-29'), '2026-11-30'); // un dimanche
 });

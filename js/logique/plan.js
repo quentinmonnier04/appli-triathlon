@@ -189,3 +189,24 @@ export function validerObjectif(o, aujourdhui) {
   if (!['ENCHAINEMENT', 'CAP', 'VELO', 'NATATION'].includes(o.sport)) erreurs.sport = 'Choisis un sport.';
   return erreurs;
 }
+
+// Lundi de la semaine suivante : début par défaut du plan et première semaine régénérée (F-82, F-86).
+export function lundiSuivant(jour) {
+  return ajouterJours(lundiDe(jour), 7);
+}
+
+// Formulaire des réglages (textes saisis) -> réglages ; une saisie invalide donne NaN, refusé par validerReglages.
+// Affûtage : niveaux séparés par des virgules ("70, 50") ; plafond en heures, virgule acceptée ; vide = aucun.
+export function lireReglagesSaisis(champs) {
+  const entier = (t) => (/^\d+$/.test(String(t ?? '').trim()) ? Number(String(t).trim()) : NaN);
+  const affutage = String(champs.affutage ?? '').split(/[,;/]/).map((t) => t.trim()).filter(Boolean).map(entier);
+  const plafond = String(champs.plafond ?? '').trim().replace(',', '.');
+  return {
+    hausse: entier(champs.hausse),
+    semainesHausse: entier(champs.semainesHausse),
+    coupure: entier(champs.coupure),
+    affutage,
+    plafond_h: !plafond ? null : /^\d+(\.\d+)?$/.test(plafond) ? Number(plafond) : NaN,
+    debut: champs.debut || null,
+  };
+}
