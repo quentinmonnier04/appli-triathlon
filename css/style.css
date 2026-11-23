@@ -727,3 +727,17 @@ a.carte-prevue, a.seance-du-jour { display: block; color: inherit; text-decorati
   font-size: 0.85rem;
 }
 .grille-bloc-heure { font-size: 0.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Graphique des séances (F-41, F-84, F-20) */
+.graphique-seance { display: block; width: 100%; height: 80px; margin: 4px 0 10px; }
+.graphique-seance.compact { height: 36px; margin: 6px 0 2px; }
+.graphique-seance rect { stroke: var(--surface); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.barre-Z1 { fill: #8FA3B8; }
+.barre-Z2 { fill: #4CC25A; }
+.barre-Z3 { fill: #E8C547; }
+.barre-Z4 { fill: #FF8A3D; }
+.barre-Z5 { fill: #FF5A4E; }
+.barre-sans-zone { fill: #5C6570; }
+.graphique-seance rect.barre-estimee { fill-opacity: 0.45; stroke: var(--texte-doux); stroke-dasharray: 3 2; }
+.seances-semaine li { flex-wrap: wrap; }
+.seances-semaine li .graphique-seance { flex-basis: 100%; }

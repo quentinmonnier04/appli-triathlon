@@ -5,6 +5,7 @@ import {
 } from '../logique/format.js';
 import { MESSAGES, formaterMessage } from '../logique/messages.js';
 import { sport } from '../logique/sports.js';
+import { barresSeance, rectanglesGraphique } from '../logique/graphique-seance.js';
 
 // Message d'état : type 'succes', 'erreur' ou 'info' ; le texte est échappé.
 export function message(type, texte, lienHtml = '') {
@@ -123,4 +124,17 @@ export function surveillerReseau(formulaire, zoneMessage, boutons) {
   window.addEventListener('online', maj);
   window.addEventListener('offline', maj);
   maj();
+}
+
+// Graphique des blocs d'une séance (F-41, F-84, F-20) : une barre par étape, largeur = durée, hauteur et
+// couleur = zone ; barre en pointillés = durée estimée (étape en distance sans allure seuil). '' si rien à dessiner.
+export function graphiqueSeance(seance, allures = {}, { compact = false } = {}) {
+  const largeur = 300;
+  const hauteur = compact ? 40 : 80;
+  const barres = barresSeance(seance, allures);
+  const rectangles = rectanglesGraphique(barres, largeur, hauteur);
+  if (!rectangles.length) return '';
+  return `<svg class="graphique-seance${compact ? ' compact' : ''}" viewBox="0 0 ${largeur} ${hauteur}" preserveAspectRatio="none"
+    role="img" aria-label="Profil de la séance, ${formaterDuree(barres.total_s)}">
+    ${rectangles.map((r) => `<rect x="${r.x}" y="${r.y}" width="${r.largeur}" height="${r.hauteur}" class="${r.classe}"></rect>`).join('')}</svg>`;
 }

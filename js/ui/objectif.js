@@ -5,7 +5,7 @@
 import { lireObjectif, enregistrerObjectif, supprimerObjectif, SPORTS_OBJECTIF } from '../api/objectif.js';
 import { lireSemaineType, enregistrerReglages } from '../api/semaine-type.js';
 import { envoyerPlan, supprimerPlan } from '../api/plan.js';
-import { lireProfilEnCache } from '../api/profil.js';
+import { lireAlluresSeuil } from '../api/profil.js';
 import {
   genererPlan, validerReglages, validerObjectif, lireReglagesSaisis, lundiSuivant, plafondParDefaut, bornesPlan, debutEffectif,
   volumeSeance_s, volumeSemaine_s, distanceSansAllure,
@@ -14,7 +14,9 @@ import { jourISO, ajouterJours } from '../logique/dates.js';
 import { GRILLE, dispositionSemaine, heureDepuisPosition } from '../logique/grille.js';
 import { sport } from '../logique/sports.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
-import { message, messageErreurApi, squelette, pastilleSport, groupeChoix, brancherChoix, surveillerReseau } from './composants.js';
+import {
+  message, messageErreurApi, squelette, pastilleSport, groupeChoix, brancherChoix, surveillerReseau, graphiqueSeance,
+} from './composants.js';
 
 const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 const LIBELLES_TYPE = { HAUSSE: 'Hausse', COUPURE: 'Coupure', AFFUTAGE: 'Affûtage', COURSE: 'Course' };
@@ -23,14 +25,6 @@ const libelleSport = (code) => (code === 'ENCHAINEMENT' ? 'Triathlon' : sport(co
 
 // Message à afficher après le prochain rendu (succès d'une écriture).
 let messageEnAttente = '';
-
-// Allures seuil du profil en cache (L5), pour convertir les étapes en distance en durée (F-84).
-async function lireAllures() {
-  const profil = await lireProfilEnCache().catch(() => null);
-  const allures = {};
-  for (const r of profil?.reglages ?? []) if (r.allure_seuil_ms > 0) allures[r.sport] = r.allure_seuil_ms;
-  return allures;
-}
 
 // --- Sections ---
 
@@ -125,7 +119,8 @@ function sectionApercu(plan, apartirDe, avertissements, allures) {
           <span><strong>${s.pct} %</strong> <span class="doux">${formaterDureeLongue(s.volume_s)}</span></span></span>
           <span class="barre-progression"><span class="barre-remplie barre-plan" data-pct="${Math.round((s.pct / max) * 100)}"></span></span></span></summary>
       <ul class="seances-semaine">${s.seances.length ? s.seances.map((x) => `<li>${pastilleSport(x.sport)}<span>${['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][(new Date(`${x.date}T12:00:00`).getDay() + 6) % 7]} ${jjmm(x.date)}</span>
-        <span class="seance-type-titre">${echapperHtml(x.titre)}</span><span class="doux">${x.sport === 'REPOS' ? '' : formaterDureeLongue(volumeSeance_s(x, allures))}</span></li>`).join('')
+        <span class="seance-type-titre">${echapperHtml(x.titre)}</span><span class="doux">${x.sport === 'REPOS' ? '' : formaterDureeLongue(volumeSeance_s(x, allures))}</span>
+        ${graphiqueSeance(x, allures, { compact: true })}</li>`).join('')
     : '<li class="doux">Aucune séance</li>'}</ul></details>`).join('')}</div>
     <div class="carte-interieure">
       <p class="doux">Les séances du plan à partir du ${jjmm(apartirDe)} seront remplacées, y compris si tu les as modifiées sur Intervals.icu. Tes autres séances ne sont pas touchées.</p>
@@ -148,7 +143,7 @@ export async function afficherObjectif(conteneur) {
   let semaine;
   let allures;
   try {
-    [objectif, semaine, allures] = await Promise.all([lireObjectif(), lireSemaineType(), lireAllures()]);
+    [objectif, semaine, allures] = await Promise.all([lireObjectif(), lireSemaineType(), lireAlluresSeuil()]);
   } catch (e) {
     if (!zone.isConnected) return;
     zone.innerHTML = `${messageErreurApi(e)}<div class="pile"><button type="button" class="bouton" id="reessayer">Réessayer</button></div>`;

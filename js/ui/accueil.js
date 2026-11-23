@@ -15,7 +15,7 @@ import {
   echapperHtml, formaterDuree, formaterDistance, formaterDureeLongue, formaterEntier,
 } from '../logique/format.js';
 import {
-  bandeauHorsLigne, carteActivite, messageErreurApi, pastilleSport, squelette,
+  bandeauHorsLigne, carteActivite, messageErreurApi, pastilleSport, squelette, graphiqueSeance,
 } from './composants.js';
 
 const LARGEUR_COURBE = 300;
@@ -38,7 +38,7 @@ function widgetSeanceDuJour(prevues, jour) {
     return `<a class="seance-du-jour" href="#/seance/${encodeURIComponent(s.id)}"><div class="carte-activite-tete">${pastilleSport(s.sport)}
         <div class="carte-activite-titre"><strong>${echapperHtml(s.titre)}</strong>
           <span class="doux">${s.heure ? `${s.heure} · ` : ''}${echapperHtml(sport(s.sport).libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
-        ${s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : ''}</a>`;
+        ${s.blocs?.length ? graphiqueSeance(s, {}, { compact: true }) : (s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : '')}</a>`;
   }).join('')}</div>`;
 }
 

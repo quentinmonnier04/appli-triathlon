@@ -51,3 +51,12 @@ export async function rafraichirProfil() {
   await ecrireCache('profil', donnees);
   return { ...donnees, charge_le: (await lireCache('profil')).charge_le };
 }
+
+// Allures seuil du profil en cache (m/s par sport), pour convertir les étapes en distance en durée
+// (volume du plan F-84, graphique des séances F-41) ; {} si le profil n'a jamais été chargé.
+export async function lireAlluresSeuil() {
+  const profil = await lireProfilEnCache().catch(() => null);
+  const allures = {};
+  for (const r of profil?.reglages ?? []) if (r.allure_seuil_ms > 0) allures[r.sport] = r.allure_seuil_ms;
+  return allures;
+}

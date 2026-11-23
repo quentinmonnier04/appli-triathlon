@@ -16,7 +16,8 @@ import { SPORTS, sport } from '../logique/sports.js';
 import { jourISO } from '../logique/dates.js';
 import { MESSAGES } from '../logique/messages.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
-import { message, messageErreurApi, squelette } from './composants.js';
+import { message, messageErreurApi, squelette, graphiqueSeance } from './composants.js';
+import { lireAlluresSeuil } from '../api/profil.js';
 
 // Jours de la semaine type (1 = lundi, ENF-20).
 const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
@@ -143,6 +144,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
 
   const $ = (sel) => conteneur.querySelector(sel);
   const form = $('#formulaire');
+  const allures = await lireAlluresSeuil(); // étapes en distance du graphique (F-41)
   function libelleEnregistrer() {
     if (modeType) return 'Enregistrer dans ma semaine type';
     return id ? 'Enregistrer les modifications' : 'Enregistrer dans Intervals.icu';
@@ -193,6 +195,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
       ${etat.blocs.map(rendreBloc).join('')}
       <div class="ajout-blocs">${TYPES_BLOC.map((t) => `<button type="button" class="bouton" data-ajouter="${t.code}">+ ${t.libelle}</button>`).join('')}</div>
       <div class="carte"><div class="etiquette-carte">Aperçu envoyé à Intervals.icu</div>
+        <div id="graphique"></div>
         <pre class="apercu" id="apercu"></pre><p class="doux" id="duree-estimee"></p></div>`;
     majApercu();
   }
@@ -202,6 +205,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
     if (!$('#apercu')) return;
     const blocs = blocsPropres(etat.blocs);
     $('#apercu').textContent = blocs.length ? blocsVersTexte(blocs, etat.sport) : 'Ajoute des blocs.';
+    $('#graphique').innerHTML = graphiqueSeance({ sport: etat.sport, blocs }, allures); // F-41 : mis à jour en direct
     const total = dureeTotaleBlocs(blocs);
     $('#duree-estimee').textContent = total ? `Durée estimée : ${formaterDureeLongue(total)} (hors étapes en distance)` : '';
   }
