@@ -231,6 +231,8 @@ export async function afficherObjectif(conteneur) {
 
   // F-85, F-86 : envoi ou régénération ; F-87 : suppression des séances à venir.
   $('#envoyer')?.addEventListener('click', async (ev) => {
+    // D-21 : un plan déjà envoyé (date de début enregistrée) est remplacé seulement après confirmation.
+    if (debutEnregistre && !confirm(`Remplacer les séances du plan à partir du ${jjmm(bornes.regeneration)} ? Celles que tu as modifiées sur Intervals.icu seront remplacées ; tes autres séances ne sont pas touchées.`)) return;
     const bouton = ev.currentTarget;
     bouton.disabled = true;
     const zoneProgres = $('#progression-envoi');
