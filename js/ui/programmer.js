@@ -22,6 +22,7 @@ import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
 import { message, messageErreurApi, squelette, graphiqueSeance, boutonIcone } from './composants.js';
 import { icone, iconeSport } from './icones.js';
 import { lireAlluresSeuil } from '../api/profil.js';
+import { typesProposes, libelleType } from '../logique/types-seance.js';
 
 // Jours de la semaine type (1 = lundi, ENF-20).
 
@@ -109,12 +110,15 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   etat.heure = !modeType && heureValide(params.heure) ? params.heure : null;
   let utilisations = 0;
   let structuree = false;
+  let banque = []; // Mes séances : types libres déjà utilisés, proposés dans l'éditeur (D-25)
   try {
+    if (modeType) banque = (await lirePreparation()).seances ?? [];
     const source = id ?? (modeType ? null : params.depuis);
     if (source) {
       const s = modeType ? await lireSeanceBibliotheque(source) : await lireSeance(source);
       if (modeType) {
         utilisations = utilisationsSeance((await lirePreparation()).blocs ?? [], source);
+        banque = banque.filter((x) => x.id !== source);
         delete s.jour;
         s.heure = null;
       }
@@ -143,6 +147,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
     : `<div class="champ"><label for="date">Date</label><input type="date" id="date" value="${echapperHtml(etat.date)}" required></div>
         <div class="champ"><label for="heure">Heure (facultatif)</label><input type="time" id="heure" value="${echapperHtml(etat.heure ?? '')}"></div>`}
         <div class="champ"><label for="titre">Titre</label><input id="titre" maxlength="80" value="${echapperHtml(etat.titre)}" placeholder="Ex. Fractionné 6 x 800 m"></div>
+        ${modeType ? '<div class="champ" id="zone-type"></div>' : ''}
         <div id="zone-bibliotheque"></div>
       </div>
       <div id="zone-contenu"></div>
@@ -182,9 +187,31 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   window.addEventListener('online', majReseau);
   window.addEventListener('offline', majReseau);
 
+  // D-25 : type de la séance de la banque (liste fixe du sport, types libres déjà utilisés, ou texte libre).
+  function rendreType() {
+    const zone = $('#zone-type');
+    if (!zone) return;
+    if (etat.sport === 'REPOS') { zone.innerHTML = ''; return; }
+    zone.innerHTML = `<span class="etiquette-champ" id="etiquette-type">Type de séance</span>
+      <div class="choix-groupe" role="group" aria-labelledby="etiquette-type">
+        ${typesProposes(etat.sport, banque).map((t) => `<button type="button" class="filtre" data-type-seance="${echapperHtml(t)}">${echapperHtml(t)}</button>`).join('')}
+      </div>
+      <input id="type-seance" maxlength="30" value="${echapperHtml(etat.type_seance ?? '')}" placeholder="Ou écris ton propre type" aria-labelledby="etiquette-type">`;
+    majChoixType();
+  }
+  function majChoixType() {
+    const choisi = libelleType($('#type-seance')?.value);
+    form.querySelectorAll('[data-type-seance]').forEach((b) => {
+      const actif = b.dataset.typeSeance === choisi;
+      b.classList.toggle('actif', actif);
+      b.setAttribute('aria-pressed', String(actif));
+    });
+  }
+
   // Contenu selon le sport et le mode : repos (F-46), séance simple (F-40) ou structurée (F-41).
   function rendreContenu() {
     form.querySelectorAll('[data-sport]').forEach((b) => b.classList.toggle('actif', b.dataset.sport === etat.sport));
+    rendreType();
     const zone = $('#zone-contenu');
     $('#zone-bibliotheque').innerHTML = etat.sport === 'REPOS' ? ''
       : '<button type="button" class="lien-action" id="ouvrir-bibliotheque">Choisir dans ma bibliothèque Intervals.icu</button><div id="bibliotheque"></div>';
@@ -243,6 +270,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   // Lit les champs simples (titre, date, durée, distance, description) dans l'état.
   function lireChampsSimples() {
     etat.titre = $('#titre').value.trim();
+    if ($('#type-seance')) etat.type_seance = libelleType($('#type-seance').value);
     if ($('#date')) etat.date = $('#date').value;
     etat.heure = $('#heure')?.value || null;
     if ($('#description')) etat.description = $('#description').value;
@@ -254,6 +282,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   }
 
   form.addEventListener('input', (ev) => {
+    if (ev.target.id === 'type-seance') majChoixType();
     if (ev.target.dataset.champ) { lireChampBloc(ev.target); majApercu(); }
   });
   form.addEventListener('change', (ev) => {
@@ -291,6 +320,11 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
       e.mode = d.valeur;
       if (d.valeur === 'duree') e.distance_m = null; else e.duree_s = null;
       rendreContenu();
+    } else if (d.typeSeance) {
+      const champ = $('#type-seance');
+      champ.value = libelleType(champ.value) === d.typeSeance ? '' : d.typeSeance; // un 2e appui retire le type
+      etat.type_seance = libelleType(champ.value);
+      majChoixType();
     } else if (b.id === 'ouvrir-bibliotheque') {
       await ouvrirBibliotheque();
     } else if (d.modele) {

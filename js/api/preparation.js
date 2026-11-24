@@ -17,6 +17,7 @@ import { blocsVersTexte, texteVersBlocs, sportVersType } from '../logique/seance
 import { REGLAGES_ANCIENS_PAR_DEFAUT, REGLAGES_PAR_DEFAUT } from '../logique/plan.js';
 import { estPerime } from '../logique/activites.js';
 import { retirerSeanceDesBlocs } from '../logique/blocs.js';
+import { typeVersEtiquette, typeDepuisEtiquettes } from '../logique/types-seance.js';
 
 export const NOM_DOSSIER = 'Mes séances (appli triathlon)';
 export const ANCIEN_NOM = 'Semaine type (appli triathlon)';
@@ -126,7 +127,8 @@ export function versSeanceBibliotheque(s, folderId) {
   if (s.sport === 'REPOS') {
     return { name: s.titre || 'Repos', type: 'Other', folder_id: folderId, tags: [...tags, 'repos'], description: s.description ?? '' };
   }
-  const corps = { name: s.titre, type: sportVersType(s.sport), folder_id: folderId, tags };
+  const etiquetteType = typeVersEtiquette(s.type_seance); // D-25 : type de séance de la banque
+  const corps = { name: s.titre, type: sportVersType(s.sport), folder_id: folderId, tags: etiquetteType ? [...tags, etiquetteType] : tags };
   if (s.blocs?.length) return { ...corps, description: blocsVersTexte(s.blocs, s.sport) };
   corps.description = s.description ?? '';
   if (s.duree_s) corps.moving_time = s.duree_s;
@@ -145,7 +147,9 @@ export function convertirSeanceBibliotheque(brut) {
   }
   const code = sportDepuisType(brut.type);
   const blocs = texteVersBlocs(brut.description);
+  const type = typeDepuisEtiquettes(tags); // D-25
   return {
+    ...(type ? { type_seance: type } : {}),
     id: String(brut.id),
     jour,
     heure,

@@ -955,6 +955,13 @@ a.aujourdhui:active { transform: scale(0.99); }
   cursor: pointer;
 }
 .ligne-seance .graphique-seance { flex-basis: 100%; }
+/* Banque Mes séances (E-10, D-25) : par sport, puis par type */
+a.filtre { text-decoration: none; }
+.groupe-type { margin-top: 14px; }
+.groupe-type .liste-seances { margin-bottom: 0; }
+.compte-type { color: var(--texte-2); font-weight: 700; font-variant-numeric: tabular-nums; }
+.sport-titre .compte-type { margin-left: auto; }
+#zone-type input { margin-top: 8px; }
 .semaine-plan.debut-bloc { border-top: 2px solid var(--texte-2); margin-top: 8px; }
 
 /* --- Objectifs de course (F-89) --- */
