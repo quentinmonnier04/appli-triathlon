@@ -157,32 +157,33 @@ export function externalId(objectifId, numero, date, index) {
   return `${prefixePlan(objectifId)}s${numero}-${date}-${index}`;
 }
 
-// Plan complet : [{ numero, lundi, type, pct, seances, volume_s }]. Chaque séance de la semaine type
-// (jour 1 = lundi ... 7 = dimanche) devient une séance datée, surchargée, titrée "{titre} S{n}" (sauf repos),
-// avec son external_id ; aucune séance le jour de la course ni après.
+// Séances d'une semaine du plan (F-83, F-85) : chaque séance de la grille (jour 1 = lundi ... 7 = dimanche)
+// devient une séance datée, surchargée à "pct" %, titrée "{titre} S{n}" (sauf repos), avec son external_id ;
+// aucune séance le jour de la course ni après. Ordre : jour, puis heure (sans heure en premier), puis ordre de la grille.
+export function seancesDeLaSemaine(grille, lundi, pct, numero, dateCourse, objectifId) {
+  const cle = (s) => s.heure ?? '';
+  return grille.map((s, i) => ({ s, i }))
+    .sort((a, b) => a.s.jour - b.s.jour || (cle(a.s) < cle(b.s) ? -1 : cle(a.s) > cle(b.s) ? 1 : 0) || a.i - b.i)
+    .map(({ s }) => ({ type: s, date: ajouterJours(lundi, s.jour - 1) }))
+    .filter(({ date }) => date < dateCourse)
+    .map(({ type, date }, index) => {
+      const { id, jour, ...seance } = surchargerSeance(type, pct);
+      return {
+        ...seance,
+        date,
+        titre: type.sport === 'REPOS' ? type.titre : `${type.titre} S${numero}`,
+        external_id: externalId(objectifId, numero, date, index),
+      };
+    });
+}
+
+// Plan complet d'une semaine type unique : [{ numero, lundi, type, pct, seances, volume_s }].
 export function genererPlan({ semaineType, reglages, dateCourse, allures = {}, objectifId }) {
   const lundis = lundisDuPlan(reglages.debut, dateCourse);
   const coefficients = coefficientsPlan(lundis.length, reglages, volumeSemaine_s(semaineType, allures));
-  // Ordre : jour, puis heure (sans heure en premier), puis ordre de la semaine type.
-  const cle = (s) => s.heure ?? '';
-  const ordre = semaineType.map((s, i) => ({ s, i }))
-    .sort((a, b) => a.s.jour - b.s.jour || (cle(a.s) < cle(b.s) ? -1 : cle(a.s) > cle(b.s) ? 1 : 0) || a.i - b.i)
-    .map((x) => x.s);
   return coefficients.map((c, i) => {
-    const lundi = lundis[i];
-    const seances = ordre
-      .map((type) => ({ type, date: ajouterJours(lundi, type.jour - 1) }))
-      .filter(({ date }) => date < dateCourse)
-      .map(({ type, date }, index) => {
-        const { id, jour, ...seance } = surchargerSeance(type, c.pct);
-        return {
-          ...seance,
-          date,
-          titre: type.sport === 'REPOS' ? type.titre : `${type.titre} S${c.numero}`,
-          external_id: externalId(objectifId, c.numero, date, index),
-        };
-      });
-    return { ...c, lundi, seances, volume_s: volumeSemaine_s(seances, allures) };
+    const seances = seancesDeLaSemaine(semaineType, lundis[i], c.pct, c.numero, dateCourse, objectifId);
+    return { ...c, lundi: lundis[i], seances, volume_s: volumeSemaine_s(seances, allures) };
   });
 }
 
