@@ -209,6 +209,8 @@ flowchart LR
 | F-85 | Envoi groupé des séances du plan dans le calendrier, avec une étiquette propre au plan | M | L8 |
 | F-86 | Régénération des semaines à venir après une modification, sans toucher aux séances manuelles | S | L8 |
 | F-87 | Suppression des séances à venir du plan | S | L8 |
+| F-88 | Bibliothèque « Mes séances » et blocs à contenu propre : chaque bloc a un nom, une durée et sa grille de la semaine ; une séance peut être placée dans plusieurs blocs ; le volume continue de monter de bloc en bloc ; migration de l'ancienne semaine type sans changer le plan en cours (ajouté le 24/11/2026, D-22) | M | L8 |
+| F-89 | Objectifs de course par discipline et transitions (temps ou allure, T1, T2), temps total visé affiché sur l'écran Objectif et l'accueil (ajouté le 24/11/2026, D-22) | S | L8 |
 
 ---
 
@@ -402,7 +404,7 @@ flowchart LR
 | **L5 Profil** | Voir mes totaux, seuils et zones | F-50 à F-54 | |
 | **L6 Ressenti et bien-être** | Noter mon ressenti au même endroit que mes données | F-60 à F-63 | ENF-07 |
 | **L7 Cartes** | Voir mes parcours | F-70, F-71 | ENF-12, 26 |
-| **L8 Objectif et plan** | Préparer une course avec une semaine type et une surcharge progressive | F-80 à F-87 | ENF-05, 07, 11 |
+| **L8 Objectif et plan** | Préparer une course par blocs de séances et une surcharge progressive | F-80 à F-89 | ENF-05, 07, 11 |
 
 **Mise en ligne (GitHub Pages)** : quand je le décide, après L2 au plus tôt. Nécessaire pour installer l'appli sur mon téléphone.
 
@@ -452,7 +454,7 @@ flowchart LR
 | E-06 | Profil | `#/profil` | L5 |
 | E-07 | Réglages | `#/reglages` (icône engrenage sur Profil, ou directe avant L5) | L0 |
 | E-08 | Bilan du jour | `#/bilan?date=…` | L6 |
-| E-09 | Objectif et plan | `#/objectif` ; séances de la semaine type : `#/seance-type/nouvelle?jour=N&heure=hh:mm`, `#/seance-type/{id}` | L8 |
+| E-09 | Objectif et plan | `#/objectif?bloc=N` ; Mes séances : `#/seance-type/nouvelle` (`?bloc=N&jour=J&heure=hh:mm` pour la placer), `#/seance-type/{id}` ; placement : `#/placer?bloc=N&jour=J&heure=hh:mm`, `#/emplacement?bloc=N&n=K` | L8 |
 
 **Barre de navigation flottante (bas)** : Accueil · Agenda · Programmer (bouton central +) · Activités · Profil. Les onglets des lots non livrés sont masqués.
 
@@ -514,7 +516,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | L5 | Mes totaux et seuils correspondent à Intervals.icu |
 | L6 | Le RPE saisi dans l'appli apparaît sur l'activité dans Intervals.icu ; le bilan du jour apparaît dans ses données wellness |
 | L7 | Le tracé de ma dernière sortie vélo s'affiche correctement |
-| L8 | Je définis ma course et ma semaine type, l'aperçu suit mes réglages, les séances arrivent dans Intervals.icu puis sur ma montre, et une régénération ne touche pas mes séances manuelles |
+| L8 | Je définis ma course et mes objectifs, je construis mes blocs avec Mes séances, l'aperçu montre le volume qui monte de bloc en bloc, les séances arrivent dans Intervals.icu puis sur ma montre, et une régénération ne touche pas mes séances manuelles |
 
 ---
 
@@ -543,6 +545,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | D-19 | 23/11/2026 | L8, extension (conception `docs/superpowers/specs/2026-11-23-agenda-planificateur-design.md`) : heure facultative sur toutes les séances (`start_date_local` avec l'heure, minuit = sans heure ; séance type : étiquette `heure-hh:mm`) ; un déplacement garde l'heure ; séances d'un jour du plan triées par heure. Semaine type affichée en grille de 5 h à 23 h (1 h = 48 px, bloc d'au moins 24 px, chevauchements côte à côte, ligne « Sans heure » avec un bouton + par jour), toucher une case vide crée une séance à l'heure pleine. Graphique des blocs (SVG) dans l'éditeur, l'aperçu du plan et la Séance du jour : largeur = durée, hauteur et couleur = zone, étape en distance sans allure seuil = durée estimée (allures par défaut CAP 3, VÉLO 8, NATATION 1 m/s) et barre en pointillés. Nouveaux fichiers : `logique/grille.js`, `logique/graphique-seance.js` ; `api/profil.js` fournit `lireAlluresSeuil`. |
 | D-20 | 24/11/2026 | Design E validé sur maquettes (`docs/maquettes/E-Accueil.dc.html`, `E-Activites.dc.html`) : fond noir, Archivo, cartes discrètes, couleur réservée aux sports. Système décrit dans `docs/design.md`, variables en tête de `css/style.css`. Police Archivo tirée du dépôt officiel Google Fonts, réduite (graisses 500 à 900, caractères latins) et convertie en woff2 dans `fonts/` avec sa licence OFL ; CSP `font-src 'self'`. Icônes SVG dessinées en local (`ui/icones.js`, barre de navigation dans `index.html`), plus aucun emoji ; `icone` de `logique/sports.js` devient un nom d'icône. Nouvelles couleurs de sport (enchaînement jaune, repos gris, autre rose) ; mode clair automatique selon le téléphone (`prefers-color-scheme`), contrastes vérifiés ≥ 4,5:1 ; le choix manuel dans Réglages (ENF-16) reste à faire. Accueil réordonné comme la maquette (bloc Aujourd'hui, dernière activité, forme avec jauge, tuiles Mois et Semaine, puis bilan, calendrier, objectif). Fonctions pures ajoutées pour l'affichage : `positionJauge`, `numeroSemaine`, `libelleJourCourt`, `formaterDateCourte`, `decouperUnite`, `totauxSemaine`. Aucune fonction modifiée. Numéro D-20 et non D-08 (déjà pris par le test CORS). |
 | D-21 | 24/11/2026 | Audit de sécurité. Aucun secret trouvé dans le code ni dans l'historique git (46 commits). Corrigé : paramètre `?date=` de l'éditeur vérifié avant d'être inséré dans la page (injection HTML) ; toutes les valeurs de l'API échappées, y compris les nombres, zones, dates et heures (`formaterDate`, `formaterJourMois`) ; `.gitignore` ajouté ; confirmation avant de remplacer un plan déjà envoyé ; refus de s'ouvrir dans une iframe ; `_config.yml` exclut `docs/` (maquettes qui chargent Google Fonts), `tests/` et les fichiers de travail de GitHub Pages ; noms inventés dans les tests ; lien OSM en `noreferrer`. Choix : l'interface reste construite par gabarits HTML, avec échappement obligatoire contrôlé par `tests/securite.test.js` (pas de réécriture en `textContent`). Laissés volontairement : adresse e-mail des commits (choix de Quentin), départ et arrivée des parcours non masqués (appli personnelle, connexion prévue plus tard), pas de bornes hautes sur les durées et distances saisies. Règles permanentes ajoutées en 0.3 et à la recette. |
+| D-22 | 24/11/2026 | L8, évolution (conception `docs/superpowers/specs/2026-11-24-blocs-bibliotheque-objectifs-design.md`, plan `docs/superpowers/plans/2026-11-24-blocs-bibliotheque-objectifs.md`) : la semaine type unique devient une bibliothèque « Mes séances » et des blocs ayant chacun sa grille (approche A : séances = séances de bibliothèque du dossier renommé « Mes séances (appli triathlon) » ; blocs et réglages = JSON après un en-tête dans la description du dossier ; description illisible = aucune écriture). Volume : le bloc 1 part de sa grille, chaque bloc monte de `hausse` points du volume du bloc 1, coupure en dernière semaine sauf pour le dernier bloc, le bloc suivant repart en heures du niveau de la dernière hausse (sa grille est mise à l'échelle), affûtage sur la grille du dernier bloc. Le plan se cale à rebours depuis la course (plus de date de début ni de semaines de hausse par bloc) ; chaque envoi demande confirmation. Migration automatique fidèle : autant de blocs que de cycles de l'ancien plan, `coupure` forcée sur un dernier cycle complet, vérifiée contre l'ancien calcul (gardé comme référence figée dans `tests/reference/ancien-plan.js`). Objectifs de course (F-89) : ligne gérée par l'appli dans la description de la course (texte libre conservé), temps total dans `time_target` (à vérifier en réel). Mes séances proposées comme modèles (F-47), sauf les repos. Nouveaux fichiers : `logique/blocs.js`, `logique/objectifs-course.js`, `api/preparation.js` (remplace `api/semaine-type.js`), `ui/blocs.js`, `ui/placement.js`. |
 
 ---
 
@@ -558,8 +561,8 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | L5 | Validé le 23/11/2026 (seuils, zones et totaux conformes à Intervals.icu) |
 | L6 | Validé le 23/11/2026 (conversions conformes à Intervals.icu) |
 | L7 | Validé le 23/11/2026 |
-| L8 | Code écrit, recette PC faite (Intervals.icu simulé) ; test réel à faire (dossier de bibliothèque gratuit, séances du plan sur la montre) |
+| L8 | Validé en réel le 24/11/2026 pour la semaine type unique ; évolution blocs, Mes séances et objectifs de course (F-88, F-89) codée, recette PC faite (Intervals.icu simulé) ; test réel à faire |
 
 **Ancien code v1.0** : supprimé (commit « Suppression du code v1.0 »), récupérable dans l'historique git.
 
-**Prochaine étape :** valider L8 avec mon compte et ma montre (critère 9.7), puis mise en ligne sur GitHub Pages.
+**Prochaine étape :** tester en réel les blocs et les objectifs de course (migration de ma semaine type, `time_target` de la course), puis mise en ligne sur GitHub Pages.

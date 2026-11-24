@@ -6,7 +6,8 @@ import {
   ajouterBloc, dupliquerBloc, supprimerBloc, modifierBloc, ajouterEmplacement, modifierEmplacement, retirerEmplacement,
   retirerSeanceDesBlocs, utilisationsSeance, validerBlocs, migrerAncienFormat,
 } from '../js/logique/blocs.js';
-import { genererPlan, REGLAGES_ANCIENS_PAR_DEFAUT, lundiSuivant } from '../js/logique/plan.js';
+import { REGLAGES_ANCIENS_PAR_DEFAUT, lundiSuivant } from '../js/logique/plan.js';
+import { genererPlan } from './reference/ancien-plan.js';
 
 const R = { hausse: 8, coupure: 70, affutage: [70, 50], plafond_h: null };
 const EF = { id: 'a', sport: 'CAP', titre: 'EF', duree_s: 3600, distance_m: null, description: null, blocs: null };

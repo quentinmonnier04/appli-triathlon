@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { versEvenement, convertirSeancePrevue, corpsDeplacement } from '../js/api/evenements.js';
 import { versSeanceBibliotheque, convertirSeanceBibliotheque } from '../js/api/preparation.js';
-import { genererPlan, REGLAGES_PAR_DEFAUT } from '../js/logique/plan.js';
+import { REGLAGES_ANCIENS_PAR_DEFAUT as REGLAGES_PAR_DEFAUT } from '../js/logique/plan.js';
+import { genererPlan } from './reference/ancien-plan.js';
 import { validerSeance } from '../js/logique/seance.js';
 
 const footing = { date: '2026-11-25', sport: 'CAP', titre: 'Footing', duree_s: 2700, blocs: [] };

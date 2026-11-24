@@ -1,5 +1,5 @@
 // Préparation (F-81, F-82, F-88, ENF-05) rangée dans la bibliothèque Intervals.icu, sans passer par le site :
-// un dossier simple (FOLDER) « Mes séances » contient les séances de bibliothèque ; les blocs (emplacements des
+// un dossier simple (FOLDER) "Mes séances" contient les séances de bibliothèque ; les blocs (emplacements des
 // séances) et les réglages sont écrits dans la description du dossier (conception 2026-11-24, approche A).
 // Ancien format (semaine type unique, avant D-22) : jour et heure dans les étiquettes, réglages en clair ; il est lu
 // pour la migration (logique/blocs.js, migrerAncienFormat).

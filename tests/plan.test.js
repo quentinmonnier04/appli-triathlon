@@ -2,9 +2,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  REGLAGES_PAR_DEFAUT, REGLAGES_ANCIENS_PAR_DEFAUT, plafondParDefaut, lundisDuPlan, coefficientsPlan, validerReglages,
-  lireReglagesSaisis, lundiSuivant, bornesPlan, debutEffectif, surchargerSeance, volumeSeance_s, volumeSemaine_s, distanceSansAllure, genererPlan, prefixePlan, externalId,
+  REGLAGES_PAR_DEFAUT, REGLAGES_ANCIENS_PAR_DEFAUT, plafondParDefaut, lundisDuPlan, validerReglages,
+  lireReglagesSaisis, lundiSuivant, bornesPlan, debutEffectif, surchargerSeance, volumeSeance_s, volumeSemaine_s, distanceSansAllure, prefixePlan, externalId,
 } from '../js/logique/plan.js';
+import { coefficientsPlan, genererPlan } from './reference/ancien-plan.js';
 
 const types = (plan) => plan.map((s) => [s.type[0], s.pct]);
 
