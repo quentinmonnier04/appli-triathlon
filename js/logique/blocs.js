@@ -3,7 +3,7 @@
 // Les pourcentages sont ceux du volume de la grille du bloc 1 (100 % = la grille du bloc 1 telle quelle).
 
 import { lundiDe, ajouterJours } from './dates.js';
-import { volumeSemaine_s, seancesDeLaSemaine } from './plan.js';
+import { volumeSemaine_s, seancesDeLaSemaine, lundisDuPlan, debutEffectif, lundiSuivant } from './plan.js';
 
 // Séances de la grille d'un bloc, dans l'ordre des emplacements, avec le jour et l'heure de l'emplacement ;
 // un emplacement dont la séance n'existe plus (supprimée sur le site) est ignoré (revue 1).
@@ -143,4 +143,31 @@ export function validerBlocs(blocs) {
     if (!(b.emplacements ?? []).every(valide)) erreurs[`blocs.${i}.emplacements`] = 'Jour ou heure invalide dans le bloc.';
   });
   return erreurs;
+}
+
+// --- Migration de l'ancienne semaine type unique (F-88, conception 5.8) ---
+
+// Semaine type et réglages de l'ancien format -> { reglages, blocs }, sans changer le plan en cours : autant de
+// blocs que de cycles (semainesHausse + 1 semaines) entre la date de début de l'ancien plan et l'affûtage,
+// le dernier prenant le reste ; un dernier cycle complet garde sa coupure (coupure: true). Sans objectif : un bloc.
+export function migrerAncienFormat({ seances, reglagesAnciens, objectif, aujourdhui }) {
+  const { hausse, coupure, affutage, plafond_h, semainesHausse } = reglagesAnciens;
+  const emplacements = seances.map((s) => ({ seanceId: String(s.id), jour: s.jour, heure: s.heure ?? null }));
+  const cycle = semainesHausse + 1;
+  const bloc = (n, semaines) => ({ nom: `Bloc ${n}`, semaines, emplacements: structuredClone(emplacements) });
+  let blocs = [bloc(1, cycle)];
+  if (objectif) {
+    const debut = debutEffectif(reglagesAnciens, objectif.id, lundiSuivant(aujourdhui));
+    const nb = lundisDuPlan(debut, objectif.date).length;
+    let reste = nb - Math.min(affutage.length, nb);
+    blocs = [];
+    while (reste > 0) {
+      const semaines = Math.min(cycle, reste);
+      blocs.push(bloc(blocs.length + 1, semaines));
+      reste -= semaines;
+    }
+    if (!blocs.length) blocs.push(bloc(1, 1)); // plan plus court que l'affûtage
+    else if (blocs.at(-1).semaines === cycle) blocs.at(-1).coupure = true;
+  }
+  return { reglages: { hausse, coupure, affutage: [...affutage], plafond_h }, blocs };
 }

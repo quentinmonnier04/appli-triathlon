@@ -4,9 +4,9 @@ import assert from 'node:assert/strict';
 import {
   coefficientsBlocs, debutDesBlocs, grilleDuBloc, blocsVides, genererPlanBlocs,
   ajouterBloc, dupliquerBloc, supprimerBloc, modifierBloc, ajouterEmplacement, modifierEmplacement, retirerEmplacement,
-  retirerSeanceDesBlocs, utilisationsSeance, validerBlocs,
+  retirerSeanceDesBlocs, utilisationsSeance, validerBlocs, migrerAncienFormat,
 } from '../js/logique/blocs.js';
-import { genererPlan } from '../js/logique/plan.js';
+import { genererPlan, REGLAGES_ANCIENS_PAR_DEFAUT, lundiSuivant } from '../js/logique/plan.js';
 
 const R = { hausse: 8, coupure: 70, affutage: [70, 50], plafond_h: null };
 const EF = { id: 'a', sport: 'CAP', titre: 'EF', duree_s: 3600, distance_m: null, description: null, blocs: null };
@@ -134,4 +134,58 @@ test('validation des blocs', () => {
   assert.ok(validerBlocs([{ nom: 'A', semaines: 2.5, emplacements: [] }])['blocs.0.semaines']);
   assert.ok(validerBlocs([{ nom: 'A', semaines: 2, emplacements: [place('a', 8)] }])['blocs.0.emplacements']);
   assert.ok(validerBlocs([{ nom: 'A', semaines: 2, emplacements: [place('a', 1, '25:00')] }])['blocs.0.emplacements']);
+});
+
+// --- Migration de la semaine type (F-88, conception 5.8) : le plan en cours ne change pas ---
+
+const ANCIENNE = [{ ...FRAC, jour: 2, heure: '18:30' }, { ...EF, jour: 4, heure: null }, { ...VELO, jour: 7, heure: '09:00' }];
+const AUJ = '2026-11-24';
+const resume = (plan) => plan.map((s) => [s.lundi, s.pct, s.type, s.seances.map((x) => [x.external_id, x.titre, x.date, x.heure, x.duree_s, JSON.stringify(x.blocs)])]);
+
+function comparer(reglagesAnciens, objectif) {
+  const anciens = { ...REGLAGES_ANCIENS_PAR_DEFAUT, ...reglagesAnciens };
+  const debut = anciens.debut && anciens.objectifDebut === objectif.id ? anciens.debut : lundiSuivant(AUJ);
+  const ancien = genererPlan({ semaineType: ANCIENNE, reglages: { ...anciens, debut }, dateCourse: objectif.date, objectifId: objectif.id });
+  const m = migrerAncienFormat({ seances: ANCIENNE, reglagesAnciens: anciens, objectif, aujourdhui: AUJ });
+  const nouveau = genererPlanBlocs({ seances: ANCIENNE, blocs: m.blocs, reglages: m.reglages, dateCourse: objectif.date, objectifId: objectif.id });
+  assert.deepEqual(resume(nouveau), resume(ancien));
+  return m;
+}
+
+test('migration : cycle incomplet en fin (12 semaines, blocs 4, 4, 2)', () => {
+  const m = comparer({}, { id: 'o1', date: '2027-02-21' }); // du 30/11 au 15/02 : 12 semaines
+  assert.deepEqual(m.blocs.map((b) => [b.nom, b.semaines, b.coupure]), [['Bloc 1', 4, undefined], ['Bloc 2', 4, undefined], ['Bloc 3', 2, undefined]]);
+  assert.deepEqual(m.reglages, { hausse: 8, coupure: 70, affutage: [70, 50], plafond_h: null });
+  assert.deepEqual(m.blocs[0].emplacements, [{ seanceId: 'f', jour: 2, heure: '18:30' }, { seanceId: 'a', jour: 4, heure: null }, { seanceId: 'v', jour: 7, heure: '09:00' }]);
+});
+
+test('migration : cycle complet en fin (10 semaines, blocs 4, 4 avec coupure forcée)', () => {
+  const m = comparer({}, { id: 'o1', date: '2027-02-07' });
+  assert.deepEqual(m.blocs.map((b) => [b.semaines, b.coupure]), [[4, undefined], [4, true]]);
+});
+
+test("migration : date de début enregistrée pour cet objectif, ou pour un autre", () => {
+  comparer({ debut: '2026-12-14', objectifDebut: 'o1' }, { id: 'o1', date: '2027-03-14' });
+  comparer({ debut: '2026-12-14', objectifDebut: 'autre' }, { id: 'o1', date: '2027-03-14' });
+});
+
+test('migration : plafond et autres réglages repris', () => {
+  const m = comparer({ hausse: 10, semainesHausse: 2, coupure: 60, affutage: [80, 60, 40], plafond_h: 4.5 }, { id: 'o1', date: '2027-03-28' });
+  assert.deepEqual(m.reglages, { hausse: 10, coupure: 60, affutage: [80, 60, 40], plafond_h: 4.5 });
+});
+
+test('migration sans objectif : un bloc de semainesHausse + 1 semaines', () => {
+  const m = migrerAncienFormat({ seances: ANCIENNE, reglagesAnciens: REGLAGES_ANCIENS_PAR_DEFAUT, objectif: null, aujourdhui: AUJ });
+  assert.deepEqual(m.blocs.map((b) => [b.nom, b.semaines]), [['Bloc 1', 4]]);
+});
+
+test("migration : plan plus court que l'affûtage, la semaine de course à venir reste identique", () => {
+  // course la semaine prochaine : l'ancien plan n'a qu'une semaine (affûtage 50 %) ; le nouveau commence dans le
+  // passé (bloc d'une semaine + affûtage complet), seules les semaines à venir sont envoyées : la dernière est la même.
+  const objectif = { id: 'o1', date: '2026-12-05' };
+  const ancien = genererPlan({ semaineType: ANCIENNE, reglages: { ...REGLAGES_ANCIENS_PAR_DEFAUT, debut: lundiSuivant(AUJ) }, dateCourse: objectif.date, objectifId: 'o1' });
+  const m = migrerAncienFormat({ seances: ANCIENNE, reglagesAnciens: REGLAGES_ANCIENS_PAR_DEFAUT, objectif, aujourdhui: AUJ });
+  assert.deepEqual(m.blocs.map((b) => b.semaines), [1]);
+  const nouveau = genererPlanBlocs({ seances: ANCIENNE, blocs: m.blocs, reglages: m.reglages, dateCourse: objectif.date, objectifId: 'o1' });
+  assert.deepEqual(resume(nouveau.slice(-1)).map((x) => x.slice(0, 2)), resume(ancien).map((x) => x.slice(0, 2)));
 });
