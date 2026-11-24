@@ -20,7 +20,16 @@ CLAUDE.md fait foi : en cas d'écart avec ce fichier, suis CLAUDE.md.
 - Noms d'endpoints et de champs Intervals.icu : vérifiés dans la documentation officielle (5.6), jamais devinés.
 - Périmètre : rien n'est codé en dehors des fonctions du lot.
 - Traçabilité : chaque fonction codée cite son identifiant (F-xx, ENF-xx).
-- Sécurité (0.3, ENF-12, ENF-13) : clé API absente du code, de git, de la console et de l'affichage ; aucune URL externe hors des domaines autorisés ; CSP `connect-src` limitée.
+- Sécurité (0.3, ENF-12, ENF-13, D-21) :
+  - `tests/securite.test.js` passe (motifs de secrets, `.gitignore`, liens externes, échappement des données dans `ui/`) ;
+  - clé API absente du code, de git (`git log -p` du lot), de la console, de l'affichage, des URL et du cache du service worker ;
+  - toute donnée de l'API ou de l'adresse insérée dans le HTML passe par `echapperHtml` ; tout paramètre d'adresse est vérifié avant usage ; aucun `eval`, `new Function`, `setTimeout` avec une chaîne ni attribut `on...` ;
+  - CSP d'`index.html` inchangée ou plus stricte : pas de `'unsafe-inline'` ni de `'unsafe-eval'`, `connect-src` et `img-src` limités aux domaines d'ENF-12 ; aucune ressource externe (script, police, CSS, image) ;
+  - le service worker ne met en cache que les fichiers de l'appli ; « Se déconnecter » efface identifiants et cache ;
+  - toute nouvelle suppression ou tout nouveau remplacement de séances demande une confirmation et ne vise que les séances créées par l'appli ;
+  - aucune nouvelle tentative automatique sans limite vers Intervals.icu ;
+  - tests avec des données inventées uniquement ; aucune donnée personnelle (vraies activités, captures, traces GPS) dans le dépôt, `docs/` compris ;
+  - `package.json` sans dépendance inutile ni script `postinstall`.
 - Textes : messages identiques à la section 9.5 (M-xx) ; formats conformes à 9.4 ; couleurs et icônes des sports conformes à 9.3.
 - Pas de caractères typographiques spéciaux (tirets longs, guillemets courbes) dans le code et le HTML.
 - `VERSION` dans `sw.js` et `VERSION_APP` sont identiques.
