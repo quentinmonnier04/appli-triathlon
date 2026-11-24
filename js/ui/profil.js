@@ -27,7 +27,7 @@ function lienObjectif() {
 // F-88 : banque de séances (Mes séances), D-24.
 function lienMesSeances() {
   return `<a class="carte carte-lien" href="#/seances"><div class="etiquette-carte">Mes séances</div>
-    ${flecheLien()}<p class="doux">Ta banque de séances types, rangée dans Intervals.icu.</p></a>`;
+    ${flecheLien()}<p class="doux">Ta banque de séances types, par sport et par type.</p></a>`;
 }
 
 // F-51 : totaux depuis le 1er janvier.

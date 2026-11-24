@@ -60,7 +60,7 @@ export async function afficherSeances(conteneur, segments = [], params = {}) {
       ${tous.map((g) => `<a class="filtre filtre-sport sport-${g.sport}${g.sport === filtre ? ' actif' : ''}" href="#/seances?sport=${g.sport}"${g.sport === filtre ? ' aria-current="page"' : ''}>
         ${iconeSport(g.sport, 16)} ${echapperHtml(sport(g.sport).libelle)}</a>`).join('')}</nav>` : '';
 
-  zone.innerHTML = `<p class="doux">Tes séances types, rangées par sport et par type dans ta bibliothèque Intervals.icu. Place-les dans tes blocs depuis Objectif et plan.</p>
+  zone.innerHTML = `<p class="doux">Tes séances types, rangées par sport et par type. Crée-les et modifie-les ici, puis place-les dans tes blocs depuis Objectif et plan.</p>
     ${filtres}
     ${ranges.length ? ranges.map((g) => carteSport(g, blocs, allures)).join('') : '<div class="carte"><p class="doux">Aucune séance pour l\'instant.</p></div>'}
     <div class="pile"><a class="bouton principal" href="#/seance-type/nouvelle?retour=seances">${icone('plus', 18)} Nouvelle séance</a></div>`;
