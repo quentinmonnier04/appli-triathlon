@@ -1,0 +1,20 @@
+# Sécurité (0.3, D-21) : rien de secret ni de personnel ne doit entrer dans le dépôt (destiné à être public).
+
+# Secrets et réglages locaux
+.env*
+.claude/settings.local.json
+
+# Dossiers de travail des outils
+.superpowers/
+node_modules/
+
+# Sauvegardes et fichiers temporaires
+*.bak
+*.tmp
+*~
+
+# Données personnelles : exports, traces GPS et fichiers d'activité
+export*.json
+*.fit
+*.gpx
+*.tcx
