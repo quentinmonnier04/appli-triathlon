@@ -64,7 +64,7 @@ test('wellness -> objet interne Forme (9.2) : valeurs entières cohérentes, TSB
 });
 
 test('athlète : nom repris du champ name', () => {
-  assert.deepEqual(convertirAthlete({ id: 'i42', name: 'Quentin M', firstname: 'Quentin', sportSettings: [] }), { id: 'i42', nom: 'Quentin M' });
+  assert.deepEqual(convertirAthlete({ id: 'i42', name: 'Alex Martin', firstname: 'Alex', sportSettings: [] }), { id: 'i42', nom: 'Alex Martin' });
 });
 
 test('athlète : repli sur prénom et nom, puis texte par défaut', () => {

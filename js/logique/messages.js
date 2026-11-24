@@ -11,7 +11,7 @@ export const MESSAGES = {
   'M-08': "Aucune activité pour l'instant. Vérifie que ta montre Suunto est connectée à Intervals.icu.",
 };
 
-// Texte d'un message avec ses paramètres, ex. formaterMessage('M-01', { nom: 'Quentin' }).
+// Texte d'un message avec ses paramètres, ex. formaterMessage('M-01', { nom: 'Alex' }).
 export function formaterMessage(code, params = {}) {
   return MESSAGES[code].replace(/\{([^}]+)\}/g, (tout, cle) => params[cle] ?? tout);
 }

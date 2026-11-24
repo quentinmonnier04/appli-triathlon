@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { MESSAGES, formaterMessage } from '../js/logique/messages.js';
 
 test('M-01 avec le nom', () => {
-  assert.equal(formaterMessage('M-01', { nom: 'Quentin' }), 'Connexion réussie : bonjour Quentin !');
+  assert.equal(formaterMessage('M-01', { nom: 'Alex' }), 'Connexion réussie : bonjour Alex !');
 });
 
 test('textes exacts de 9.5', () => {
