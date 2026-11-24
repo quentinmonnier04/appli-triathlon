@@ -1,7 +1,7 @@
 // Composants d'affichage partagés (ENF-22). Produisent du HTML ; aucun calcul métier.
 
 import {
-  echapperHtml, formaterDuree, formaterDistance, formaterVitesse, formaterDateCourte, formaterHorodatage, formaterEntier, decouperUnite,
+  echapperHtml, formaterDuree, formaterDistance, formaterVitesse, formaterDateCourte, formaterHorodatage, formaterEntier, decouperUnite, formaterJourMois,
 } from '../logique/format.js';
 import { formaterDureeSaisie } from '../logique/seance.js';
 import { MESSAGES, formaterMessage } from '../logique/messages.js';
@@ -73,7 +73,7 @@ export function carteSeancePrevue(s) {
   return `<a class="carte carte-prevue sport-${sp.code}" href="#/seance/${encodeURIComponent(s.id)}">
     <div class="carte-activite-tete"><span class="pastille pastille-contour sport-${sp.code}" role="img" aria-label="${echapperHtml(sp.libelle)}">${iconeSport(sp.code)}</span>
       <div class="carte-activite-titre"><strong>${echapperHtml(s.titre)}</strong>
-        <span class="doux">Prévu · ${s.heure ? `${s.heure} · ` : ''}${echapperHtml(sp.libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
+        <span class="doux">Prévu · ${s.heure ? `${echapperHtml(s.heure)} · ` : ''}${echapperHtml(sp.libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
     ${s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : ''}</a>`;
 }
 
@@ -96,7 +96,7 @@ export function carteActivite(a, { apercu = false, grille = false, prefixeDate =
   const libelleVitesse = a.sport === 'VELO' ? 'Vitesse' : 'Allure';
   const charge = formaterEntier(a.charge);
   // Variante de l'accueil : date courte jj/mm, pour laisser la place au sport et au titre.
-  const date = grille ? `${a.date.slice(8, 10)}/${a.date.slice(5, 7)}` : formaterDateCourte(a.date, a.heure);
+  const date = grille ? formaterJourMois(a.date) : formaterDateCourte(a.date, a.heure);
   const tete = `<div class="carte-tete"><span class="sport-titre">${iconeSport(sp.code)}<span class="sport-titre-texte">${echapperHtml(sp.libelle)} · ${echapperHtml(a.titre)}</span></span>
       <span class="carte-date">${prefixeDate ? `${echapperHtml(prefixeDate)} · ` : ''}${echapperHtml(date)}</span></div>`;
   let corps;

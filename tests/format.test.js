@@ -61,3 +61,11 @@ test('entiers avec séparateur de milliers', () => {
   assert.equal(formaterEntier(87.6), '88');
   assert.equal(formaterEntier(null), null);
 });
+
+test('date jj/mm/aaaa et jj/mm depuis AAAA-MM-JJ ; texte vide si le format est inattendu (D-21)', async () => {
+  const { formaterDate, formaterJourMois } = await import('../js/logique/format.js');
+  assert.equal(formaterDate('2026-11-24'), '24/11/2026');
+  assert.equal(formaterJourMois('2026-11-24T08:00:00'), '24/11');
+  assert.equal(formaterDate('<b>x</b>'), '');
+  assert.equal(formaterJourMois(null), '');
+});

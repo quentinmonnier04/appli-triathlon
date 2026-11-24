@@ -79,7 +79,7 @@ export async function afficherAgenda(conteneur, segments, params = {}) {
     <div class="entete"><h1 class="titre-ecran">Agenda</h1>
       ${boutonIcone('rafraichir', 'Rafraîchir', { id: 'rafraichir' })}</div>
     <nav class="onglets-vue" aria-label="Vue de l'agenda">
-      ${VUES.map((v) => `<a href="${lien(v.code, date)}" class="${v.code === vue ? 'actif' : ''}" ${v.code === vue ? 'aria-current="page"' : ''}>${v.libelle}</a>`).join('')}
+      ${VUES.map((v) => `<a href="${lien(v.code, date)}" class="${v.code === vue ? 'actif' : ''}" ${v.code === vue ? 'aria-current="page"' : ''}>${echapperHtml(v.libelle)}</a>`).join('')}
     </nav>
     <div class="navigation-periode">
       ${boutonIcone('precedent', 'Période précédente', { href: lien(vue, deplacerPeriode(vue, date, -1)) })}

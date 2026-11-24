@@ -27,8 +27,8 @@ function blocZones(titre, temps) {
   const lignes = repartitionZones(temps);
   if (!lignes.length) return '';
   return `<div class="carte"><h2>${titre}</h2>
-    ${lignes.map((l) => `<div class="zone"><span class="zone-nom">${l.zone}</span>
-      <span class="zone-barre"><span class="zone-remplie zone-${l.zone}" data-pct="${l.pct}"></span></span>
+    ${lignes.map((l) => `<div class="zone"><span class="zone-nom">${echapperHtml(l.zone)}</span>
+      <span class="zone-barre"><span class="zone-remplie zone-${echapperHtml(l.zone)}" data-pct="${l.pct}"></span></span>
       <span class="zone-temps">${formaterDuree(l.secs)}</span><span class="zone-pct doux">${l.pct} %</span></div>`).join('')}
   </div>`;
 }
@@ -45,7 +45,7 @@ function blocIntervalles(intervalles, sportCode) {
         <td>${formaterDuree(i.duree_s) ?? '-'}</td>
         <td>${formaterDistance(i.distance_m, sportCode) ?? '-'}</td>
         <td>${formaterVitesse(sportCode, i.distance_m, i.duree_s) ?? '-'}</td>
-        <td>${i.fc_moy ?? '-'}</td>${avecPuissance ? `<td>${i.puissance_moy_w ?? '-'}</td>` : ''}</tr>`).join('')}</tbody>
+        <td>${echapperHtml(i.fc_moy ?? '-')}</td>${avecPuissance ? `<td>${echapperHtml(i.puissance_moy_w ?? '-')}</td>` : ''}</tr>`).join('')}</tbody>
     </table></div></div>`;
 }
 

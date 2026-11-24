@@ -76,3 +76,9 @@ export function libelleJourCourt(iso) {
 export function libelleMois(iso) {
   return `${MOIS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
 }
+
+// Date lue dans l'adresse (#/...?date=) : acceptée seulement au format AAAA-MM-JJ, sinon "defaut" (D-21, sécurité :
+// la valeur est ensuite insérée dans la page).
+export function dateParametre(valeur, defaut) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(valeur ?? '') ? valeur : defaut;
+}

@@ -35,7 +35,7 @@ function sectionObjectif(o) {
   return `<form class="carte" id="form-objectif" novalidate><h2 class="titre-icone">${icone('drapeau', 18)} Objectif</h2>
     <div class="champ"><label for="nom-objectif">Course</label>
       <input id="nom-objectif" maxlength="80" value="${echapperHtml(v.nom)}" placeholder="Ex. Triathlon d'Annecy"></div>
-    <div class="champ"><label for="date-objectif">Date</label><input type="date" id="date-objectif" value="${v.date}"></div>
+    <div class="champ"><label for="date-objectif">Date</label><input type="date" id="date-objectif" value="${echapperHtml(v.date)}"></div>
     ${groupeChoix('sport-objectif', 'Sport', options, v.sport)}
     <div class="erreurs" id="erreurs-objectif" aria-live="polite"></div>
     <div class="pile"><button type="submit" class="bouton principal ecriture">${o ? "Enregistrer l'objectif" : "Définir l'objectif"}</button>
@@ -55,16 +55,16 @@ function sectionSemaineType(seances, allures) {
     <p class="doux">Volume : <strong>${formaterDureeLongue(volumeSemaine_s(seances, allures))}</strong> par semaine.
       Touche une case vide pour ajouter une séance à cette heure. Elle est rangée dans ta bibliothèque Intervals.icu.</p>
     <div class="grille">
-      <div class="grille-ligne grille-entete"><span></span>${jours.map((j) => `<span>${j.nom.slice(0, 3)}</span>`).join('')}</div>
+      <div class="grille-ligne grille-entete"><span></span>${jours.map((j) => `<span>${echapperHtml(j.nom.slice(0, 3))}</span>`).join('')}</div>
       <div class="grille-ligne grille-sans-heure"><span class="grille-libelle">Sans heure</span>
         ${jours.map((j) => `<div class="grille-cellule">${sansHeure.filter((x) => x.jour === j.jour)
     .map((x) => lienSeance(x, iconeSport(x.sport, 18), 'grille-puce')).join('')}
-          <a class="grille-ajout" href="#/seance-type/nouvelle?jour=${j.jour}" aria-label="Ajouter une séance sans heure le ${j.nom.toLowerCase()}">${icone('plus', 18)}</a></div>`).join('')}</div>
+          <a class="grille-ajout" href="#/seance-type/nouvelle?jour=${j.jour}" aria-label="Ajouter une séance sans heure le ${echapperHtml(j.nom.toLowerCase())}">${icone('plus', 18)}</a></div>`).join('')}</div>
       <div class="grille-defilement"><div class="grille-corps" data-hauteur="${(GRILLE.heureFin - GRILLE.heureDebut) * GRILLE.pxParHeure}">
         <div class="grille-heures" aria-hidden="true">${heures.map((h) => `<span data-haut="${(h - GRILLE.heureDebut) * GRILLE.pxParHeure}">${h} h</span>`).join('')}</div>
         ${jours.map((j) => `<div class="grille-jour" data-jour="${j.jour}">${blocs.filter((b) => b.jour === j.jour).map((b) => lienSeance(b.seance,
     `<span class="grille-bloc-visuel" data-decalage="${b.haut_px - b.toucher_haut_px}" data-hauteur-visuel="${b.hauteur_px}">
-      ${iconeSport(b.seance.sport, 16)}<span class="grille-bloc-heure">${b.seance.heure}</span></span>`, 'grille-bloc')
+      ${iconeSport(b.seance.sport, 16)}<span class="grille-bloc-heure">${echapperHtml(b.seance.heure)}</span></span>`, 'grille-bloc')
     .replace('<a ', `<a data-haut="${b.toucher_haut_px}" data-hauteur="${b.toucher_hauteur_px}" data-colonne="${b.colonne}" data-nb="${b.nbColonnes}" `)).join('')}</div>`).join('')}
       </div></div>
     </div></div>`;

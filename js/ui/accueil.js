@@ -16,7 +16,7 @@ import {
 import { sport } from '../logique/sports.js';
 import { formaterDureeSaisie } from '../logique/seance.js';
 import {
-  echapperHtml, formaterDistance, formaterDureeLongue, formaterEntier,
+  echapperHtml, formaterDistance, formaterDureeLongue, formaterEntier, formaterDate, formaterJourMois,
 } from '../logique/format.js';
 import {
   bandeauHorsLigne, carteActivite, messageErreurApi, pastilleSport, squelette, graphiqueSeance, boutonIcone, flecheLien,
@@ -64,7 +64,7 @@ function widgetObjectif(o) {
     ${flecheLien()}
     <div class="objectif-ligne"><span class="pastille pastille-objectif">${icone('drapeau')}</span>
       <div class="carte-activite-titre"><strong>${echapperHtml(o.nom)}</strong>
-        <span class="doux">${o.date.slice(8, 10)}/${o.date.slice(5, 7)}/${o.date.slice(0, 4)}</span></div>
+        <span class="doux">${formaterDate(o.date)}</span></div>
       <span class="compte-rebours">${j === 0 ? "Aujourd'hui" : `J-${j}`}</span></div></a>`;
 }
 
@@ -94,7 +94,7 @@ function widgetForme(forme, jour) {
     return '<div class="carte"><h2>Forme</h2><p class="doux">Pas encore de données de forme sur Intervals.icu.</p></div>';
   }
   const phrase = phraseForme(forme.tsb);
-  const date = forme.date === jour ? '' : ` <span class="doux">au ${forme.date.slice(8, 10)}/${forme.date.slice(5, 7)}</span>`;
+  const date = forme.date === jour ? '' : ` <span class="doux">au ${formaterJourMois(forme.date)}</span>`;
   const signe = forme.tsb > 0 ? '+' : forme.tsb < 0 ? '&minus;' : '';
   return `<section class="carte carte-forme" aria-label="Forme">
     <div class="carte-ligne"><h2>Forme${date}</h2>

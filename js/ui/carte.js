@@ -10,7 +10,7 @@ import { sport } from '../logique/sports.js';
 // Seul fournisseur de tuiles autorisé (ENF-12, D-03). Politique d'usage d'OpenStreetMap : attribution visible
 // et en-tête Referer présent (l'appli est en "no-referrer" par défaut, d'où referrerPolicy sur les tuiles).
 const TUILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>';
 
 let promesseLeaflet = null;
 

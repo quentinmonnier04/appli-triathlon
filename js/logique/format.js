@@ -82,6 +82,18 @@ export function formaterDateCourte(date, heure) {
   return heure ? `${texte} · ${heure}` : texte;
 }
 
+// "AAAA-MM-JJ..." -> "jj/mm/aaaa" et "jj/mm" (ENF-20) ; texte vide si le format est inattendu, pour qu'une
+// valeur imprévue de l'API n'arrive jamais telle quelle dans la page (D-21).
+const DATE_ISO = /^(\d{4})-(\d{2})-(\d{2})/;
+export function formaterDate(iso) {
+  const m = DATE_ISO.exec(String(iso ?? ''));
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+}
+export function formaterJourMois(iso) {
+  const m = DATE_ISO.exec(String(iso ?? ''));
+  return m ? `${m[3]}/${m[2]}` : '';
+}
+
 // Sépare la valeur et l'unité d'un texte formaté (design E : chiffre en grand, unité en petit).
 // "48,38 km" -> { valeur: "48,38", unite: "km" } ; "1 500 m" -> { valeur: "1 500", unite: "m" } ;
 // "5:01 /km" -> { valeur: "5:01", unite: "/km" } ; texte sans unité -> unite "".

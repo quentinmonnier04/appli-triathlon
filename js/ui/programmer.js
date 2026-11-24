@@ -13,7 +13,7 @@ import {
   lireDureeSaisie, lireDureeEtape, formaterDureeSaisie, formaterDureeEtape,
 } from '../logique/seance.js';
 import { SPORTS, sport } from '../logique/sports.js';
-import { jourISO } from '../logique/dates.js';
+import { jourISO, dateParametre } from '../logique/dates.js';
 import { MESSAGES } from '../logique/messages.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
 import { message, messageErreurApi, squelette, graphiqueSeance, boutonIcone } from './composants.js';
@@ -68,7 +68,7 @@ function champsEtape(e, chemin, libelle) {
 function rendreBloc(b, i) {
   const titre = TYPES_BLOC.find((t) => t.code === b.type).libelle;
   const cible = `<label class="cible">Cible<select data-champ="blocs.${i}.cible">
-    ${CIBLES.map((c) => `<option value="${c.code}" ${b.cible === c.code ? 'selected' : ''}>${c.libelle}</option>`).join('')}</select></label>`;
+    ${CIBLES.map((c) => `<option value="${c.code}" ${b.cible === c.code ? 'selected' : ''}>${echapperHtml(c.libelle)}</option>`).join('')}</select></label>`;
   let corps;
   if (b.type === 'REPETITIONS') {
     corps = `<label class="repetitions">Nombre de répétitions<input inputmode="numeric" data-champ="blocs.${i}.repetitions" value="${b.repetitions ?? ''}"></label>
@@ -94,7 +94,8 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   conteneur.querySelector('.entete a').addEventListener('click', (ev) => { if (history.length > 1) { ev.preventDefault(); history.back(); } });
 
   // État du formulaire : nouvelle séance, copie (F-45) ou séance existante (F-43).
-  let etat = { date: params.date || jourISO(), sport: 'CAP', titre: '', duree_s: null, distance_m: null, description: '', blocs: [] };
+  // La date de l'adresse est contrôlée avant d'être insérée dans la page (D-21).
+  let etat = { date: dateParametre(params.date, jourISO()), sport: 'CAP', titre: '', duree_s: null, distance_m: null, description: '', blocs: [] };
   if (modeType) etat.jour = Math.min(7, Math.max(1, Number(params.jour) || 1));
   etat.heure = /^\d{2}:\d{2}$/.test(params.heure ?? '') ? params.heure : null;
   let structuree = false;
@@ -124,8 +125,8 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
           </div></div>
         ${modeType
     ? `<div class="champ"><label for="jour">Jour</label><select id="jour">${JOURS.map((j, i) => `<option value="${i + 1}" ${etat.jour === i + 1 ? 'selected' : ''}>${j}</option>`).join('')}</select></div>`
-    : `<div class="champ"><label for="date">Date</label><input type="date" id="date" value="${etat.date}" required></div>`}
-        <div class="champ"><label for="heure">Heure (facultatif)</label><input type="time" id="heure" value="${etat.heure ?? ''}"></div>
+    : `<div class="champ"><label for="date">Date</label><input type="date" id="date" value="${echapperHtml(etat.date)}" required></div>`}
+        <div class="champ"><label for="heure">Heure (facultatif)</label><input type="time" id="heure" value="${echapperHtml(etat.heure ?? '')}"></div>
         <div class="champ"><label for="titre">Titre</label><input id="titre" maxlength="80" value="${echapperHtml(etat.titre)}" placeholder="Ex. Fractionné 6 x 800 m"></div>
         <div id="zone-bibliotheque"></div>
       </div>
@@ -136,7 +137,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
         ${modeType && id ? '<button type="button" class="bouton danger" id="supprimer">Retirer de la semaine type</button>' : ''}
         ${id && !modeType ? `<button type="button" class="bouton" id="deplacer">Déplacer vers...</button>
           <div id="zone-deplacer" class="carte masque"><div class="champ"><label for="nouvelle-date">Nouvelle date</label>
-            <input type="date" id="nouvelle-date" value="${etat.date}"></div>
+            <input type="date" id="nouvelle-date" value="${echapperHtml(etat.date)}"></div>
             <button type="button" class="bouton principal" id="valider-deplacement">Déplacer</button></div>
           <a class="bouton" href="#/seance/nouvelle?depuis=${encodeURIComponent(id)}">Dupliquer</a>
           <button type="button" class="bouton danger" id="supprimer">Supprimer</button>` : ''}
@@ -194,7 +195,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
     }
     zone.innerHTML = `${bascule}
       ${etat.blocs.map(rendreBloc).join('')}
-      <div class="ajout-blocs">${TYPES_BLOC.map((t) => `<button type="button" class="bouton" data-ajouter="${t.code}">${icone('plus', 18)} ${t.libelle}</button>`).join('')}</div>
+      <div class="ajout-blocs">${TYPES_BLOC.map((t) => `<button type="button" class="bouton" data-ajouter="${t.code}">${icone('plus', 18)} ${echapperHtml(t.libelle)}</button>`).join('')}</div>
       <div class="carte"><div class="etiquette-carte">Aperçu envoyé à Intervals.icu</div>
         <div id="graphique"></div>
         <pre class="apercu" id="apercu"></pre><p class="doux" id="duree-estimee"></p></div>`;
