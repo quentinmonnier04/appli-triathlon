@@ -67,6 +67,8 @@ test("affichage : toute donnée insérée dans le HTML passe par echapperHtml", 
   for (const nom of readdirSync(dossier)) {
     readFileSync(join(dossier, nom), 'utf8').split('\n').forEach((ligne, i) => {
       if (/textContent|location\.hash|aria-label="\$\{echapperHtml/.test(ligne) && !/innerHTML|`</.test(ligne)) return;
+      // Texte qui n'est pas du HTML (confirm, ou message() qui échappe lui-même) : marqué explicitement.
+      if (ligne.includes('// texte, pas du HTML')) return;
       for (const m of ligne.matchAll(interpolation)) {
         if (sur.test(m[0]) || ligne.slice(Math.max(0, m.index - 10), m.index) === 'new Date(`') continue;
         fautes.push(`ui/${nom}:${i + 1} ${m[0]}`);

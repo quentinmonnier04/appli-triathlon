@@ -8,8 +8,9 @@
 import { lireSeance, creerSeance, modifierSeance, deplacerSeance, supprimerSeance } from '../api/evenements.js';
 import { listerModeles } from '../api/bibliotheque.js';
 import {
-  lireSeanceBibliotheque as lireSeanceType, enregistrerSeanceBibliotheque as enregistrerSeanceType, supprimerSeanceBibliotheque as supprimerSeanceType,
+  lirePreparation, modifierPreparation, lireSeanceBibliotheque, enregistrerSeanceBibliotheque, supprimerSeanceBibliotheque,
 } from '../api/preparation.js';
+import { ajouterEmplacement, utilisationsSeance } from '../logique/blocs.js';
 import {
   TYPES_BLOC, CIBLES, cibleParDefaut, blocsVersTexte, dureeTotaleBlocs, validerSeance, modeleParDefaut,
   lireDureeSaisie, lireDureeEtape, formaterDureeSaisie, formaterDureeEtape,
@@ -23,7 +24,6 @@ import { icone, iconeSport } from './icones.js';
 import { lireAlluresSeuil } from '../api/profil.js';
 
 // Jours de la semaine type (1 = lundi, ENF-20).
-const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
 // Sports programmables (types reconnus par Intervals.icu) et repos (note du calendrier).
 const SPORTS_PROGRAMMABLES = ['NATATION', 'VELO', 'CAP', 'RENFO', 'AUTRE', 'REPOS'];
@@ -87,10 +87,10 @@ function rendreBloc(b, i) {
 }
 
 export async function afficherProgrammer(conteneur, segments, params = {}) {
-  const modeType = segments[0] === 'seance-type'; // séance de la semaine type (F-81)
+  const modeType = segments[0] === 'seance-type'; // séance de la bibliothèque Mes séances (F-81, F-88)
   const id = segments[1] && segments[1] !== 'nouvelle' ? decodeURIComponent(segments[1]) : null;
   const retour = modeType ? '#/objectif' : '#/agenda';
-  const titreEcran = modeType ? (id ? 'Séance type' : 'Nouvelle séance type') : (id ? 'Modifier la séance' : 'Programmer');
+  const titreEcran = modeType ? (id ? 'Mes séances' : 'Nouvelle séance') : (id ? 'Modifier la séance' : 'Programmer');
   conteneur.innerHTML = `<div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: retour })}
     <span class="titre-petit">${titreEcran}</span><span class="espace-bouton"></span></div>${squelette()}`;
   conteneur.querySelector('.entete a').addEventListener('click', (ev) => { if (history.length > 1) { ev.preventDefault(); history.back(); } });
@@ -98,13 +98,24 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   // État du formulaire : nouvelle séance, copie (F-45) ou séance existante (F-43).
   // La date de l'adresse est contrôlée avant d'être insérée dans la page (D-21).
   let etat = { date: dateParametre(params.date, jourISO()), sport: 'CAP', titre: '', duree_s: null, distance_m: null, description: '', blocs: [] };
-  if (modeType) etat.jour = Math.min(7, Math.max(1, Number(params.jour) || 1));
-  etat.heure = /^\d{2}:\d{2}$/.test(params.heure ?? '') ? params.heure : null;
+  // Mes séances (F-88) : une séance n'a ni jour ni heure ; créée depuis une case d'un bloc, elle y est placée
+  // (#/seance-type/nouvelle?bloc=N&jour=J&heure=hh:mm, paramètres vérifiés, D-21).
+  const heureValide = (h) => /^([01]\d|2[0-3]):[0-5]\d$/.test(h ?? '');
+  const placement = modeType && !id && /^\d+$/.test(params.bloc ?? '')
+    ? { bloc: Number(params.bloc), jour: Math.min(7, Math.max(1, Number(params.jour) || 1)), heure: heureValide(params.heure) ? params.heure : null }
+    : null;
+  etat.heure = !modeType && heureValide(params.heure) ? params.heure : null;
+  let utilisations = 0;
   let structuree = false;
   try {
     const source = id ?? (modeType ? null : params.depuis);
     if (source) {
-      const s = modeType ? await lireSeanceType(source) : await lireSeance(source);
+      const s = modeType ? await lireSeanceBibliotheque(source) : await lireSeance(source);
+      if (modeType) {
+        utilisations = utilisationsSeance((await lirePreparation()).blocs ?? [], source);
+        delete s.jour;
+        s.heure = null;
+      }
       etat = { ...etat, ...s, date: id ? s.date : etat.date, blocs: s.blocs ?? [], description: s.blocs ? '' : (s.description ?? '') };
       structuree = Boolean(s.blocs?.length);
     }
@@ -126,9 +137,9 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
             ${SPORTS_PROGRAMMABLES.map((c) => `<button type="button" class="filtre filtre-sport sport-${c}" data-sport="${c}">${iconeSport(c, 18)} ${echapperHtml(sport(c).libelle)}</button>`).join('')}
           </div></div>
         ${modeType
-    ? `<div class="champ"><label for="jour">Jour</label><select id="jour">${JOURS.map((j, i) => `<option value="${i + 1}" ${etat.jour === i + 1 ? 'selected' : ''}>${j}</option>`).join('')}</select></div>`
-    : `<div class="champ"><label for="date">Date</label><input type="date" id="date" value="${echapperHtml(etat.date)}" required></div>`}
-        <div class="champ"><label for="heure">Heure (facultatif)</label><input type="time" id="heure" value="${echapperHtml(etat.heure ?? '')}"></div>
+    ? (utilisations > 1 ? message('info', `Utilisée dans ${utilisations} blocs : la modification s'applique partout.`) : '')
+    : `<div class="champ"><label for="date">Date</label><input type="date" id="date" value="${echapperHtml(etat.date)}" required></div>
+        <div class="champ"><label for="heure">Heure (facultatif)</label><input type="time" id="heure" value="${echapperHtml(etat.heure ?? '')}"></div>`}
         <div class="champ"><label for="titre">Titre</label><input id="titre" maxlength="80" value="${echapperHtml(etat.titre)}" placeholder="Ex. Fractionné 6 x 800 m"></div>
         <div id="zone-bibliotheque"></div>
       </div>
@@ -136,7 +147,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
       <div id="resultat" aria-live="polite"></div>
       <div class="pile">
         <button type="submit" class="bouton principal" id="enregistrer">${libelleEnregistrer()}</button>
-        ${modeType && id ? '<button type="button" class="bouton danger" id="supprimer">Retirer de la semaine type</button>' : ''}
+        ${modeType && id ? '<button type="button" class="bouton danger" id="supprimer">Supprimer de Mes séances</button>' : ''}
         ${id && !modeType ? `<button type="button" class="bouton" id="deplacer">Déplacer vers...</button>
           <div id="zone-deplacer" class="carte masque"><div class="champ"><label for="nouvelle-date">Nouvelle date</label>
             <input type="date" id="nouvelle-date" value="${echapperHtml(etat.date)}"></div>
@@ -150,7 +161,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   const form = $('#formulaire');
   const allures = await lireAlluresSeuil(); // étapes en distance du graphique (F-41)
   function libelleEnregistrer() {
-    if (modeType) return 'Enregistrer dans ma semaine type';
+    if (modeType) return placement ? 'Enregistrer et placer dans le bloc' : 'Enregistrer dans Mes séances';
     return id ? 'Enregistrer les modifications' : 'Enregistrer dans Intervals.icu';
   }
   conteneur.querySelector('.entete a').addEventListener('click', (ev) => { if (history.length > 1) { ev.preventDefault(); history.back(); } });
@@ -231,8 +242,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   function lireChampsSimples() {
     etat.titre = $('#titre').value.trim();
     if ($('#date')) etat.date = $('#date').value;
-    if ($('#jour')) etat.jour = Number($('#jour').value);
-    etat.heure = $('#heure').value || null;
+    etat.heure = $('#heure')?.value || null;
     if ($('#description')) etat.description = $('#description').value;
     if ($('#duree')) etat.duree_s = $('#duree').value.trim() ? lireDureeSaisie($('#duree').value) ?? -1 : null;
     if ($('#distance')) {
@@ -347,8 +357,16 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
     bouton.textContent = 'Enregistrement...';
     try {
       if (modeType) {
-        await enregistrerSeanceType({ ...seance, id, jour: etat.jour });
-        location.hash = '#/objectif';
+        const enregistree = await enregistrerSeanceBibliotheque({ ...seance, id });
+        if (placement) {
+          await modifierPreparation((p) => ({
+            reglages: p.reglages,
+            blocs: p.blocs?.[placement.bloc]
+              ? ajouterEmplacement(p.blocs, placement.bloc, { seanceId: enregistree.id, jour: placement.jour, heure: placement.heure })
+              : p.blocs ?? [],
+          }));
+        }
+        location.hash = placement ? `#/objectif?bloc=${placement.bloc}` : '#/objectif';
         return;
       }
       const enregistree = id ? await modifierSeance(id, seance) : await creerSeance(seance);
@@ -361,11 +379,12 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   });
 
   if (id && modeType) {
-    // F-81 : retirer une séance de la semaine type.
+    // F-88 : supprimer une séance de Mes séances (elle est retirée de tous les blocs, conception 5.1).
     $('#supprimer').addEventListener('click', async () => {
-      if (!confirm('Retirer cette séance de ta semaine type ?')) return;
+      const blocs = utilisations ? ` Elle sera retirée de ${utilisations} bloc${utilisations > 1 ? 's' : ''}.` : '';
+      if (!confirm(`Supprimer cette séance de Mes séances ?${blocs}`)) return;
       try {
-        await supprimerSeanceType(id);
+        await supprimerSeanceBibliotheque(id);
         location.hash = '#/objectif';
       } catch (e) {
         $('#resultat').innerHTML = messageErreurApi(e);

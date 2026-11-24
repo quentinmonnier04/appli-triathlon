@@ -52,7 +52,7 @@ test('début : lundis comptés à rebours depuis la semaine de la course', () =>
 
 test('revue 1 : emplacement orphelin ignoré', () => {
   const g = grilleDuBloc({ emplacements: [place('x', 2), place('a', 3, '18:30')] }, [EF]);
-  assert.deepEqual(g.map((s) => [s.id, s.jour, s.heure]), [['a', 3, '18:30']]);
+  assert.deepEqual(g.map((s) => [s.id, s.jour, s.heure, s.emplacement]), [['a', 3, '18:30', 1]]);
 });
 
 test('revue 2 : bloc vide ou sans volume signalé', () => {
@@ -72,6 +72,7 @@ test('genererPlanBlocs : même séance placée deux fois, noms des blocs, titres
   // semaine de course (affûtage sur la grille du dernier bloc) : rien le dimanche 03/01 ni après le samedi 02/01
   assert.ok(plan[3].seances.every((s) => s.date < '2027-01-02'));
   assert.deepEqual(plan[3].seances.map((s) => s.titre), []);
+  assert.equal(plan[0].seances.some((s) => 'emplacement' in s || 'id' in s || 'jour' in s), false); // champs de la grille retirés
 });
 
 test("non-régression : un bloc unique de la même grille donne le même plan que l'ancien genererPlan", () => {

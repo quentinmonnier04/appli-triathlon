@@ -1,29 +1,25 @@
-// Écran E-09 "Objectif" (L8) : objectif (F-80), semaine type (F-81), réglages de progression (F-82),
-// aperçu du plan semaine par semaine (F-83, F-84), envoi (F-85), régénération (F-86) et suppression (F-87).
-// Écriture en ligne seulement (ENF-07). Route : #/objectif
+// Écran E-09 "Objectif" (L8) : objectif (F-80), Mes séances et blocs (F-81, F-88, ui/blocs.js), réglages de
+// progression (F-82), aperçu du plan semaine par semaine (F-83, F-84), envoi (F-85), régénération (F-86) et
+// suppression (F-87). Écriture en ligne seulement (ENF-07). Route : #/objectif?bloc=N (bloc affiché).
 
 import { lireObjectif, enregistrerObjectif, supprimerObjectif, SPORTS_OBJECTIF } from '../api/objectif.js';
-import { lirePreparation as lireSemaineType, modifierPreparation } from '../api/preparation.js';
-
-// Transitoire (tâche 4 du plan 2026-11-24) : l'écran est refait à la tâche 6.
-const enregistrerReglages = (reglages) => modifierPreparation((p) => ({ reglages, blocs: p.blocs ?? [] }));
+import { lirePreparation, modifierPreparation } from '../api/preparation.js';
 import { envoyerPlan, supprimerPlan } from '../api/plan.js';
 import { lireAlluresSeuil } from '../api/profil.js';
 import {
-  genererPlan, validerReglages, validerObjectif, lireReglagesSaisis, lundiSuivant, plafondParDefaut, bornesPlan, debutEffectif,
+  validerReglages, validerObjectif, lireReglagesSaisis, lundiSuivant, plafondParDefaut, bornesPlan,
   volumeSeance_s, volumeSemaine_s, distanceSansAllure,
 } from '../logique/plan.js';
+import { genererPlanBlocs, grilleDuBloc, blocsVides, migrerAncienFormat } from '../logique/blocs.js';
 import { jourISO, ajouterJours } from '../logique/dates.js';
-import { GRILLE, dispositionSemaine, heureDepuisPosition } from '../logique/grille.js';
 import { sport } from '../logique/sports.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
 import {
   message, messageErreurApi, squelette, pastilleSport, groupeChoix, brancherChoix, surveillerReseau, graphiqueSeance, boutonIcone,
 } from './composants.js';
 import { icone, iconeSport } from './icones.js';
+import { sectionMesSeances, sectionBlocs, brancherGrille, brancherBlocs } from './blocs.js';
 
-const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-const LIBELLES_TYPE = { HAUSSE: 'Hausse', COUPURE: 'Coupure', AFFUTAGE: 'Affûtage', COURSE: 'Course' };
 const jjmm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 const libelleSport = (code) => (code === 'ENCHAINEMENT' ? 'Triathlon' : sport(code).libelle);
 
@@ -46,73 +42,17 @@ function sectionObjectif(o) {
   </form>`;
 }
 
-// F-81 : semaine type en grille horaire (lundi à dimanche, 5 h à 23 h). Un bloc ouvre la séance type ;
-// toucher une case vide crée une séance type à ce jour et à cette heure. Positions calculées par logique/grille.js.
-function sectionSemaineType(seances, allures) {
-  const { blocs, sansHeure } = dispositionSemaine(seances, allures);
-  const heures = Array.from({ length: GRILLE.heureFin - GRILLE.heureDebut }, (_, i) => GRILLE.heureDebut + i);
-  const jours = JOURS.map((nom, i) => ({ nom, jour: i + 1 }));
-  const lienSeance = (x, contenu, classe) => `<a class="${classe} sport-${x.sport}" href="#/seance-type/${encodeURIComponent(x.id)}"
-    aria-label="${echapperHtml(`${JOURS[x.jour - 1]} ${x.heure ?? ''} ${x.titre}`)}" title="${echapperHtml(x.titre)}">${contenu}</a>`;
-  return `<div class="carte"><h2>Semaine type</h2>
-    <p class="doux">Volume : <strong>${formaterDureeLongue(volumeSemaine_s(seances, allures))}</strong> par semaine.
-      Touche une case vide pour ajouter une séance à cette heure. Elle est rangée dans ta bibliothèque Intervals.icu.</p>
-    <div class="grille">
-      <div class="grille-ligne grille-entete"><span></span>${jours.map((j) => `<span>${echapperHtml(j.nom.slice(0, 3))}</span>`).join('')}</div>
-      <div class="grille-ligne grille-sans-heure"><span class="grille-libelle">Sans heure</span>
-        ${jours.map((j) => `<div class="grille-cellule">${sansHeure.filter((x) => x.jour === j.jour)
-    .map((x) => lienSeance(x, iconeSport(x.sport, 18), 'grille-puce')).join('')}
-          <a class="grille-ajout" href="#/seance-type/nouvelle?jour=${j.jour}" aria-label="Ajouter une séance sans heure le ${echapperHtml(j.nom.toLowerCase())}">${icone('plus', 18)}</a></div>`).join('')}</div>
-      <div class="grille-defilement"><div class="grille-corps" data-hauteur="${(GRILLE.heureFin - GRILLE.heureDebut) * GRILLE.pxParHeure}">
-        <div class="grille-heures" aria-hidden="true">${heures.map((h) => `<span data-haut="${(h - GRILLE.heureDebut) * GRILLE.pxParHeure}">${h} h</span>`).join('')}</div>
-        ${jours.map((j) => `<div class="grille-jour" data-jour="${j.jour}">${blocs.filter((b) => b.jour === j.jour).map((b) => lienSeance(b.seance,
-    `<span class="grille-bloc-visuel" data-decalage="${b.haut_px - b.toucher_haut_px}" data-hauteur-visuel="${b.hauteur_px}">
-      ${iconeSport(b.seance.sport, 16)}<span class="grille-bloc-heure">${echapperHtml(b.seance.heure)}</span></span>`, 'grille-bloc')
-    .replace('<a ', `<a data-haut="${b.toucher_haut_px}" data-hauteur="${b.toucher_hauteur_px}" data-colonne="${b.colonne}" data-nb="${b.nbColonnes}" `)).join('')}</div>`).join('')}
-      </div></div>
-    </div></div>`;
-}
-
-// Positions de la grille (CSP : pas de style dans le HTML, element.style est permis) et toucher d'une case vide.
-function brancherGrille(zone) {
-  const corps = zone.querySelector('.grille-corps');
-  if (!corps) return;
-  corps.style.height = `${corps.dataset.hauteur}px`;
-  corps.querySelectorAll('[data-haut]').forEach((el) => {
-    el.style.top = `${el.dataset.haut}px`;
-    if (el.dataset.hauteur) {
-      el.style.height = `${el.dataset.hauteur}px`;
-      el.style.left = `${(Number(el.dataset.colonne) / Number(el.dataset.nb)) * 100}%`;
-      el.style.width = `${100 / Number(el.dataset.nb)}%`;
-    }
-  });
-  // Le lien couvre la zone de toucher (44 px au moins) ; le bloc coloré garde la hauteur de la séance.
-  corps.querySelectorAll('.grille-bloc-visuel').forEach((v) => {
-    v.style.marginTop = `${v.dataset.decalage}px`;
-    v.style.height = `${v.dataset.hauteurVisuel}px`;
-  });
-  corps.querySelectorAll('.grille-jour').forEach((colonne) => {
-    colonne.addEventListener('click', (ev) => {
-      if (ev.target !== colonne) return; // un bloc a été touché
-      const y = ev.clientY - colonne.getBoundingClientRect().top;
-      location.hash = `#/seance-type/nouvelle?jour=${colonne.dataset.jour}&heure=${heureDepuisPosition(y)}`;
-    });
-  });
-  // La journée commence affichée à 6 h.
-  zone.querySelector('.grille-defilement').scrollTop = (6 - GRILLE.heureDebut) * GRILLE.pxParHeure;
-}
-
-function sectionReglages(r, volumeBase_s, debutParDefaut) {
+// F-82 : réglages communs à tous les blocs (la durée de chaque bloc remplace les semaines de hausse ; le début
+// du plan est calculé à rebours depuis la course, conception 5.3 et 5.4).
+function sectionReglages(r, volumeBase_s) {
   const champ = (id, libelle, valeur, aide = '', type = 'text') => `<div class="champ"><label for="${id}">${libelle}</label>
     <input id="${id}" type="${type}" inputmode="${type === 'date' ? '' : 'decimal'}" value="${echapperHtml(valeur)}">${aide ? `<div class="aide">${aide}</div>` : ''}</div>`;
   return `<form class="carte" id="form-reglages" novalidate><h2>Progression</h2>
     <div class="deux-colonnes">
       ${champ('hausse', 'Hausse par semaine (points)', r.hausse)}
-      ${champ('semainesHausse', 'Semaines de hausse par bloc', r.semainesHausse)}
       ${champ('coupure', 'Semaine de coupure (%)', r.coupure, 'De la semaine précédente.')}
       ${champ('affutage', 'Affûtage (%)', r.affutage.join(', '), 'Une valeur par semaine, ex. 70, 50.')}
       ${champ('plafond', 'Plafond (h par semaine)', r.plafond_h ? String(r.plafond_h).replace('.', ',') : '', `Proposé : ${plafondParDefaut(volumeBase_s)} h. Vide = sans plafond.`)}
-      ${champ('debut', 'Début du plan', r.debut ?? debutParDefaut, '', 'date')}
     </div>
     <div class="erreurs" id="erreurs-reglages" aria-live="polite"></div>
     <button type="submit" class="bouton ecriture">Enregistrer les réglages</button></form>`;
@@ -123,9 +63,9 @@ function sectionApercu(plan, apartirDe, avertissements, allures) {
   const aEnvoyer = plan.flatMap((s) => s.seances).filter((s) => s.date >= apartirDe).length;
   return `<div class="carte"><h2>Aperçu du plan</h2>
     ${avertissements.map((a) => message('info', a)).join('')}
-    <div class="liste-semaines">${plan.map((s) => `<details class="semaine-plan type-${s.type.toLowerCase()}${s.lundi < apartirDe && ajouterJours(s.lundi, 6) < apartirDe ? ' passee' : ''}">
+    <div class="liste-semaines">${plan.map((s, i) => `<details class="semaine-plan type-${s.type.toLowerCase()}${i && plan[i - 1].nomBloc !== s.nomBloc ? ' debut-bloc' : ''}${s.lundi < apartirDe && ajouterJours(s.lundi, 6) < apartirDe ? ' passee' : ''}">
       <summary><span class="semaine-num">S${s.numero}</span>
-        <span class="semaine-corps"><span class="semaine-texte"><span>${jjmm(s.lundi)} au ${jjmm(ajouterJours(s.lundi, 6))} · ${LIBELLES_TYPE[s.type]}</span>
+        <span class="semaine-corps"><span class="semaine-texte"><span>${jjmm(s.lundi)} au ${jjmm(ajouterJours(s.lundi, 6))} · ${echapperHtml(s.nomBloc)}${s.type === 'COUPURE' ? ' · Coupure' : ''}</span>
           <span><strong>${s.pct} %</strong> <span class="doux">${formaterDureeLongue(s.volume_s)}</span></span></span>
           <span class="barre-progression"><span class="barre-remplie barre-plan" data-pct="${Math.round((s.pct / max) * 100)}"></span></span></span></summary>
       <ul class="seances-semaine">${s.seances.length ? s.seances.map((x) => `<li>${pastilleSport(x.sport)}<span>${['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][(new Date(`${x.date}T12:00:00`).getDay() + 6) % 7]} ${jjmm(x.date)}</span>
@@ -142,7 +82,14 @@ function sectionApercu(plan, apartirDe, avertissements, allures) {
 
 // --- Écran ---
 
-export async function afficherObjectif(conteneur) {
+// Préparation affichée : migrée en mémoire si elle est encore à l'ancien format (conception 5.8).
+function preparationAffichee(preparation, objectif, aujourdhui) {
+  if (!preparation.ancienFormat) return preparation;
+  const migree = migrerAncienFormat({ seances: preparation.seances, reglagesAnciens: preparation.ancienFormat.reglages, objectif, aujourdhui });
+  return { ...preparation, ...migree };
+}
+
+export async function afficherObjectif(conteneur, segments = [], params = {}) {
   conteneur.innerHTML = `<div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: '#/accueil' })}
     <span class="titre-petit">Objectif et plan</span><span class="espace-bouton"></span></div>
     <div id="ecran-objectif">${squelette()}${squelette()}</div>`;
@@ -150,59 +97,84 @@ export async function afficherObjectif(conteneur) {
   conteneur.querySelector('.entete a').addEventListener('click', (ev) => { if (history.length > 1) { ev.preventDefault(); history.back(); } });
 
   let objectif;
-  let semaine;
+  let lue;
   let allures;
   try {
-    [objectif, semaine, allures] = await Promise.all([lireObjectif(), lireSemaineType(), lireAlluresSeuil()]);
+    [objectif, lue, allures] = await Promise.all([lireObjectif(), lirePreparation(), lireAlluresSeuil()]);
   } catch (e) {
     if (!zone.isConnected) return;
     zone.innerHTML = `${messageErreurApi(e)}<div class="pile"><button type="button" class="bouton" id="reessayer">Réessayer</button></div>`;
-    zone.querySelector('#reessayer').addEventListener('click', () => afficherObjectif(conteneur));
+    zone.querySelector('#reessayer').addEventListener('click', () => afficherObjectif(conteneur, segments, params));
     return;
   }
   if (!zone.isConnected) return;
-
   const aujourdhui = jourISO();
-  const debutParDefaut = lundiSuivant(aujourdhui);
-  // La date de début enregistrée ne vaut que pour l'objectif courant (revue I-4).
-  const debutEnregistre = objectif ? debutEffectif(semaine.reglages, objectif.id, null) : null;
-  const reglages = { ...semaine.reglages, debut: debutEnregistre ?? debutParDefaut, objectifDebut: objectif?.id ?? null };
-  const volumeBase = volumeSemaine_s(semaine.seances, allures);
-  // Bornes d'écriture (revue I-1, I-2) : création à partir du début, régénération à partir du lundi suivant,
-  // suppression du plan ou de l'objectif dès demain.
-  const bornes = bornesPlan(aujourdhui, reglages.debut);
-  const apartirDe = bornes.creation;
 
-  let apercu;
-  if (!objectif) apercu = `<div class="carte"><h2>Aperçu du plan</h2>${message('info', "Définis d'abord ton objectif.")}</div>`;
-  else if (!semaine.seances.some((s) => s.sport !== 'REPOS')) apercu = `<div class="carte"><h2>Aperçu du plan</h2>${message('info', 'Ajoute au moins une séance à ta semaine type.')}</div>`;
+  // Migration de l'ancienne semaine type (conception 5.8) : écrite une fois, en ligne ; hors ligne, seulement affichée.
+  if (lue.ancienFormat && navigator.onLine) {
+    try {
+      await modifierPreparation((p) => (p.ancienFormat
+        ? migrerAncienFormat({ seances: p.seances, reglagesAnciens: p.ancienFormat.reglages, objectif, aujourdhui })
+        : { reglages: p.reglages, blocs: p.blocs }));
+      lue = await lirePreparation();
+    } catch { /* la préparation migrée reste affichée ; la migration sera retentée */ }
+    if (!zone.isConnected) return;
+  }
+  const preparation = preparationAffichee(lue, objectif, aujourdhui);
+  const blocs = preparation.blocs ?? [];
+  const indexBloc = Math.min(Math.max(0, /^\d+$/.test(params.bloc ?? '') ? Number(params.bloc) : 0), Math.max(0, blocs.length - 1));
+  const grilles = blocs.map((b) => grilleDuBloc(b, preparation.seances));
+  const volumeBase = grilles.length ? volumeSemaine_s(grilles[0], allures) : 0;
+  const lundiProchain = lundiSuivant(aujourdhui);
+
+  // Aperçu du plan (F-84) et bornes d'écriture (F-85 à F-87).
+  let apercu = '';
   let plan = [];
-  if (!apercu) {
-    plan = genererPlan({ semaineType: semaine.seances, reglages, dateCourse: objectif.date, allures, objectifId: objectif.id });
+  let bornes = bornesPlan(aujourdhui, lundiProchain);
+  const vides = blocsVides(blocs, preparation.seances, allures);
+  const infoApercu = (texte) => `<div class="carte"><h2>Aperçu du plan</h2>${message('info', texte)}</div>`;
+  if (preparation.illisible) apercu = infoApercu("La préparation enregistrée sur Intervals.icu est illisible. Rien n'a été modifié.");
+  else if (!objectif) apercu = infoApercu("Définis d'abord ton objectif.");
+  else if (!blocs.length) apercu = infoApercu('Ajoute au moins un bloc à ta préparation.');
+  else if (vides.length) apercu = infoApercu(vides.map((i) => `Le bloc ${blocs[i].nom} est vide.`).join(' ')); // texte, pas du HTML : message() échappe
+  else {
+    plan = genererPlanBlocs({ seances: preparation.seances, blocs, reglages: preparation.reglages, dateCourse: objectif.date, allures, objectifId: objectif.id });
+    const debut = plan[0]?.lundi ?? lundiProchain;
+    bornes = bornesPlan(aujourdhui, debut);
     const avertissements = [];
-    if (!plan.length) avertissements.push('La course a lieu avant le début du plan.');
-    if (distanceSansAllure(semaine.seances, allures)) avertissements.push("Certaines étapes en distance n'ont pas d'allure seuil sur ton profil : elles ne comptent pas dans le volume ni dans le plafond.");
-    apercu = sectionApercu(plan, apartirDe, avertissements, allures);
+    if (debut > lundiProchain) avertissements.push(`Le plan commence le ${jjmm(debut)}.`);
+    if (distanceSansAllure(grilles.flat(), allures)) avertissements.push("Certaines étapes en distance n'ont pas d'allure seuil sur ton profil : elles ne comptent pas dans le volume ni dans le plafond.");
+    apercu = sectionApercu(plan, bornes.creation, avertissements, allures);
   }
 
-  zone.innerHTML = `<div id="hors-ligne-objectif"></div>${messageEnAttente}
-    ${sectionObjectif(objectif)}${sectionSemaineType(semaine.seances, allures)}${sectionReglages(reglages, volumeBase, debutParDefaut)}${apercu}`;
+  const sectionsPreparation = preparation.illisible
+    ? `<div class="carte"><h2>Blocs</h2>${message('erreur', "La préparation enregistrée sur Intervals.icu est illisible. Rien n'a été modifié.")}</div>`
+    : `${sectionMesSeances(preparation.seances, blocs, allures)}${sectionBlocs({ ...preparation, blocs }, allures, indexBloc)}${sectionReglages(preparation.reglages, volumeBase)}`;
+  zone.innerHTML = `<div id="hors-ligne-objectif"></div>${messageEnAttente}${sectionObjectif(objectif)}${sectionsPreparation}${apercu}`;
   messageEnAttente = '';
   zone.querySelectorAll('.barre-remplie').forEach((b) => { b.style.width = `${b.dataset.pct}%`; });
   brancherGrille(zone);
   const $ = (sel) => zone.querySelector(sel);
   surveillerReseau(zone, $('#hors-ligne-objectif'), [...zone.querySelectorAll('.ecriture')].filter((b) => !b.disabled)); // ENF-07
 
-  // Recharge l'écran après une écriture, avec un message de succès.
-  const recharger = (texte) => { messageEnAttente = message('succes', texte); afficherObjectif(conteneur); };
-  const echec = (cible, e) => { $(cible).innerHTML = messageErreurApi(e); };
+  // Recharge l'écran après une écriture, avec un message de succès ; garde le bloc affiché.
+  const recharger = (texte, bloc = indexBloc) => {
+    messageEnAttente = message('succes', texte);
+    if (location.hash === `#/objectif?bloc=${bloc}`) afficherObjectif(conteneur, segments, { bloc: String(bloc) });
+    else location.hash = `#/objectif?bloc=${bloc}`;
+  };
+  const echec = (cible, e) => {
+    const zoneErreur = $(cible);
+    if (zoneErreur) zoneErreur.innerHTML = e?.type === 'ILLISIBLE' ? message('erreur', e.message) : messageErreurApi(e);
+  };
+  if (!preparation.illisible) brancherBlocs(zone, { blocs, indexBloc, recharger, echec });
 
   // F-80 : objectif.
   let sportObjectif = objectif?.sport ?? 'ENCHAINEMENT';
   brancherChoix($('#form-objectif'), (champ, valeur) => { sportObjectif = valeur; });
   $('#form-objectif').addEventListener('submit', async (ev) => {
     ev.preventDefault();
-    const o = { id: objectif?.id, nom: $('#nom-objectif').value.trim(), date: $('#date-objectif').value, sport: sportObjectif };
+    const o = { ...(objectif ?? {}), id: objectif?.id, nom: $('#nom-objectif').value.trim(), date: $('#date-objectif').value, sport: sportObjectif };
     const erreurs = validerObjectif(o, aujourdhui);
     if (Object.keys(erreurs).length) { $('#erreurs-objectif').innerHTML = message('erreur', Object.values(erreurs).join(' ')); return; }
     try {
@@ -219,29 +191,27 @@ export async function afficherObjectif(conteneur) {
     } catch (e) { echec('#erreurs-objectif', e); }
   });
 
-  // F-82 : réglages de progression.
-  $('#form-reglages').addEventListener('submit', async (ev) => {
+  // F-82 : réglages de progression, communs à tous les blocs.
+  $('#form-reglages')?.addEventListener('submit', async (ev) => {
     ev.preventDefault();
-    const champs = Object.fromEntries(['hausse', 'semainesHausse', 'coupure', 'affutage', 'plafond', 'debut'].map((k) => [k, $(`#${k}`).value]));
-    const r = { ...lireReglagesSaisis(champs), objectifDebut: objectif?.id ?? null };
+    const champs = Object.fromEntries(['hausse', 'coupure', 'affutage', 'plafond'].map((k) => [k, $(`#${k}`).value]));
+    const r = lireReglagesSaisis(champs);
     const erreurs = validerReglages(r);
     if (Object.keys(erreurs).length) { $('#erreurs-reglages').innerHTML = message('erreur', Object.values(erreurs).join(' ')); return; }
     try {
-      await enregistrerReglages(r);
+      await modifierPreparation((p) => ({ reglages: r, blocs: p.blocs ?? [] }));
       recharger("Réglages enregistrés. Vérifie l'aperçu puis renvoie le plan pour l'appliquer.");
     } catch (e) { echec('#erreurs-reglages', e); }
   });
 
-  // F-85, F-86 : envoi ou régénération ; F-87 : suppression des séances à venir.
+  // F-85, F-86 : envoi ou régénération, toujours après confirmation (D-21 ; la date de début n'est plus
+  // enregistrée, l'appli ne sait pas si le plan a déjà été envoyé) ; F-87 : suppression des séances à venir.
   $('#envoyer')?.addEventListener('click', async (ev) => {
-    // D-21 : un plan déjà envoyé (date de début enregistrée) est remplacé seulement après confirmation.
-    if (debutEnregistre && !confirm(`Remplacer les séances du plan à partir du ${jjmm(bornes.regeneration)} ? Celles que tu as modifiées sur Intervals.icu seront remplacées ; tes autres séances ne sont pas touchées.`)) return;
+    if (!confirm(`Envoyer le plan ? Les séances du plan déjà présentes à partir du ${jjmm(bornes.regeneration)} seront remplacées ; tes autres séances ne sont pas touchées.`)) return;
     const bouton = ev.currentTarget;
     bouton.disabled = true;
     const zoneProgres = $('#progression-envoi');
     try {
-      // La date de début est enregistrée au premier envoi : la numérotation des semaines ne glisse plus (F-86).
-      if (debutEnregistre !== reglages.debut) await enregistrerReglages(reglages);
       const n = await envoyerPlan(plan, objectif.id, bornes, (fait, total) => {
         zoneProgres.textContent = `Envoi en cours : ${fait} / ${total}...`; // ENF-10
       });

@@ -168,7 +168,7 @@ export function seancesDeLaSemaine(grille, lundi, pct, numero, dateCourse, objec
     .map(({ s }) => ({ type: s, date: ajouterJours(lundi, s.jour - 1) }))
     .filter(({ date }) => date < dateCourse)
     .map(({ type, date }, index) => {
-      const { id, jour, ...seance } = surchargerSeance(type, pct);
+      const { id, jour, emplacement, ...seance } = surchargerSeance(type, pct);
       return {
         ...seance,
         date,

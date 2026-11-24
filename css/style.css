@@ -883,3 +883,42 @@ a.aujourdhui:active { transform: scale(0.99); }
 .barre-Z5 { fill: var(--zone-5); }
 .barre-sans-zone { fill: var(--zone-vide); }
 .graphique-seance rect.barre-estimee { fill-opacity: 0.45; stroke: var(--texte-2); stroke-dasharray: 3 2; }
+
+/* --- Mes séances et blocs (F-81, F-88) --- */
+.onglets-blocs { overflow-x: auto; flex-wrap: nowrap; }
+.onglets-blocs a { flex: 0 0 auto; padding: 0 12px; white-space: nowrap; text-transform: none; letter-spacing: 0; }
+.onglets-blocs button {
+  flex: 0 0 var(--tactile);
+  min-height: var(--tactile);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--texte-2);
+  cursor: pointer;
+}
+.onglets-blocs button:disabled { opacity: 0.4; cursor: default; }
+.actions-bloc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.actions-bloc .bouton { padding-left: 4px; padding-right: 4px; }
+.liste-seances { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; }
+.liste-seances li { border-top: 1px solid var(--filet); }
+.ligne-seance {
+  width: 100%;
+  min-height: var(--tactile);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--texte);
+  text-decoration: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ligne-seance .graphique-seance { flex-basis: 100%; }
+.semaine-plan.debut-bloc { border-top: 2px solid var(--texte-2); margin-top: 8px; }

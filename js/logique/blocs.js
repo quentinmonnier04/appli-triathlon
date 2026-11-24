@@ -7,11 +7,13 @@ import { volumeSemaine_s, seancesDeLaSemaine, lundisDuPlan, debutEffectif, lundi
 
 // Séances de la grille d'un bloc, dans l'ordre des emplacements, avec le jour et l'heure de l'emplacement ;
 // un emplacement dont la séance n'existe plus (supprimée sur le site) est ignoré (revue 1).
+// "emplacement" : rang de l'emplacement dans le bloc (pour le modifier depuis la grille).
 export function grilleDuBloc(bloc, seances) {
   const parId = new Map(seances.map((s) => [String(s.id), s]));
   return (bloc.emplacements ?? [])
-    .filter((e) => parId.has(String(e.seanceId)))
-    .map((e) => ({ ...parId.get(String(e.seanceId)), jour: e.jour, heure: e.heure ?? null }));
+    .map((e, emplacement) => ({ e, emplacement }))
+    .filter(({ e }) => parId.has(String(e.seanceId)))
+    .map(({ e, emplacement }) => ({ ...parId.get(String(e.seanceId)), jour: e.jour, heure: e.heure ?? null, emplacement }));
 }
 
 // Index des blocs dont la grille n'a aucun volume (vide, repos seuls, séances sans durée) : le plan ne peut

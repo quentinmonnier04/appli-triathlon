@@ -60,6 +60,8 @@ const FICHIERS = [
   './js/ui/bilan.js',
   './js/ui/carte.js',
   './js/ui/objectif.js',
+  './js/ui/blocs.js',
+  './js/ui/placement.js',
   './lib/leaflet/leaflet.js',
   './lib/leaflet/leaflet.css',
 ];

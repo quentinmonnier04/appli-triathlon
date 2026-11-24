@@ -11,6 +11,7 @@ import { afficherProgrammer } from './ui/programmer.js';
 import { afficherProfil } from './ui/profil.js';
 import { afficherBilan } from './ui/bilan.js';
 import { afficherObjectif } from './ui/objectif.js';
+import { afficherPlacer, afficherEmplacement } from './ui/placement.js';
 
 const conteneur = document.getElementById('app');
 const navigation = document.getElementById('navigation');
@@ -28,6 +29,8 @@ const ROUTES = {
   bilan: afficherBilan,
   objectif: afficherObjectif,
   'seance-type': afficherProgrammer,
+  placer: afficherPlacer, // F-88
+  emplacement: afficherEmplacement, // F-88
 };
 // Écrans accessibles sans identifiants (F-04).
 const ROUTES_PUBLIQUES = ['bienvenue', 'reglages'];
@@ -53,7 +56,7 @@ async function afficherRoute() {
 
   navigation.classList.toggle('masque', !connecte);
   // Le détail dépend de l'onglet Activités ; les Réglages s'ouvrent depuis le Profil (9.1) ; le bilan depuis l'Accueil.
-  const onglet = { activite: 'activites', reglages: 'profil', bilan: 'accueil', objectif: 'accueil', 'seance-type': 'accueil' }[route] ?? route;
+  const onglet = { activite: 'activites', reglages: 'profil', bilan: 'accueil', objectif: 'accueil', 'seance-type': 'accueil', placer: 'accueil', emplacement: 'accueil' }[route] ?? route;
   navigation.querySelectorAll('a').forEach((a) => a.classList.toggle('actif', a.dataset.onglet === onglet));
   await ROUTES[route](conteneur, segments, parametresCourants());
   window.scrollTo(0, 0);
