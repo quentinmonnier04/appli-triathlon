@@ -24,6 +24,12 @@ function lienObjectif() {
     ${flecheLien()}<p class="doux">Ta course, ta semaine type et ta progression.</p></a>`;
 }
 
+// F-88 : banque de séances (Mes séances), D-24.
+function lienMesSeances() {
+  return `<a class="carte carte-lien" href="#/seances"><div class="etiquette-carte">Mes séances</div>
+    ${flecheLien()}<p class="doux">Ta banque de séances types, rangée dans Intervals.icu.</p></a>`;
+}
+
 // F-51 : totaux depuis le 1er janvier.
 function carteTotaux(p) {
   const t = totauxAnnee(p.activites);
@@ -79,7 +85,7 @@ function carteZones(reglages) {
 }
 
 function rendreProfil(p, montre) {
-  return `${enTete(p.nom, montre)}${lienObjectif()}${carteTotaux(p)}${carteParSport(p.activites)}${carteSeuils(p.reglages)}${carteZones(p.reglages)}`;
+  return `${enTete(p.nom, montre)}${lienObjectif()}${lienMesSeances()}${carteTotaux(p)}${carteParSport(p.activites)}${carteSeuils(p.reglages)}${carteZones(p.reglages)}`;
 }
 
 // Largeur des barres (CSP : pas de style inline dans le HTML ; element.style est permis).

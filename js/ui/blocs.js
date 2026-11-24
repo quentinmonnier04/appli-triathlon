@@ -15,16 +15,18 @@ import { icone, iconeSport } from './icones.js';
 export const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
 // F-81 : liste de la bibliothèque, avec le nombre de blocs qui utilisent chaque séance.
-export function sectionMesSeances(seances, blocs, allures) {
+// retour : écran où l'éditeur revient après une modification ('seances' depuis le Profil, sinon Objectif et plan).
+export function sectionMesSeances(seances, blocs, allures, { retour } = {}) {
+  const suffixe = retour === 'seances' ? '?retour=seances' : '';
   const lignes = seances.map((s) => {
     const n = utilisationsSeance(blocs ?? [], s.id);
-    return `<li><a class="ligne-seance" href="#/seance-type/${encodeURIComponent(s.id)}">${pastilleSport(s.sport)}
+    return `<li><a class="ligne-seance" href="#/seance-type/${encodeURIComponent(s.id)}${suffixe}">${pastilleSport(s.sport)}
       <span class="seance-type-titre">${echapperHtml(s.titre)}</span>
       <span class="doux">${s.sport === 'REPOS' ? '' : echapperHtml(formaterDureeLongue(volumeSeance_s(s, allures)))}${n ? ` · ${n} bloc${n > 1 ? 's' : ''}` : ''}</span></a></li>`;
   }).join('');
   return `<div class="carte"><h2>Mes séances</h2>
     ${seances.length ? `<ul class="liste-seances" id="mes-seances">${lignes}</ul>` : '<p class="doux">Aucune séance pour l\'instant.</p>'}
-    <a class="bouton" id="nouvelle-seance-bib" href="#/seance-type/nouvelle">${icone('plus', 18)} Nouvelle séance</a></div>`;
+    <a class="bouton" id="nouvelle-seance-bib" href="#/seance-type/nouvelle${suffixe}">${icone('plus', 18)} Nouvelle séance</a></div>`;
 }
 
 // Grille de la semaine d'un bloc : un lien par séance placée, un bouton + par jour (sans heure).

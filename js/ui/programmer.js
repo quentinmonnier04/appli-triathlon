@@ -89,7 +89,9 @@ function rendreBloc(b, i) {
 export async function afficherProgrammer(conteneur, segments, params = {}) {
   const modeType = segments[0] === 'seance-type'; // séance de la bibliothèque Mes séances (F-81, F-88)
   const id = segments[1] && segments[1] !== 'nouvelle' ? decodeURIComponent(segments[1]) : null;
-  const retour = modeType ? '#/objectif' : '#/agenda';
+  // Mes séances ouvert depuis le Profil (D-24) : l'éditeur y revient ; valeur contrôlée (D-21).
+  const ecranType = modeType && params.retour === 'seances' ? '#/seances' : '#/objectif';
+  const retour = modeType ? ecranType : '#/agenda';
   const titreEcran = modeType ? (id ? 'Mes séances' : 'Nouvelle séance') : (id ? 'Modifier la séance' : 'Programmer');
   conteneur.innerHTML = `<div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: retour })}
     <span class="titre-petit">${titreEcran}</span><span class="espace-bouton"></span></div>${squelette()}`;
@@ -366,7 +368,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
               : p.blocs ?? [],
           }));
         }
-        location.hash = placement ? `#/objectif?bloc=${placement.bloc}` : '#/objectif';
+        location.hash = placement ? `#/objectif?bloc=${placement.bloc}` : ecranType;
         return;
       }
       const enregistree = id ? await modifierSeance(id, seance) : await creerSeance(seance);
@@ -385,7 +387,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
       if (!confirm(`Supprimer cette séance de Mes séances ?${blocs}`)) return;
       try {
         await supprimerSeanceBibliotheque(id);
-        location.hash = '#/objectif';
+        location.hash = ecranType;
       } catch (e) {
         $('#resultat').innerHTML = messageErreurApi(e);
       }
