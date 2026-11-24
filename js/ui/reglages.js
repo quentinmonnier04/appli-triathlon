@@ -8,7 +8,7 @@ import { validerIdentifiants } from '../logique/connexion.js';
 import { MESSAGES, formaterMessage } from '../logique/messages.js';
 import { echapperHtml } from '../logique/format.js';
 import { VERSION_APP } from '../version.js';
-import { message, messageErreurApi } from './composants.js';
+import { message, messageErreurApi, boutonIcone } from './composants.js';
 
 export async function afficherReglages(conteneur) {
   const { athleteId, cleEnregistree } = await lireIdentifiantsAffichables();
@@ -16,9 +16,9 @@ export async function afficherReglages(conteneur) {
   const montre = await lireMontre();
 
   conteneur.innerHTML = `
-    <div class="entete"><span class="titre-petit">Réglages</span>
-      ${connecte ? '<a class="icone-bouton" href="#/profil" aria-label="Retour au profil">✕</a>' : '<a class="icone-bouton" href="#/bienvenue" aria-label="Retour">←</a>'}</div>
-    <h1>Intervals.icu</h1>
+    <div class="entete"><h1 class="titre-ecran">Réglages</h1>
+      ${connecte ? boutonIcone('fermer', 'Retour au profil', { href: '#/profil' }) : boutonIcone('retour', 'Retour', { href: '#/bienvenue' })}</div>
+    <h2 class="titre-section">Intervals.icu</h2>
     <p class="doux">Identifiant et clé se trouvent dans les réglages d'Intervals.icu, section Developer Settings.</p>
     <form class="carte" novalidate>
       <div class="champ">

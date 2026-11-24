@@ -9,6 +9,18 @@ export function phraseForme(tsb) {
   return 'Fatigue élevée';
 }
 
+// Position du repère sur la jauge de forme (F-23, design E) : 4 segments égaux (Fatigue, En charge, Équilibré, Frais)
+// qui suivent les bornes de 9.4. Chaque segment est linéaire entre ses bornes ; les extrêmes sont bornés à -50 et +25.
+// Renvoie un pourcentage de 0 à 100, ou null sans TSB.
+const SEGMENTS_JAUGE = [[-50, -30], [-30, -10], [-10, 5], [5, 25]];
+export function positionJauge(tsb) {
+  if (tsb === null || tsb === undefined || Number.isNaN(tsb)) return null;
+  const t = Math.min(25, Math.max(-50, tsb));
+  const i = t > 5 ? 3 : t >= -10 ? 2 : t >= -30 ? 1 : 0;
+  const [bas, haut] = SEGMENTS_JAUGE[i];
+  return Math.round((i + (t - bas) / (haut - bas)) * 25 * 10) / 10;
+}
+
 // TSB arrondi au dixième ; null si une valeur manque.
 export function calculerTsb(ctl, atl) {
   if (ctl === null || ctl === undefined || atl === null || atl === undefined) return null;

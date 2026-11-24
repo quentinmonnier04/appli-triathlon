@@ -11,8 +11,9 @@ import {
   echapperHtml, formaterDateHeure, formaterDistance, formaterDureeLongue, formaterEntier,
 } from '../logique/format.js';
 import {
-  bandeauHorsLigne, carteActivite, carteSeancePrevue, messageErreurApi, squelette, stat,
+  bandeauHorsLigne, carteActivite, carteSeancePrevue, messageErreurApi, squelette, stat, boutonIcone,
 } from './composants.js';
+import { icone } from './icones.js';
 
 // date = période affichée ; jour = jour choisi dans la vue mois (F-34), facultatif.
 const lien = (vue, date, jour = null) => `#/agenda?vue=${vue}&date=${date}${jour ? `&jour=${jour}` : ''}`;
@@ -31,7 +32,7 @@ function blocTotaux(activites) {
 // Prévu puis réalisé d'un jour (F-31, F-34) ; activités cliquables vers leur détail.
 function contenuJour(elements) {
   if (!elements || (!elements.prevues.length && !elements.activites.length)) return '<p class="doux jour-vide">Rien ce jour-là.</p>';
-  return elements.prevues.map(carteSeancePrevue).join('') + elements.activites.map(carteActivite).join('');
+  return elements.prevues.map(carteSeancePrevue).join('') + elements.activites.map((a) => carteActivite(a)).join('');
 }
 
 // F-30 : grille du mois ; points pleins = activités, cercles = séances prévues (F-32).
@@ -61,7 +62,7 @@ function vueListe(debut, fin, parJour, aujourdhui, tousLesJours) {
   return jours.map((d) => `<section class="jour-agenda">
     <h2 class="titre-jour${d === aujourdhui ? ' aujourdhui' : ''}">${echapperHtml(formaterDateHeure(d, null))}${d === aujourdhui ? ' · aujourd\'hui' : ''}</h2>
     ${contenuJour(parJour[d])}
-    ${tousLesJours ? `<a class="lien-action lien-programmer" href="#/seance/nouvelle?date=${d}">+ Programmer</a>` : ''}</section>`).join('');
+    ${tousLesJours ? `<a class="lien-action lien-programmer" href="#/seance/nouvelle?date=${d}">${icone('plus', 18)} Programmer</a>` : ''}</section>`).join('');
 }
 
 export async function afficherAgenda(conteneur, segments, params = {}) {
@@ -75,15 +76,15 @@ export async function afficherAgenda(conteneur, segments, params = {}) {
   let jourChoisi = vue === 'mois' ? (jourDemande ?? (contientAujourdhui ? aujourdhui : null)) : null;
 
   conteneur.innerHTML = `
-    <div class="entete"><span class="titre-petit">Agenda</span>
-      <button type="button" class="icone-bouton" id="rafraichir" aria-label="Rafraîchir">⟳</button></div>
+    <div class="entete"><h1 class="titre-ecran">Agenda</h1>
+      ${boutonIcone('rafraichir', 'Rafraîchir', { id: 'rafraichir' })}</div>
     <nav class="onglets-vue" aria-label="Vue de l'agenda">
       ${VUES.map((v) => `<a href="${lien(v.code, date)}" class="${v.code === vue ? 'actif' : ''}" ${v.code === vue ? 'aria-current="page"' : ''}>${v.libelle}</a>`).join('')}
     </nav>
     <div class="navigation-periode">
-      <a class="icone-bouton" href="${lien(vue, deplacerPeriode(vue, date, -1))}" aria-label="Période précédente">‹</a>
+      ${boutonIcone('precedent', 'Période précédente', { href: lien(vue, deplacerPeriode(vue, date, -1)) })}
       <span class="libelle-periode">${echapperHtml(libellePeriode(vue, debut, fin))}</span>
-      <a class="icone-bouton" href="${lien(vue, deplacerPeriode(vue, date, 1))}" aria-label="Période suivante">›</a>
+      ${boutonIcone('suivant', 'Période suivante', { href: lien(vue, deplacerPeriode(vue, date, 1)) })}
     </div>
     ${contientAujourdhui ? '' : `<div class="retour-aujourdhui"><a class="bouton" href="${lien(vue, aujourdhui)}">Revenir à aujourd'hui</a></div>`}
     <div id="etat"></div>
@@ -101,7 +102,7 @@ export async function afficherAgenda(conteneur, segments, params = {}) {
     const parJour = elementsParJour(donnees.activites, donnees.prevues);
     $('#jour').innerHTML = jourChoisi
       ? `<h2 class="titre-jour">${echapperHtml(formaterDateHeure(jourChoisi, null))}</h2>${contenuJour(parJour[jourChoisi])}
-        <a class="bouton bouton-programmer" href="#/seance/nouvelle?date=${jourChoisi}">+ Programmer ce jour</a>`
+        <a class="bouton bouton-programmer" href="#/seance/nouvelle?date=${jourChoisi}">${icone('plus', 18)} Programmer ce jour</a>`
       : '';
   }
 

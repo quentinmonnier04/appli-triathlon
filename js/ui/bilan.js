@@ -7,7 +7,7 @@ import { jourISO } from '../logique/dates.js';
 import { ECHELLES_BILAN, lireNombreSaisi, validerBilan } from '../logique/ressenti.js';
 import { echapperHtml, formaterDateHeure } from '../logique/format.js';
 import {
-  bandeauHorsLigne, messageErreurApi, squelette, message, groupeChoix, brancherChoix, surveillerReseau,
+  bandeauHorsLigne, messageErreurApi, squelette, message, groupeChoix, brancherChoix, surveillerReseau, boutonIcone,
 } from './composants.js';
 
 // Poids affiché avec une virgule (ENF-20).
@@ -31,7 +31,7 @@ function rendreFormulaire(b) {
 export async function afficherBilan(conteneur, segments, params = {}) {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(params.date ?? '') ? params.date : jourISO();
   conteneur.innerHTML = `
-    <div class="entete"><a class="icone-bouton" href="#/accueil" aria-label="Retour">←</a>
+    <div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: '#/accueil' })}
       <span class="titre-petit">Bilan du jour</span><span class="espace-bouton"></span></div>
     <p class="doux">${echapperHtml(formaterDateHeure(date))}</p>
     <div id="etat"></div>

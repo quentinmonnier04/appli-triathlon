@@ -19,13 +19,13 @@ export const ECHELLE_RPE = [
   { valeur: 10, libelle: 'Maximal' },
 ];
 
-// Ressenti (feel d'Intervals.icu : Strong, Good, Normal, Poor, Weak).
+// Ressenti (feel d'Intervals.icu : Strong, Good, Normal, Poor, Weak). Libellés seuls : aucun emoji (design E).
 export const RESSENTIS = [
-  { valeur: 1, libelle: 'Très bien', icone: '😄' },
-  { valeur: 2, libelle: 'Bien', icone: '🙂' },
-  { valeur: 3, libelle: 'Normal', icone: '😐' },
-  { valeur: 4, libelle: 'Moyen', icone: '😕' },
-  { valeur: 5, libelle: 'Mauvais', icone: '😣' },
+  { valeur: 1, libelle: 'Très bien' },
+  { valeur: 2, libelle: 'Bien' },
+  { valeur: 3, libelle: 'Normal' },
+  { valeur: 4, libelle: 'Moyen' },
+  { valeur: 5, libelle: 'Mauvais' },
 ];
 
 // Échelles du bilan du jour (F-62).

@@ -37,7 +37,9 @@ export async function afficherCarteParcours(element, id, sportCode) {
   const [L, trace] = await Promise.all([chargerLeaflet(), lireTrace(id)]);
   if (!element.isConnected) return true;
   if (!nombrePoints(trace.segments)) return false;
-  const couleur = sport(sportCode).couleur;
+  // Couleur du sport selon le thème actif (design E : variable --couleur-sport posée par la classe sport-XXX).
+  element.classList.add(`sport-${sport(sportCode).code}`);
+  const couleur = getComputedStyle(element).getPropertyValue('--couleur-sport').trim() || sport(sportCode).couleur;
   const carte = L.map(element, {
     zoomControl: true,
     attributionControl: true,

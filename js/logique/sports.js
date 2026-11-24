@@ -1,14 +1,15 @@
 // Sports de l'appli et correspondance avec les types d'activité Intervals.icu (9.3, ENF-18). Fonctions pures.
 // Types vérifiés dans la liste officielle de la spécification OpenAPI (Ride, Run, Swim, ...).
 
+// couleur : couleur du thème sombre (design E, docs/design.md) ; icone : nom de l'icône SVG dessinée dans ui/icones.js.
 export const SPORTS = [
-  { code: 'NATATION', libelle: 'Natation', couleur: '#1565C0', icone: '🏊' },
-  { code: 'VELO', libelle: 'Vélo', couleur: '#E65100', icone: '🚴' },
-  { code: 'CAP', libelle: 'Course', couleur: '#2E7D32', icone: '🏃' },
-  { code: 'RENFO', libelle: 'Renfo', couleur: '#6A1B9A', icone: '💪' },
-  { code: 'ENCHAINEMENT', libelle: 'Enchaînement', couleur: '#C62828', icone: '🔁' },
-  { code: 'REPOS', libelle: 'Repos', couleur: '#616161', icone: '😴' },
-  { code: 'AUTRE', libelle: 'Autre', couleur: '#455A64', icone: '⭐' },
+  { code: 'NATATION', libelle: 'Natation', couleur: '#3FA7FF', icone: 'natation' },
+  { code: 'VELO', libelle: 'Vélo', couleur: '#FF7A1A', icone: 'velo' },
+  { code: 'CAP', libelle: 'Course', couleur: '#3DDC84', icone: 'course' },
+  { code: 'RENFO', libelle: 'Renfo', couleur: '#B98CFF', icone: 'renfo' },
+  { code: 'ENCHAINEMENT', libelle: 'Enchaînement', couleur: '#FFD23F', icone: 'enchainement' },
+  { code: 'REPOS', libelle: 'Repos', couleur: '#A3ABB3', icone: 'repos' },
+  { code: 'AUTRE', libelle: 'Autre', couleur: '#F28CC6', icone: 'autre' },
 ];
 
 // Type Intervals.icu -> code sport ; tout type absent de cette table devient AUTRE.

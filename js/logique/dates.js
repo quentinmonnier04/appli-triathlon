@@ -55,6 +55,23 @@ export function joursEntre(a, b) {
   return Math.round((versDate(b) - versDate(a)) / 86400000);
 }
 
+// Numéro de semaine ISO 8601 (semaine du lundi au dimanche, ENF-20) : la semaine 1 contient le premier jeudi de l'année.
+export function numeroSemaine(iso) {
+  const d = versDate(iso);
+  const jeudi = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const premierJanvier = new Date(jeudi.getFullYear(), 0, 1);
+  return 1 + Math.floor(Math.round((jeudi - premierJanvier) / 86400000) / 7);
+}
+
+const JOURS_LONGS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+const MOIS_COURTS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+// "Mardi 24 nov." (en-tête de l'accueil, design E).
+export function libelleJourCourt(iso) {
+  const d = versDate(iso);
+  return `${JOURS_LONGS[d.getDay()]} ${d.getDate()} ${MOIS_COURTS[d.getMonth()]}`;
+}
+
 // "novembre 2026".
 export function libelleMois(iso) {
   return `${MOIS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;

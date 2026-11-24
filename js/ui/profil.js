@@ -7,20 +7,21 @@ import { estPerime } from '../logique/activites.js';
 import { totauxAnnee, totauxParSport, seuilsAffichables, zonesDuSport } from '../logique/profil.js';
 import { sport } from '../logique/sports.js';
 import { echapperHtml, formaterDistance, formaterDureeLongue, formaterEntier, formaterKm } from '../logique/format.js';
-import { bandeauHorsLigne, messageErreurApi, pastilleSport, squelette, stat } from './composants.js';
+import { bandeauHorsLigne, messageErreurApi, pastilleSport, squelette, stat, boutonIcone, flecheLien } from './composants.js';
+import { icone } from './icones.js';
 
 // F-50 : nom et montre.
 function enTete(nom, montre) {
   return `<div class="carte hero profil-tete">
     <div class="avatar" aria-hidden="true">${echapperHtml((nom || '?').trim().charAt(0).toUpperCase())}</div>
     <div class="carte-activite-titre"><strong class="profil-nom">${echapperHtml(nom || 'Athlète')}</strong>
-      <span class="doux"><span aria-hidden="true">⌚</span> ${echapperHtml(montre)}</span></div></div>`;
+      <span class="doux montre">${icone('montre', 18)} ${echapperHtml(montre)}</span></div></div>`;
 }
 
 // L8 : accès à l'objectif et au plan d'entraînement (F-80 à F-87).
 function lienObjectif() {
   return `<a class="carte carte-lien" href="#/objectif"><div class="etiquette-carte">Objectif et plan</div>
-    <span class="lien-fleche" aria-hidden="true">→</span><p class="doux">Ta course, ta semaine type et ta progression.</p></a>`;
+    ${flecheLien()}<p class="doux">Ta course, ta semaine type et ta progression.</p></a>`;
 }
 
 // F-51 : totaux depuis le 1er janvier.
@@ -88,10 +89,10 @@ function appliquerBarres(zone) {
 
 export async function afficherProfil(conteneur) {
   conteneur.innerHTML = `
-    <div class="entete"><span class="titre-petit">Profil</span>
+    <div class="entete"><h1 class="titre-ecran">Profil</h1>
       <span class="actions-entete">
-        <button type="button" class="icone-bouton" id="rafraichir" aria-label="Rafraîchir">⟳</button>
-        <a class="icone-bouton" href="#/reglages" aria-label="Réglages">⚙️</a></span></div>
+        ${boutonIcone('rafraichir', 'Rafraîchir', { id: 'rafraichir' })}
+        ${boutonIcone('reglages', 'Réglages', { href: '#/reglages' })}</span></div>
     <div id="etat"></div>
     <div id="profil"></div>`;
   const $ = (sel) => conteneur.querySelector(sel);

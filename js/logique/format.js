@@ -73,6 +73,24 @@ export function formaterDateHeure(date, heure) {
   return heure ? `${texte} à ${heure}` : texte;
 }
 
+const JOURS_COURTS = ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'];
+
+// Date courte des cartes d'activité (F-11, design E) : "Jeu. 20/11 · 07:30" ; sans heure : "Jeu. 20/11".
+export function formaterDateCourte(date, heure) {
+  const [a, m, j] = date.split('-').map(Number);
+  const texte = `${JOURS_COURTS[new Date(a, m - 1, j).getDay()]} ${deux(j)}/${deux(m)}`;
+  return heure ? `${texte} · ${heure}` : texte;
+}
+
+// Sépare la valeur et l'unité d'un texte formaté (design E : chiffre en grand, unité en petit).
+// "48,38 km" -> { valeur: "48,38", unite: "km" } ; "1 500 m" -> { valeur: "1 500", unite: "m" } ;
+// "5:01 /km" -> { valeur: "5:01", unite: "/km" } ; texte sans unité -> unite "".
+export function decouperUnite(texte) {
+  if (texte === null || texte === undefined) return null;
+  const m = /^([\d\s,.:]*\d)\s+(.+)$/.exec(String(texte));
+  return m ? { valeur: m[1], unite: m[2] } : { valeur: String(texte), unite: '' };
+}
+
 // Horodatage ISO -> paramètres du message M-03, en heure locale.
 export function formaterHorodatage(iso) {
   const d = new Date(iso);

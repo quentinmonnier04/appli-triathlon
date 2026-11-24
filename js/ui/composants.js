@@ -1,17 +1,18 @@
 // Composants d'affichage partagés (ENF-22). Produisent du HTML ; aucun calcul métier.
 
 import {
-  echapperHtml, formaterDuree, formaterDistance, formaterVitesse, formaterDateHeure, formaterHorodatage, formaterEntier,
+  echapperHtml, formaterDuree, formaterDistance, formaterVitesse, formaterDateCourte, formaterHorodatage, formaterEntier, decouperUnite,
 } from '../logique/format.js';
+import { formaterDureeSaisie } from '../logique/seance.js';
 import { MESSAGES, formaterMessage } from '../logique/messages.js';
 import { sport } from '../logique/sports.js';
 import { barresSeance, rectanglesGraphique } from '../logique/graphique-seance.js';
+import { icone, iconeSport } from './icones.js';
 
 // Message d'état : type 'succes', 'erreur' ou 'info' ; le texte est échappé.
 export function message(type, texte, lienHtml = '') {
-  const icone = { succes: '✅', erreur: '⚠️', info: 'ℹ️' }[type];
   return `<div class="message ${type}" role="${type === 'erreur' ? 'alert' : 'status'}">
-    <span aria-hidden="true">${icone}</span><span>${echapperHtml(texte)}${lienHtml ? ' ' + lienHtml : ''}</span></div>`;
+    <span class="message-icone">${icone(type)}</span><span>${echapperHtml(texte)}${lienHtml ? ' ' + lienHtml : ''}</span></div>`;
 }
 
 // Message correspondant à une ErreurApi (5.4, 9.5) : M-02 pour les identifiants, M-07 sinon.
@@ -33,10 +34,29 @@ export function bandeauHorsLigne(chargeLe) {
   return message('info', formaterMessage('M-03', formaterHorodatage(chargeLe)));
 }
 
-// Pastille ronde à la couleur du sport, avec son icône (ENF-18, ENF-19 : couleur + icône).
+// Icône du sport dans sa couleur (ENF-18, ENF-19 : couleur + icône), avec le nom du sport pour les lecteurs d'écran.
 export function pastilleSport(code) {
   const s = sport(code);
-  return `<span class="pastille sport-${s.code}" role="img" aria-label="${echapperHtml(s.libelle)}">${s.icone}</span>`;
+  return `<span class="pastille sport-${s.code}" role="img" aria-label="${echapperHtml(s.libelle)}">${iconeSport(s.code)}</span>`;
+}
+
+// Bouton ou lien rond d'action de l'en-tête (retour, rafraîchir, réglages...) avec une icône SVG.
+export function boutonIcone(nom, libelle, { href = null, id = null, classe = '' } = {}) {
+  const attributs = `class="icone-bouton${classe ? ' ' + classe : ''}"${id ? ` id="${id}"` : ''} aria-label="${echapperHtml(libelle)}"`;
+  return href ? `<a ${attributs} href="${href}">${icone(nom, 22)}</a>` : `<button type="button" ${attributs}>${icone(nom, 22)}</button>`;
+}
+
+// Petite flèche des cartes cliquables.
+export function flecheLien() {
+  return `<span class="lien-fleche">${icone('fleche', 20)}</span>`;
+}
+
+// Chiffre en grand suivi de son unité en petit (design E) ; rien si la valeur est absente.
+// libelle : texte lu par les lecteurs d'écran avant la valeur (ex. "Distance").
+function chiffre(libelle, texte, classe = 'chiffre') {
+  const v = decouperUnite(texte);
+  if (!v) return '';
+  return `<span class="${classe}"><span class="lecteur">${echapperHtml(libelle)} : </span>${echapperHtml(v.valeur)}${v.unite ? `<span class="unite"> ${echapperHtml(v.unite)}</span>` : ''}</span>`;
 }
 
 // Une statistique : petite étiquette et valeur ; rien si la valeur est absente.
@@ -51,7 +71,7 @@ export function carteSeancePrevue(s) {
   const details = [formaterDuree(s.duree_s), formaterDistance(s.distance_m, s.sport)].filter(Boolean).join(' · ');
   const sp = sport(s.sport);
   return `<a class="carte carte-prevue sport-${sp.code}" href="#/seance/${encodeURIComponent(s.id)}">
-    <div class="carte-activite-tete"><span class="pastille pastille-contour sport-${sp.code}" role="img" aria-label="${echapperHtml(sp.libelle)}">${sp.icone}</span>
+    <div class="carte-activite-tete"><span class="pastille pastille-contour sport-${sp.code}" role="img" aria-label="${echapperHtml(sp.libelle)}">${iconeSport(sp.code)}</span>
       <div class="carte-activite-titre"><strong>${echapperHtml(s.titre)}</strong>
         <span class="doux">Prévu · ${s.heure ? `${s.heure} · ` : ''}${echapperHtml(sp.libelle)}${details ? ' · ' + echapperHtml(details) : ''}</span></div></div>
     ${s.description ? `<p class="description-seance">${echapperHtml(s.description)}</p>` : ''}</a>`;
@@ -61,25 +81,45 @@ export function carteSeancePrevue(s) {
 function carteObjectif(s) {
   const sp = sport(s.sport);
   return `<a class="carte carte-prevue carte-objectif" href="#/objectif">
-    <div class="carte-activite-tete"><span class="pastille pastille-objectif" role="img" aria-label="Objectif">🏁</span>
+    <div class="carte-activite-tete"><span class="pastille pastille-objectif" role="img" aria-label="Objectif">${icone('drapeau')}</span>
       <div class="carte-activite-titre"><strong>${echapperHtml(s.titre)}</strong>
         <span class="doux">Objectif · ${echapperHtml(s.sport === 'ENCHAINEMENT' ? 'Triathlon' : sp.libelle)}</span></div></div></a>`;
 }
 
-// Carte d'une activité dans le fil (F-11) : sport, titre, date et heure, distance, durée, vitesse ou allure, charge.
+// Carte d'une activité (F-11, design E) : sport en majuscules dans sa couleur avec son icône, titre, date et heure à droite,
+// chiffres clés en grand (distance, durée), vitesse ou allure et charge en second.
 // apercu : place réservée pour l'aperçu du tracé GPS (F-71), remplie par ui/carte.js.
-export function carteActivite(a, { apercu = false } = {}) {
+// grille : variante de l'accueil (F-21) avec les chiffres en colonnes et leur libellé dessous ; prefixeDate : ex. "Dernière activité".
+export function carteActivite(a, { apercu = false, grille = false, prefixeDate = '' } = {}) {
+  const sp = sport(a.sport);
   const vitesse = formaterVitesse(a.sport, a.distance_m, a.duree_s);
-  return `<a class="carte carte-activite" href="#/activite/${encodeURIComponent(a.id)}">
-    <div class="carte-activite-tete">${pastilleSport(a.sport)}
-      <div class="carte-activite-titre"><strong>${echapperHtml(a.titre)}</strong>
-        <span class="doux">${echapperHtml(formaterDateHeure(a.date, a.heure))}</span></div>
-      ${a.charge !== null && a.charge !== undefined ? `<span class="badge-charge" title="Charge">${formaterEntier(a.charge)}<small>charge</small></span>` : ''}</div>
-    <div class="carte-activite-corps"><div class="stats stats-carte">
-      ${stat('Distance', formaterDistance(a.distance_m, a.sport))}
-      ${stat('Durée', formaterDuree(a.duree_s))}
-      ${stat(a.sport === 'VELO' ? 'Vitesse' : 'Allure', vitesse)}
-    </div>${apercu && a.a_gps ? `<span class="apercu-trace sport-${a.sport}" data-apercu="${echapperHtml(a.id)}"></span>` : ''}</div></a>`;
+  const libelleVitesse = a.sport === 'VELO' ? 'Vitesse' : 'Allure';
+  const charge = formaterEntier(a.charge);
+  // Variante de l'accueil : date courte jj/mm, pour laisser la place au sport et au titre.
+  const date = grille ? `${a.date.slice(8, 10)}/${a.date.slice(5, 7)}` : formaterDateCourte(a.date, a.heure);
+  const tete = `<div class="carte-tete"><span class="sport-titre">${iconeSport(sp.code)}<span class="sport-titre-texte">${echapperHtml(sp.libelle)} · ${echapperHtml(a.titre)}</span></span>
+      <span class="carte-date">${prefixeDate ? `${echapperHtml(prefixeDate)} · ` : ''}${echapperHtml(date)}</span></div>`;
+  let corps;
+  if (grille) {
+    const colonnes = [
+      [formaterDistance(a.distance_m, a.sport), 'Distance'],
+      [formaterDureeSaisie(a.duree_s) || null, 'Durée'],
+      [vitesse, libelleVitesse],
+      [charge, 'Charge'],
+    ].filter(([v]) => v).map(([v, l]) => {
+      const d = decouperUnite(v);
+      return `<div class="chiffre-colonne"><span class="chiffre">${echapperHtml(d.valeur)}</span><span class="chiffre-libelle">${echapperHtml(d.unite || l.toLowerCase())}</span></div>`;
+    });
+    corps = `<div class="chiffres-grille colonnes-${colonnes.length}">${colonnes.join('')}</div>`;
+  } else {
+    corps = `<div class="chiffres">
+      ${chiffre('Distance', formaterDistance(a.distance_m, a.sport))}
+      ${chiffre('Durée', formaterDuree(a.duree_s))}
+      ${chiffre(libelleVitesse, vitesse, 'chiffre-second')}
+      ${charge !== null ? `<span class="chiffre-second"><span class="lecteur">Charge : </span>${charge}<span class="unite"> charge</span></span>` : ''}</div>`;
+  }
+  return `<a class="carte carte-activite sport-${sp.code}" href="#/activite/${encodeURIComponent(a.id)}">
+    ${tete}${corps}${apercu && a.a_gps ? `<span class="apercu-trace sport-${sp.code}" data-apercu="${echapperHtml(a.id)}"></span>` : ''}</a>`;
 }
 
 // Groupe de boutons à choix unique (F-60, F-62) : options [{ valeur, libelle, icone? }].

@@ -15,8 +15,9 @@ import { GRILLE, dispositionSemaine, heureDepuisPosition } from '../logique/gril
 import { sport } from '../logique/sports.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
 import {
-  message, messageErreurApi, squelette, pastilleSport, groupeChoix, brancherChoix, surveillerReseau, graphiqueSeance,
+  message, messageErreurApi, squelette, pastilleSport, groupeChoix, brancherChoix, surveillerReseau, graphiqueSeance, boutonIcone,
 } from './composants.js';
+import { icone, iconeSport } from './icones.js';
 
 const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 const LIBELLES_TYPE = { HAUSSE: 'Hausse', COUPURE: 'Coupure', AFFUTAGE: 'Affûtage', COURSE: 'Course' };
@@ -30,8 +31,8 @@ let messageEnAttente = '';
 
 function sectionObjectif(o) {
   const v = o ?? { nom: '', date: '', sport: 'ENCHAINEMENT' };
-  const options = SPORTS_OBJECTIF.map((c) => ({ valeur: c, libelle: libelleSport(c), icone: sport(c).icone }));
-  return `<form class="carte" id="form-objectif" novalidate><h2>🏁 Objectif</h2>
+  const options = SPORTS_OBJECTIF.map((c) => ({ valeur: c, libelle: libelleSport(c), icone: iconeSport(c, 18) }));
+  return `<form class="carte" id="form-objectif" novalidate><h2 class="titre-icone">${icone('drapeau', 18)} Objectif</h2>
     <div class="champ"><label for="nom-objectif">Course</label>
       <input id="nom-objectif" maxlength="80" value="${echapperHtml(v.nom)}" placeholder="Ex. Triathlon d'Annecy"></div>
     <div class="champ"><label for="date-objectif">Date</label><input type="date" id="date-objectif" value="${v.date}"></div>
@@ -57,13 +58,13 @@ function sectionSemaineType(seances, allures) {
       <div class="grille-ligne grille-entete"><span></span>${jours.map((j) => `<span>${j.nom.slice(0, 3)}</span>`).join('')}</div>
       <div class="grille-ligne grille-sans-heure"><span class="grille-libelle">Sans heure</span>
         ${jours.map((j) => `<div class="grille-cellule">${sansHeure.filter((x) => x.jour === j.jour)
-    .map((x) => lienSeance(x, `<span aria-hidden="true">${sport(x.sport).icone}</span>`, 'grille-puce')).join('')}
-          <a class="grille-ajout" href="#/seance-type/nouvelle?jour=${j.jour}" aria-label="Ajouter une séance sans heure le ${j.nom.toLowerCase()}">+</a></div>`).join('')}</div>
+    .map((x) => lienSeance(x, iconeSport(x.sport, 18), 'grille-puce')).join('')}
+          <a class="grille-ajout" href="#/seance-type/nouvelle?jour=${j.jour}" aria-label="Ajouter une séance sans heure le ${j.nom.toLowerCase()}">${icone('plus', 18)}</a></div>`).join('')}</div>
       <div class="grille-defilement"><div class="grille-corps" data-hauteur="${(GRILLE.heureFin - GRILLE.heureDebut) * GRILLE.pxParHeure}">
         <div class="grille-heures" aria-hidden="true">${heures.map((h) => `<span data-haut="${(h - GRILLE.heureDebut) * GRILLE.pxParHeure}">${h} h</span>`).join('')}</div>
         ${jours.map((j) => `<div class="grille-jour" data-jour="${j.jour}">${blocs.filter((b) => b.jour === j.jour).map((b) => lienSeance(b.seance,
     `<span class="grille-bloc-visuel" data-decalage="${b.haut_px - b.toucher_haut_px}" data-hauteur-visuel="${b.hauteur_px}">
-      <span aria-hidden="true">${sport(b.seance.sport).icone}</span><span class="grille-bloc-heure">${b.seance.heure}</span></span>`, 'grille-bloc')
+      ${iconeSport(b.seance.sport, 16)}<span class="grille-bloc-heure">${b.seance.heure}</span></span>`, 'grille-bloc')
     .replace('<a ', `<a data-haut="${b.toucher_haut_px}" data-hauteur="${b.toucher_hauteur_px}" data-colonne="${b.colonne}" data-nb="${b.nbColonnes}" `)).join('')}</div>`).join('')}
       </div></div>
     </div></div>`;
@@ -139,7 +140,7 @@ function sectionApercu(plan, apartirDe, avertissements, allures) {
 // --- Écran ---
 
 export async function afficherObjectif(conteneur) {
-  conteneur.innerHTML = `<div class="entete"><a class="icone-bouton" href="#/accueil" aria-label="Retour">←</a>
+  conteneur.innerHTML = `<div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: '#/accueil' })}
     <span class="titre-petit">Objectif et plan</span><span class="espace-bouton"></span></div>
     <div id="ecran-objectif">${squelette()}${squelette()}</div>`;
   const zone = conteneur.querySelector('#ecran-objectif');

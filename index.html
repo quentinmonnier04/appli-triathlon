@@ -3,11 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <!-- ENF-12 : seul intervals.icu est joignable, plus les tuiles OpenStreetMap (images, L7) ; aucun script, police ou style externe (ENF-21) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self' https://intervals.icu; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <!-- ENF-12 : seul intervals.icu est joignable, plus les tuiles OpenStreetMap (images, L7) ; aucun script, police ou style externe (ENF-21) ;
+       police Archivo servie depuis fonts/ (font-src 'self') -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self' https://intervals.icu; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
-  <meta name="theme-color" content="#0E1013">
-  <meta name="color-scheme" content="dark">
+  <!-- Design E (docs/design.md) : sombre par défaut, clair si le téléphone est en mode clair (ENF-16) -->
+  <meta name="theme-color" content="#0A0B0C" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F4F5F6" media="(prefers-color-scheme: light)">
+  <meta name="color-scheme" content="dark light">
+  <link rel="preload" href="fonts/archivo-variable.woff2" as="font" type="font/woff2" crossorigin>
   <title>Triathlon</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
@@ -17,13 +21,13 @@
 <body>
   <div id="maj"></div>
   <main id="app"></main>
-  <!-- Barre de navigation flottante (9.1) : les onglets des lots non livrés sont absents -->
+  <!-- Barre de navigation flottante (9.1, design E) : 5 icônes SVG sans texte, chacune avec son aria-label -->
   <nav id="navigation" class="navigation masque" aria-label="Navigation principale">
-    <a href="#/accueil" data-onglet="accueil"><span class="nav-icone" aria-hidden="true">🏠</span><span>Accueil</span></a>
-    <a href="#/agenda" data-onglet="agenda"><span class="nav-icone" aria-hidden="true">📅</span><span>Agenda</span></a>
-    <a href="#/seance/nouvelle" data-onglet="seance" class="nav-programmer" aria-label="Programmer une séance"><span class="nav-plus" aria-hidden="true">+</span></a>
-    <a href="#/activites" data-onglet="activites"><span class="nav-icone" aria-hidden="true">📋</span><span>Activités</span></a>
-    <a href="#/profil" data-onglet="profil"><span class="nav-icone" aria-hidden="true">👤</span><span>Profil</span></a>
+    <a href="#/accueil" data-onglet="accueil" aria-label="Accueil"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"></path></svg></a>
+    <a href="#/agenda" data-onglet="agenda" aria-label="Agenda"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg></a>
+    <a href="#/seance/nouvelle" data-onglet="seance" class="nav-programmer" aria-label="Programmer une séance"><span class="nav-plus"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg></span></a>
+    <a href="#/activites" data-onglet="activites" aria-label="Activités"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12h4l3-7 4 14 3-7h4"></path></svg></a>
+    <a href="#/profil" data-onglet="profil" aria-label="Profil"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></a>
   </nav>
   <script type="module" src="js/app.js"></script>
 </body>

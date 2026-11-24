@@ -1,30 +1,108 @@
-/* Styles (ENF-02, ENF-15, ENF-17, ENF-19, ENF-21).
-   Inspiration appli Suunto : thème sombre, cartes arrondies, grands chiffres, barre flottante.
-   Polices système uniquement ; couleurs en classes (CSP : aucun style inline). */
+/* Styles : design E (docs/design.md, D-20) ; ENF-02, ENF-15, ENF-16, ENF-17, ENF-19, ENF-21.
+   Fond noir type écran de montre, police Archivo très grasse pour les chiffres, cartes discrètes,
+   couleur réservée aux sports. Couleurs en classes (CSP : aucun style inline). */
 
-:root {
-  color-scheme: dark;
-  --fond: #0E1013;
-  --surface: #1A1D22;
-  --surface-2: #252930;
-  --bordure: #30353D;
-  --texte: #F2F4F5;
-  --texte-doux: #A9B1BA;
-  --accent: #5AA9FF;
-  --accent-texte: #06121F;
-  --succes: #6FD08C;
-  --succes-fond: #12301C;
-  --danger: #FF8A80;
-  --danger-fond: #3A1716;
-  --alerte-fond: #33290F;
-  --rayon: 20px;
-  --rayon-petit: 14px;
-  --tactile: 48px;
-  --nav: 68px;
+/* --- Police Archivo, copiée en local (fonts/, licence OFL) ; system-ui en secours (ENF-21) --- */
+@font-face {
+  font-family: "Archivo";
+  src: url("../fonts/archivo-variable.woff2") format("woff2");
+  font-weight: 500 900;
+  font-style: normal;
+  font-display: swap;
 }
 
-* { box-sizing: border-box; }
+/* --- Variables : thème sombre (par défaut) --- */
+:root {
+  color-scheme: dark;
+  /* Couleurs de base */
+  --fond: #0A0B0C;
+  --carte: #121417;
+  --carte-2: #1A1D21;        /* éléments posés sur une carte (barres vides, champs) */
+  --filet: #1E2124;
+  --filet-fort: #2A2E32;     /* bord de la barre de navigation, contours des boutons */
+  --texte: #EDEEEF;
+  --texte-2: #8B9197;        /* texte secondaire */
+  --sur-clair: #0A0B0C;      /* texte posé sur un fond clair (bouton principal, filtre actif) */
+  --sur-sport: #0A0B0C;      /* texte posé sur une couleur de sport (bloc "Aujourd'hui") */
+  --danger: #FF6B6B;
+  /* Sports (9.3) */
+  --sport-cap: #3DDC84;
+  --sport-velo: #FF7A1A;
+  --sport-natation: #3FA7FF;
+  --sport-renfo: #B98CFF;
+  --sport-enchainement: #FFD23F;
+  --sport-repos: #A3ABB3;
+  --sport-autre: #F28CC6;
+  /* Jauge de forme (F-23) : Fatigue, En charge, Équilibré, Frais */
+  --jauge-1: #6B2E2E;
+  --jauge-2: #5C4A26;
+  --jauge-3: #3D5A2A;
+  --jauge-4: #2C4A5E;
+  /* Zones d'intensité (graphiques de séance, temps par zone) */
+  --zone-1: #8FA3B8;
+  --zone-2: #4CC25A;
+  --zone-3: #E8C547;
+  --zone-4: #FF8A3D;
+  --zone-5: #FF5A4E;
+  --zone-6: #C44DFF;
+  --zone-vide: #5C6570;
+  /* Typographie */
+  --police: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Formes et espacements */
+  --rayon: 6px;
+  --espace: 12px;            /* entre les blocs */
+  --marge: 16px;             /* marges latérales */
+  --tactile: 44px;           /* zone cliquable minimale (ENF-17) */
+  --nav: 64px;
+  --nav-bas: 22px;
+}
 
+/* --- Thème clair (ENF-16) : mêmes règles, contrastes vérifiés >= 4,5:1 sur fond et cartes --- */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --fond: #F4F5F6;
+    --carte: #FFFFFF;
+    --carte-2: #EEF0F2;
+    --filet: #E1E4E7;
+    --filet-fort: #CDD2D7;
+    --texte: #0A0B0C;
+    --texte-2: #5B6168;
+    --sur-clair: #FFFFFF;
+    --sur-sport: #FFFFFF;
+    --danger: #C62828;
+    --sport-cap: #0B7F43;
+    --sport-velo: #C2410C;
+    --sport-natation: #0B6BC2;
+    --sport-renfo: #7C3AED;
+    --sport-enchainement: #8A6A00;
+    --sport-repos: #5F6870;
+    --sport-autre: #B0307A;
+    --jauge-1: #F0C4C4;
+    --jauge-2: #EBDAB0;
+    --jauge-3: #C9E2BC;
+    --jauge-4: #BBD6EA;
+    --zone-1: #7A8EA3;
+    --zone-2: #3DA84A;
+    --zone-3: #D4AE1E;
+    --zone-4: #F07A2A;
+    --zone-5: #E5483C;
+    --zone-6: #A93BE0;
+    --zone-vide: #A3ABB3;
+  }
+}
+
+/* Couleur de chaque sport (9.3, ENF-18) : une classe sport-XXX pose --couleur-sport. */
+.sport-NATATION { --couleur-sport: var(--sport-natation); }
+.sport-VELO { --couleur-sport: var(--sport-velo); }
+.sport-CAP { --couleur-sport: var(--sport-cap); }
+.sport-RENFO { --couleur-sport: var(--sport-renfo); }
+.sport-ENCHAINEMENT { --couleur-sport: var(--sport-enchainement); }
+.sport-REPOS { --couleur-sport: var(--sport-repos); }
+.sport-AUTRE { --couleur-sport: var(--sport-autre); }
+
+/* --- Base --- */
+* { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 
 body {
@@ -32,82 +110,114 @@ body {
   min-height: 100vh;
   background: var(--fond);
   color: var(--texte);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-family: var(--police);
   font-size: 16px;
-  line-height: 1.5;
+  font-weight: 500;
+  line-height: 1.45;
   overflow-x: hidden;
 }
 
 main {
   max-width: 640px;
   margin: 0 auto;
-  padding: calc(12px + env(safe-area-inset-top)) 16px calc(var(--nav) + 48px + env(safe-area-inset-bottom));
+  padding: calc(16px + env(safe-area-inset-top)) var(--marge) calc(var(--nav) + var(--nav-bas) + 32px + env(safe-area-inset-bottom));
 }
 
-h1 { font-size: 1.9rem; line-height: 1.15; margin: 8px 0 4px; letter-spacing: -0.02em; }
-h2 { font-size: 1.05rem; margin: 0 0 8px; }
+h1 { font-size: 34px; font-weight: 900; line-height: 1; letter-spacing: -0.03em; text-transform: uppercase; margin: 8px 0 12px; }
+/* Titre dans une carte : libellé en majuscules (design E) */
+h2 { font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 10px; }
 p { margin: 0 0 12px; }
-a { color: var(--accent); }
+a { color: var(--texte); text-underline-offset: 3px; }
+strong { font-weight: 800; }
+abbr { text-decoration: none; }
 
-.doux { color: var(--texte-doux); }
+.doux { color: var(--texte-2); }
 .masque { display: none !important; }
+/* Texte lu seulement par les lecteurs d'écran */
+.lecteur { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+.icone { display: block; flex: none; }
+
+:focus-visible { outline: 2px solid var(--texte); outline-offset: 2px; }
 
 /* --- En-tête d'écran --- */
 .entete {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--espace);
   min-height: var(--tactile);
-  margin-bottom: 12px;
+  margin-bottom: var(--espace);
+  padding: 0 4px;
 }
-.entete .titre-petit { font-weight: 700; font-size: 1.1rem; }
+.titre-ecran { margin: 0; }
+.entete .titre-petit { font-size: 20px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase; line-height: 1.1; }
+.entete-retour .titre-petit { flex: 1; text-align: center; min-width: 0; overflow-wrap: anywhere; }
+.entete-texte { display: flex; flex-direction: column; min-width: 0; }
+.entete-date { font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texte-2); }
+.entete-bonjour { font-size: 15px; font-weight: 700; }
+.actions-entete { display: flex; gap: 8px; }
+.titre-section { margin: 20px 4px 8px; }
+
 .icone-bouton {
+  flex: none;
   width: var(--tactile);
   height: var(--tactile);
-  border-radius: 50%;
-  background: var(--surface);
+  border-radius: var(--rayon);
+  background: var(--carte);
+  border: 1px solid var(--filet);
   color: var(--texte);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  font-size: 1.25rem;
-  border: 1px solid var(--bordure);
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
 }
+.icone-bouton:active { background: var(--carte-2); }
+.icone-bouton.petit { width: var(--tactile); height: var(--tactile); }
+.icone-bouton.tourne .icone { animation: tourne 0.9s linear infinite; }
+@keyframes tourne { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .icone-bouton.tourne .icone { animation: none; } .icone-bouton.tourne { opacity: 0.6; } }
+.espace-bouton { flex: none; width: var(--tactile); }
 
-/* --- Cartes --- */
+/* --- Cartes (design E : rayon 6 px, filet 1 px, padding 14 x 16) --- */
 .carte {
-  background: var(--surface);
+  background: var(--carte);
+  border: 1px solid var(--filet);
   border-radius: var(--rayon);
-  padding: 18px;
-  margin: 14px 0;
+  padding: 14px 16px;
+  margin: 0 0 var(--espace);
 }
-.carte.hero { padding: 24px 20px; background: linear-gradient(160deg, #1F2A3A 0%, var(--surface) 70%); }
-.grand-chiffre { font-size: 2.6rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 10px; overflow-wrap: anywhere; }
-.etiquette-carte { color: var(--texte-doux); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 6px; }
+.carte.hero { padding: 16px; }
+.grand-chiffre { font-size: 40px; font-weight: 900; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; margin-bottom: 10px; overflow-wrap: anywhere; }
+.etiquette-carte { color: var(--texte-2); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.carte-ligne { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.carte-ligne h2 { margin: 0; }
+.info-droite { font-size: 13px; font-weight: 700; color: var(--texte-2); font-variant-numeric: tabular-nums; }
 
 .etapes { counter-reset: etape; list-style: none; padding: 0; margin: 0; }
-.etapes li { counter-increment: etape; position: relative; padding: 0 0 14px 44px; }
+.etapes li { counter-increment: etape; position: relative; padding: 0 0 14px 40px; }
 .etapes li::before {
   content: counter(etape);
-  position: absolute; left: 0; top: -2px;
-  width: 30px; height: 30px; border-radius: 50%;
-  background: var(--surface-2); color: var(--accent);
-  display: flex; align-items: center; justify-content: center; font-weight: 700;
+  position: absolute; left: 0; top: -1px;
+  width: 26px; height: 26px; border-radius: var(--rayon);
+  background: var(--carte-2); color: var(--texte);
+  display: flex; align-items: center; justify-content: center; font-weight: 900; font-variant-numeric: tabular-nums;
 }
 
 /* --- Boutons --- */
 .bouton {
-  min-height: var(--tactile);
+  min-height: 48px;
   width: 100%;
   padding: 10px 18px;
-  border-radius: 999px;
-  border: 1px solid var(--bordure);
-  background: var(--surface-2);
+  border-radius: var(--rayon);
+  border: 1px solid var(--filet-fort);
+  background: var(--carte);
   color: var(--texte);
   font: inherit;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 800;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -116,224 +226,283 @@ a { color: var(--accent); }
   cursor: pointer;
 }
 .bouton:active { transform: scale(0.98); }
-.bouton:disabled { opacity: 0.6; cursor: default; }
-.bouton.principal { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); }
+.bouton:disabled { opacity: 0.5; cursor: default; }
+.bouton.principal { background: var(--texte); border-color: var(--texte); color: var(--sur-clair); }
 .bouton.danger { background: transparent; border-color: var(--danger); color: var(--danger); }
 .pile { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
 
 /* --- Formulaires --- */
 .champ { margin: 0 0 16px; }
-.champ label { display: block; font-weight: 600; margin-bottom: 6px; }
-.champ input {
+.champ label, .etiquette-champ { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texte-2); margin-bottom: 6px; }
+.champ input, .champ textarea, .champ select, .etape select, .cible select, .repetitions input, .etape input {
   width: 100%;
-  min-height: var(--tactile);
+  min-height: 48px;
   padding: 10px 14px;
-  border-radius: var(--rayon-petit);
-  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  border: 1px solid var(--filet-fort);
   background: var(--fond);
   color: var(--texte);
   font: inherit;
+  font-size: 16px;            /* 16 px : pas de zoom automatique sur iPhone */
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
 }
-.champ input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-.champ input.invalide { border-color: var(--danger); }
-.aide { color: var(--texte-doux); font-size: 0.9rem; margin-top: 6px; }
-.erreur-champ { color: var(--danger); font-size: 0.9rem; margin-top: 6px; }
+.champ textarea { resize: vertical; }
+.champ input:focus, .champ textarea:focus, .champ select:focus, .etape input:focus, .etape select:focus, .cible select:focus, .repetitions input:focus {
+  outline: 2px solid var(--texte); outline-offset: 1px;
+}
+.invalide { border-color: var(--danger) !important; }
+.aide { color: var(--texte-2); font-size: 14px; margin-top: 6px; }
+.erreur-champ { color: var(--danger); font-size: 14px; font-weight: 700; margin-top: 6px; }
 
-/* --- Messages d'état (ENF-22) --- */
+/* --- Messages d'état (ENF-22) : carte discrète, icône à gauche ; seule l'erreur est en couleur --- */
 .message {
-  border-radius: var(--rayon-petit);
+  border-radius: var(--rayon);
+  border: 1px solid var(--filet);
+  background: var(--carte);
   padding: 12px 14px;
-  margin: 12px 0;
+  margin: 0 0 var(--espace);
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  font-weight: 600;
 }
-.message.succes { background: var(--succes-fond); color: var(--succes); }
-.message.erreur { background: var(--danger-fond); color: var(--danger); }
-.message.info { background: var(--surface-2); color: var(--texte); }
-.message a { color: inherit; font-weight: 700; }
+.message-icone { flex: none; display: flex; padding-top: 1px; }
+.message.succes .message-icone { color: var(--texte); }
+.message.info .message-icone { color: var(--texte-2); }
+.message.erreur { border-color: var(--danger); }
+.message.erreur .message-icone { color: var(--danger); }
+.message a { color: inherit; font-weight: 800; }
+.carte .message, .pile .message { margin: 12px 0 0; }
 
 /* Squelette de chargement */
 .squelette {
-  border-radius: 10px;
-  background: linear-gradient(90deg, var(--surface-2) 25%, #2E333B 50%, var(--surface-2) 75%);
+  border-radius: var(--rayon);
+  background: linear-gradient(90deg, var(--carte-2) 25%, var(--filet-fort) 50%, var(--carte-2) 75%);
   background-size: 200% 100%;
   animation: reflet 1.2s infinite linear;
-  height: 18px;
+  height: 16px;
   margin: 8px 0;
 }
-.squelette.grand { height: 40px; width: 70%; }
+.squelette.grand { height: 36px; width: 60%; }
 @keyframes reflet { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .squelette { animation: none; } }
 
-.version { color: var(--texte-doux); font-size: 0.85rem; text-align: center; margin-top: 28px; }
+.version { color: var(--texte-2); font-size: 13px; text-align: center; margin-top: 28px; font-variant-numeric: tabular-nums; }
 
-/* --- Barre de navigation flottante (ENF-15, ENF-17) --- */
+/* --- Barre de navigation flottante (9.1, ENF-15, ENF-17) : pilule de 64 px à 22 px du bas --- */
 .navigation {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(14px + env(safe-area-inset-bottom));
+  bottom: calc(var(--nav-bas) + env(safe-area-inset-bottom));
+  width: calc(100% - 2 * var(--marge));
+  max-width: calc(640px - 2 * var(--marge));
   height: var(--nav);
-  min-width: 140px;
-  max-width: calc(100% - 32px);
-  padding: 6px 10px;
-  display: flex;
-  gap: 4px;
-  background: rgba(26, 29, 34, 0.92);
-  border: 1px solid var(--bordure);
-  border-radius: 999px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  background: var(--carte);
+  border: 1px solid var(--filet-fort);
+  border-radius: 32px;
   z-index: 10;
 }
-@supports (backdrop-filter: blur(10px)) { .navigation { backdrop-filter: blur(10px); } }
 .navigation a {
-  flex: 1;
-  min-width: 64px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
-  color: var(--texte-doux);
+  min-height: var(--tactile);
+  height: 100%;
+  color: var(--texte-2);
   text-decoration: none;
-  font-size: 0.75rem;
-  font-weight: 600;
+  border-radius: 32px;
 }
-.navigation .nav-icone { font-size: 1.3rem; line-height: 1.2; }
-.navigation a.actif { color: var(--texte); background: var(--surface-2); }
+.navigation a.actif { color: var(--texte); }
+.navigation a:focus-visible { outline-offset: -4px; }
+.nav-plus {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--texte);
+  color: var(--sur-clair);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* --- Bandeau de mise à jour --- */
 .bandeau {
   max-width: 640px;
   margin: 8px auto 0;
   padding: 10px 14px;
-  border-radius: var(--rayon-petit);
-  background: var(--alerte-fond);
+  border-radius: var(--rayon);
+  border: 1px solid var(--filet-fort);
+  background: var(--carte);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  font-weight: 700;
 }
-#maj .bandeau { margin: 8px 16px 0; }
+#maj .bandeau { margin: 8px var(--marge) 0; }
 .bandeau .bouton { width: auto; }
 
-/* ===== L1 : activités ===== */
-
-/* Couleur de chaque sport (9.3, ENF-18) */
-.sport-NATATION { --couleur-sport: #1565C0; }
-.sport-VELO { --couleur-sport: #E65100; }
-.sport-CAP { --couleur-sport: #2E7D32; }
-.sport-RENFO { --couleur-sport: #6A1B9A; }
-.sport-ENCHAINEMENT { --couleur-sport: #C62828; }
-.sport-REPOS { --couleur-sport: #616161; }
-.sport-AUTRE { --couleur-sport: #455A64; }
-
+/* ===== Icônes de sport (ENF-18, ENF-19 : couleur + icône) ===== */
 .pastille {
   flex: none;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--couleur-sport);
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.35rem;
+  color: var(--couleur-sport, var(--texte));
 }
+.pastille-objectif { color: var(--texte); }
 
+/* Sport en majuscules dans sa couleur, avec son icône */
+.sport-titre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--couleur-sport);
+}
+.sport-titre-texte { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ===== Cartes d'activité (F-11, F-21) ===== */
 .carte-lien, .carte-activite { display: block; color: inherit; text-decoration: none; position: relative; }
 .carte-lien:active, .carte-activite:active { transform: scale(0.99); }
-.lien-fleche { position: absolute; right: 18px; top: 18px; color: var(--accent); font-size: 1.3rem; }
+.lien-fleche { position: absolute; right: 14px; top: 12px; color: var(--texte-2); }
+.carte-lien > .etiquette-carte { padding-right: 28px; }
+.carte-tete { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+.carte-date { flex: none; font-size: 12px; font-weight: 500; color: var(--texte-2); font-variant-numeric: tabular-nums; }
+.chiffres { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 18px; row-gap: 2px; font-variant-numeric: tabular-nums; }
+.chiffre { font-size: 28px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.chiffre-second { font-size: 18px; font-weight: 800; color: var(--texte-2); font-variant-numeric: tabular-nums; }
+.unite { font-size: 12px; font-weight: 500; letter-spacing: 0; color: var(--texte-2); }
+.chiffres-grille { display: grid; gap: 8px; font-variant-numeric: tabular-nums; }
+.colonnes-1 { grid-template-columns: minmax(0, 1fr); }
+.colonnes-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.colonnes-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.colonnes-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.chiffre-colonne { display: flex; flex-direction: column; min-width: 0; }
+.chiffres-grille .chiffre { font-size: 30px; white-space: nowrap; }
+.colonnes-4 .chiffre { font-size: 24px; }
+.chiffre-libelle { font-size: 12px; font-weight: 500; color: var(--texte-2); }
+@media (max-width: 380px) {
+  .chiffres-grille .chiffre { font-size: 24px; }
+  .colonnes-4 .chiffre { font-size: 20px; }
+}
+
+/* Ancienne présentation encore utilisée (séances prévues, objectif) */
 .carte-activite-tete { display: flex; align-items: center; gap: 12px; }
 .carte-activite-titre { display: flex; flex-direction: column; min-width: 0; }
-.carte-activite-titre strong { font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.carte-activite-titre .doux { font-size: 0.9rem; }
+.carte-activite-titre strong { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carte-activite-titre .doux { font-size: 14px; }
 
 /* Statistiques : grands chiffres (ENF-15) */
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 12px; margin-top: 14px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 12px; margin-top: 12px; }
 .stat { display: flex; flex-direction: column; min-width: 0; }
-.stat-valeur { font-size: 1.15rem; font-weight: 700; white-space: nowrap; }
-.stat-etiquette { color: var(--texte-doux); font-size: 0.8rem; }
-.resume { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
-.resume .stat-valeur { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
+.stat-valeur { font-size: 22px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.15; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.stat-etiquette { color: var(--texte-2); font-size: 12px; font-weight: 500; }
+.resume { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.resume .stat-valeur { font-size: clamp(18px, 5.6vw, 28px); }
 .grille-stats { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); margin-top: 0; }
-@media (max-width: 380px) { .resume .stat-valeur { font-size: 1.3rem; } }
+.stats-carte { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
-/* Filtres par sport (F-12) : défilement horizontal limité à la rangée */
-.filtres { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 8px; scrollbar-width: none; }
+/* Détail d'une activité (F-13) */
+.titre-activite { font-size: 30px; margin: 10px 0 4px; overflow-wrap: anywhere; }
+
+/* Filtres (F-12) : rayon 6 px, actif sur fond clair ; défilement horizontal limité à la rangée */
+.filtres { display: flex; gap: 8px; overflow-x: auto; margin: 0 calc(-1 * var(--marge)) var(--espace); padding: 2px var(--marge) 2px; scrollbar-width: none; }
 .filtres::-webkit-scrollbar { display: none; }
 .filtre {
   flex: none;
-  min-height: 44px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--bordure);
-  background: var(--surface);
+  min-height: var(--tactile);
+  padding: 0 14px;
+  border-radius: var(--rayon);
+  border: 1px solid var(--filet);
+  background: var(--carte);
   color: var(--texte);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   cursor: pointer;
 }
-.filtre.actif { background: var(--texte); color: var(--fond); border-color: var(--texte); font-weight: 700; }
+.filtre.actif, .filtre[aria-checked="true"] { background: var(--texte); color: var(--sur-clair); border-color: var(--texte); font-weight: 800; }
+.filtre-sport .icone { color: var(--couleur-sport); }
+.filtre-sport.actif .icone { color: var(--sur-clair); }
 
 /* Tirer pour rafraîchir (F-14) */
-.tirage { height: 0; overflow: hidden; color: var(--texte-doux); font-size: 0.85rem; transition: height 0.15s; display: flex; align-items: flex-end; justify-content: center; }
-.tirage.pret { color: var(--accent); }
-.icone-bouton.tourne { animation: tourne 0.9s linear infinite; }
-@keyframes tourne { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .icone-bouton.tourne { animation: none; opacity: 0.6; } }
-button.icone-bouton { cursor: pointer; font: inherit; font-size: 1.25rem; }
-.espace-bouton { width: var(--tactile); }
+.tirage { height: 0; overflow: hidden; color: var(--texte-2); font-size: 13px; font-weight: 700; transition: height 0.15s; display: flex; align-items: flex-end; justify-content: center; }
+.tirage.pret { color: var(--texte); }
 .sentinelle { height: 1px; }
-.fin-liste { text-align: center; font-size: 0.85rem; margin: 16px 0; }
+.fin-liste { text-align: center; font-size: 13px; margin: 16px 0; }
 
 /* Zones de temps (F-13) */
 .zone { display: grid; grid-template-columns: 30px 1fr 64px 44px; align-items: center; gap: 8px; margin: 8px 0; }
-.zone-nom { font-weight: 700; font-size: 0.9rem; }
-.zone-barre { height: 12px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
-.zone-remplie { display: block; height: 100%; width: 0; border-radius: 6px; background: var(--accent); }
-.zone-Z1 { background: #8FA3B8; }
-.zone-Z2 { background: #4CC25A; }
-.zone-Z3 { background: #E8C547; }
-.zone-Z4 { background: #FF8A3D; }
-.zone-Z5 { background: #FF5A4E; }
-.zone-Z6, .zone-Z7 { background: #C44DFF; }
-.zone-temps { text-align: right; font-variant-numeric: tabular-nums; font-size: 0.9rem; }
-.zone-pct { text-align: right; font-size: 0.85rem; }
+.zone-nom { font-weight: 800; font-size: 14px; }
+.zone-barre { height: 10px; background: var(--carte-2); border-radius: 2px; overflow: hidden; }
+.zone-remplie { display: block; height: 100%; width: 0; border-radius: 2px; background: var(--texte-2); }
+.zone-Z1 { background: var(--zone-1); }
+.zone-Z2 { background: var(--zone-2); }
+.zone-Z3 { background: var(--zone-3); }
+.zone-Z4 { background: var(--zone-4); }
+.zone-Z5 { background: var(--zone-5); }
+.zone-Z6, .zone-Z7 { background: var(--zone-6); }
+.zone-temps { text-align: right; font-variant-numeric: tabular-nums; font-size: 14px; font-weight: 700; }
+.zone-pct { text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
 
 /* Tours et intervalles (F-13) */
-.tableau-defilant { overflow-x: auto; margin: 0 -18px; padding: 0 18px; }
-.intervalles { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
-.intervalles th { text-align: left; color: var(--texte-doux); font-weight: 600; padding: 6px 8px 8px 0; white-space: nowrap; }
-.intervalles td { padding: 8px 8px 8px 0; border-top: 1px solid var(--bordure); white-space: nowrap; }
-.intervalles tr.recup td { color: var(--texte-doux); }
+.tableau-defilant { overflow-x: auto; margin: 0 -16px; padding: 0 16px; }
+.intervalles { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.intervalles th { text-align: left; color: var(--texte-2); font-size: 12px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 8px 8px 0; white-space: nowrap; }
+.intervalles td { padding: 8px 8px 8px 0; border-top: 1px solid var(--filet); white-space: nowrap; font-weight: 600; }
+.intervalles tr.recup td { color: var(--texte-2); }
 
-/* Ajustements des cartes et du résumé (ENF-02) */
-.stats-carte { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.badge-charge {
-  margin-left: auto;
-  flex: none;
+/* ===== Tableau de bord (F-20 à F-25) ===== */
+.entete-accueil { align-items: flex-start; }
+.etiquette-section { color: var(--texte-2); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; margin: 18px 4px 8px; }
+
+/* Bloc "Aujourd'hui" (F-20) : fond = couleur du sport, texte foncé */
+.aujourdhui {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  min-width: 52px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  background: var(--surface-2);
-  font-weight: 800;
-  line-height: 1.2;
+  gap: 6px;
+  margin: 0 0 var(--espace);
+  padding: 16px;
+  border-radius: var(--rayon);
+  background: var(--couleur-sport);
+  color: var(--sur-sport);
+  text-decoration: none;
 }
-.badge-charge small { font-weight: 500; font-size: 0.7rem; color: var(--texte-doux); }
-.resume .stat-valeur { white-space: normal; font-size: 1.45rem; line-height: 1.15; }
+a.aujourdhui:active { transform: scale(0.99); }
+.aujourdhui-tete { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.aujourdhui-ligne { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.aujourdhui-titre { font-size: 44px; font-weight: 900; line-height: 0.95; letter-spacing: -0.03em; text-transform: uppercase; min-width: 0; overflow-wrap: anywhere; }
+.aujourdhui-duree { flex: none; font-size: 44px; font-weight: 900; line-height: 0.95; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.aujourdhui-detail { font-size: 15px; font-weight: 700; }
+.aujourdhui .description-seance { color: inherit; opacity: 0.85; margin-top: 2px; }
+/* Graphique de la séance du jour en une seule teinte, posé sur la couleur du sport */
+.aujourdhui .graphique-seance rect { fill: var(--sur-sport); fill-opacity: 0.85; stroke: var(--couleur-sport); }
+.aujourdhui .graphique-seance rect.barre-estimee { fill-opacity: 0.4; stroke: var(--sur-sport); }
+.bouton-sur-sport { margin-top: 8px; background: var(--sur-sport); border-color: var(--sur-sport); color: var(--couleur-sport); }
+@media (max-width: 380px) { .aujourdhui-titre, .aujourdhui-duree { font-size: 36px; } }
 
-/* ===== L2 : tableau de bord ===== */
-.actions-entete { display: flex; gap: 8px; }
-.etiquette-section { color: var(--texte-doux); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin: 18px 4px -6px; }
-.seance-du-jour + .seance-du-jour { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--bordure); }
+.seance-du-jour { color: inherit; }
 .description-seance {
   margin: 10px 0 0;
-  color: var(--texte-doux);
-  font-size: 0.9rem;
+  color: var(--texte-2);
+  font-size: 14px;
   white-space: pre-line;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -341,83 +510,111 @@ button.icone-bouton { cursor: pointer; font: inherit; font-size: 1.25rem; }
   overflow: hidden;
 }
 
-/* Forme (F-23) */
-.phrase-forme { font-size: 1.6rem; font-weight: 800; margin: 2px 0 4px; }
-.forme-frais { color: #6FD08C; }
-.forme-equilibre { color: var(--accent); }
-.forme-charge { color: #FFC266; }
-.forme-fatigue { color: var(--danger); }
+/* Forme (F-23) : TSB en grand, phrase, jauge en 4 segments avec un repère */
+.carte-forme { display: flex; flex-direction: column; gap: 10px; }
+.forme-valeur { display: flex; align-items: baseline; gap: 10px; }
+.chiffre-forme { font-size: 40px; font-weight: 900; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.phrase-forme { font-size: 16px; font-weight: 700; }
+.jauge { position: relative; height: 8px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; }
+.jauge-segment { border-radius: 2px; }
+.jauge-1 { background: var(--jauge-1); }
+.jauge-2 { background: var(--jauge-2); }
+.jauge-3 { background: var(--jauge-3); }
+.jauge-4 { background: var(--jauge-4); }
+.jauge-repere { position: absolute; top: -4px; left: 50%; width: 4px; height: 16px; margin-left: -2px; background: var(--texte); border-radius: 2px; box-shadow: 0 0 0 2px var(--carte); }
+.jauge-libelles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); font-size: 11px; font-weight: 500; color: var(--texte-2); }
 
-/* Durée du mois (F-22) */
-.comparaison { margin: 8px 0 10px; font-weight: 600; }
-.comparaison.hausse { color: #6FD08C; }
-.comparaison.baisse { color: #FFC266; }
-.courbe { width: 100%; height: 72px; display: block; overflow: visible; }
-.courbe path { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.courbe-actuelle { stroke: var(--accent); }
-.courbe-precedente { stroke: #5C6570; stroke-dasharray: 4 4; }
-.legende { display: flex; gap: 16px; font-size: 0.8rem; color: var(--texte-doux); margin-top: 6px; }
-.legende span::before { content: ""; display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
-.legende-actuelle::before { background: var(--accent); }
-.legende-precedente::before { background: #5C6570; }
+/* Tuiles Mois (F-22) et Semaine (F-25) */
+.tuiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace); margin-bottom: var(--espace); }
+.tuile { display: flex; flex-direction: column; gap: 2px; margin: 0; min-width: 0; }
+.tuile .etiquette-carte { margin-bottom: 0; }
+.chiffre-tuile { font-size: 30px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tuile-ecart { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tuile-ecart .doux { font-weight: 500; }
+.tuile-sous { font-size: 12px; font-variant-numeric: tabular-nums; }
+.courbe { width: 100%; height: 34px; display: block; margin-top: 6px; overflow: visible; }
+.courbe path { fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.courbe-actuelle { stroke: var(--texte); }
+.courbe-precedente { stroke: var(--texte-2); stroke-dasharray: 3 3; opacity: 0.7; }
+@media (max-width: 380px) { .chiffre-tuile { font-size: 24px; } }
 
-/* Semaine en cours (F-25) */
+.semaine-sports { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.semaine-sports .ligne-semaine { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 6px; margin: 0; }
+.semaine-sports .pastille { width: 22px; height: 22px; }
+.semaine-sports .pastille .icone { width: 16px; height: 16px; }
+.semaine-sports .ligne-semaine-texte { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; margin: 0; }
+
+/* Lignes par sport (Profil F-52) */
 .ligne-semaine { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
-.ligne-semaine .pastille { width: 36px; height: 36px; font-size: 1.1rem; }
 .ligne-semaine-corps { flex: 1; min-width: 0; }
-.ligne-semaine-texte { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-size: 0.95rem; }
-.barre-progression { display: block; height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
-.barre-remplie { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--couleur-sport); }
+.ligne-semaine-texte { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-size: 15px; }
+.barre-progression { display: block; height: 6px; border-radius: 2px; background: var(--carte-2); overflow: hidden; }
+.barre-remplie { display: block; height: 100%; width: 0; border-radius: 2px; background: var(--couleur-sport, var(--texte)); }
 
 /* Mini-calendrier (F-24) */
 .mini-calendrier { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; text-align: center; }
-.mini-entete { color: var(--texte-doux); font-size: 0.75rem; font-weight: 600; padding-bottom: 4px; }
-.mini-jour { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 40px; border-radius: 10px; font-size: 0.85rem; }
-.mini-jour.aujourdhui { background: var(--texte); color: var(--fond); font-weight: 800; }
+.mini-entete { color: var(--texte-2); font-size: 11px; font-weight: 800; padding-bottom: 4px; }
+.mini-jour { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 38px; border-radius: var(--rayon); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mini-jour.aujourdhui { background: var(--texte); color: var(--sur-clair); font-weight: 900; }
 .mini-points { display: flex; gap: 2px; height: 6px; margin-top: 2px; }
 .point { width: 6px; height: 6px; border-radius: 50%; background: var(--couleur-sport); }
-.mini-jour.aujourdhui .point { box-shadow: 0 0 0 1px var(--fond); }
+.mini-jour.aujourdhui .point { box-shadow: 0 0 0 1px var(--sur-clair); }
 
-/* ===== L3 : agenda ===== */
+/* Rappel du RPE (F-63) */
+.rappel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tactile);
+  margin: 0 0 var(--espace);
+  padding: 10px 14px;
+  border-radius: var(--rayon);
+  border: 1px dashed var(--filet-fort);
+  background: var(--carte);
+  color: var(--texte);
+  text-decoration: none;
+}
+.lien-fleche-ligne { margin-left: auto; color: var(--texte-2); }
 
-/* Choix de la vue */
-.onglets-vue { display: flex; gap: 4px; padding: 4px; background: var(--surface); border-radius: 999px; margin-bottom: 12px; }
+/* ===== Agenda (F-30 à F-35) ===== */
+.onglets-vue { display: flex; gap: 4px; padding: 4px; background: var(--carte); border: 1px solid var(--filet); border-radius: var(--rayon); margin-bottom: var(--espace); }
 .onglets-vue a {
   flex: 1;
-  min-height: 44px;
+  min-height: var(--tactile);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
-  color: var(--texte-doux);
+  border-radius: 4px;
+  color: var(--texte-2);
   text-decoration: none;
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
-.onglets-vue a.actif { background: var(--surface-2); color: var(--texte); }
+.onglets-vue a.actif { background: var(--texte); color: var(--sur-clair); }
 
-/* Période */
-.navigation-periode { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.navigation-periode .icone-bouton { font-size: 1.6rem; line-height: 1; }
-.libelle-periode { font-weight: 700; font-size: 1.1rem; text-align: center; }
-.libelle-periode::first-letter { text-transform: uppercase; }
-.retour-aujourdhui { margin-bottom: 8px; }
-.retour-aujourdhui .bouton { min-height: 44px; }
+.navigation-periode { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: var(--espace); }
+.libelle-periode { font-weight: 900; font-size: 18px; text-transform: uppercase; letter-spacing: -0.01em; text-align: center; }
+.retour-aujourdhui { margin-bottom: var(--espace); }
+.retour-aujourdhui .bouton { min-height: var(--tactile); }
 .totaux-agenda { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 0; }
-.totaux-agenda .stat-valeur { font-size: 1rem; }
+.totaux-agenda .stat-valeur { font-size: 17px; white-space: normal; }
 
 /* Grille du mois (F-30) : cases d'au moins 44 px (ENF-17) */
-.grille-agenda { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; text-align: center; margin: 14px 0 6px; }
+.grille-agenda { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; text-align: center; margin: 4px 0 8px; }
 .case-agenda {
   min-height: 52px;
   min-width: 0;
   padding: 4px 0;
-  border: none;
-  border-radius: 12px;
-  background: var(--surface);
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon);
+  background: var(--carte);
   color: var(--texte);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -425,127 +622,90 @@ button.icone-bouton { cursor: pointer; font: inherit; font-size: 1.25rem; }
   gap: 3px;
   cursor: pointer;
 }
-.case-agenda.vide { background: transparent; }
-.case-agenda.aujourdhui { box-shadow: inset 0 0 0 2px var(--texte); font-weight: 800; }
-.case-agenda.choisi { background: var(--texte); color: var(--fond); }
+.case-agenda.vide { background: transparent; border-color: transparent; }
+.case-agenda.aujourdhui { border: 2px solid var(--texte); font-weight: 900; }
+.case-agenda.choisi { background: var(--texte); color: var(--sur-clair); border-color: var(--texte); }
 .marques { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; min-height: 7px; max-width: 34px; }
 /* F-32 : réalisé = point plein, prévu = cercle en contour */
 .cercle { width: 7px; height: 7px; border-radius: 50%; border: 2px solid var(--couleur-sport); box-sizing: border-box; }
 .case-agenda .point { width: 7px; height: 7px; }
-.case-agenda.choisi .point, .case-agenda.choisi .cercle { box-shadow: 0 0 0 1px var(--fond); }
-.legende .legende-plein::before { background: var(--texte-doux); border-radius: 50%; width: 8px; height: 8px; }
-.legende .legende-contour::before { border: 2px solid var(--texte-doux); border-radius: 50%; width: 8px; height: 8px; box-sizing: border-box; background: transparent; }
+.case-agenda.choisi .point, .case-agenda.choisi .cercle { box-shadow: 0 0 0 1px var(--sur-clair); }
+.legende { display: flex; gap: 16px; font-size: 12px; font-weight: 600; color: var(--texte-2); margin: 6px 4px var(--espace); }
+.legende span::before { content: ""; display: inline-block; vertical-align: middle; margin-right: 6px; }
+.legende .legende-plein::before { background: var(--texte-2); border-radius: 50%; width: 8px; height: 8px; }
+.legende .legende-contour::before { border: 2px solid var(--texte-2); border-radius: 50%; width: 8px; height: 8px; box-sizing: border-box; }
 
 /* Jours (F-31, F-34) */
-.titre-jour { font-size: 1rem; margin: 22px 4px 0; }
-.titre-jour.aujourdhui { color: var(--accent); }
-.jour-agenda .carte { margin: 10px 0; }
+.titre-jour { font-size: 13px; margin: 22px 4px 8px; }
+.titre-jour.aujourdhui { color: var(--texte); text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
+.jour-agenda .titre-jour { color: var(--texte-2); }
+.jour-agenda .titre-jour.aujourdhui { color: var(--texte); }
 .jour-vide { margin: 8px 4px; }
 
-/* Séance prévue en contour (F-32) */
-.carte-prevue { background: transparent; border: 2px dashed var(--couleur-sport); }
-.pastille-contour { background: transparent; border: 2px solid var(--couleur-sport); }
+/* Séance prévue en contour (F-32) : bord pointillé à la couleur du sport, fond transparent */
+.carte-prevue { display: block; color: inherit; text-decoration: none; background: transparent; border: 2px dashed var(--couleur-sport, var(--filet-fort)); }
+.pastille-contour { color: var(--couleur-sport); }
 
-/* ===== L4 : programmation ===== */
-
-/* Bouton central "+" de la barre de navigation (9.1) */
-.navigation a.nav-programmer { flex: none; min-width: 56px; }
-.nav-plus {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--accent-texte);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.9rem;
-  font-weight: 400;
-  line-height: 1;
-}
-.navigation a.nav-programmer.actif { background: transparent; }
-
-/* Formulaire */
-.etiquette-champ { display: block; font-weight: 600; margin-bottom: 6px; }
+/* ===== Programmation (F-40 à F-47) ===== */
 .choix-sport { display: flex; flex-wrap: wrap; gap: 8px; }
-.champ textarea, .etape select, .cible select, .champ select {
-  width: 100%;
-  min-height: var(--tactile);
-  padding: 10px 14px;
-  border-radius: var(--rayon-petit);
-  border: 1px solid var(--bordure);
-  background: var(--fond);
-  color: var(--texte);
-  font: inherit;
-}
-.champ textarea { resize: vertical; }
 .deux-colonnes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .lien-action {
-  min-height: 44px;
+  min-height: var(--tactile);
   padding: 8px 0;
   border: none;
   background: none;
-  color: var(--accent);
+  color: var(--texte);
   font: inherit;
-  font-weight: 600;
+  font-weight: 800;
   cursor: pointer;
-  text-decoration: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
 }
 
 /* Bascule (simple / structurée, durée / distance) */
-.bascule { display: inline-flex; gap: 2px; padding: 3px; background: var(--surface-2); border-radius: 999px; }
+.bascule { display: inline-flex; gap: 2px; padding: 3px; background: var(--carte-2); border-radius: var(--rayon); }
 .bascule button {
   min-height: 40px;
   padding: 6px 14px;
   border: none;
-  border-radius: 999px;
+  border-radius: 4px;
   background: transparent;
-  color: var(--texte-doux);
+  color: var(--texte-2);
   font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 800;
   cursor: pointer;
 }
-.bascule button.actif { background: var(--texte); color: var(--fond); }
-.bascule.large { display: flex; margin: 14px 0 0; }
-.bascule.large button { flex: 1; min-height: 44px; }
+.bascule button.actif { background: var(--texte); color: var(--sur-clair); }
+.bascule.large { display: flex; margin: 0 0 var(--espace); background: var(--carte); border: 1px solid var(--filet); }
+.bascule.large button { flex: 1; min-height: var(--tactile); text-transform: uppercase; letter-spacing: 0.06em; }
 
 /* Blocs (F-41) */
 .bloc-tete { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.icone-bouton.petit { width: 44px; height: 44px; font-size: 1rem; }
-.cible { display: block; font-size: 0.9rem; color: var(--texte-doux); margin-bottom: 10px; }
-.cible select { margin-top: 4px; color: var(--texte); }
-.repetitions { display: block; font-size: 0.9rem; color: var(--texte-doux); margin-bottom: 10px; }
-.repetitions input, .etape input {
-  width: 100%;
-  min-height: var(--tactile);
-  margin-top: 4px;
-  padding: 10px 14px;
-  border-radius: var(--rayon-petit);
-  border: 1px solid var(--bordure);
-  background: var(--fond);
-  color: var(--texte);
-  font: inherit;
-}
-.etape { border-top: 1px solid var(--bordure); padding-top: 10px; margin-top: 10px; }
+.bloc-tete strong { font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.cible, .repetitions { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texte-2); margin-bottom: 10px; }
+.cible select, .repetitions input { margin-top: 4px; text-transform: none; letter-spacing: 0; }
+.etape { border-top: 1px solid var(--filet); padding-top: 10px; margin-top: 10px; }
 .etape-tete { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-.etape-libelle { font-weight: 600; }
+.etape-libelle { font-weight: 800; }
 .etape-champs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.etape-champs label { font-size: 0.9rem; color: var(--texte-doux); }
-.etape-champs select { margin-top: 4px; }
-.erreur-bloc { color: var(--danger); font-size: 0.9rem; }
+.etape-champs label { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texte-2); }
+.etape-champs input, .etape-champs select { margin-top: 4px; text-transform: none; letter-spacing: 0; }
+.erreur-bloc { color: var(--danger); font-size: 14px; font-weight: 700; }
 .erreur-bloc:empty { display: none; }
-.ajout-blocs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 14px 0; }
-.ajout-blocs .bouton { font-size: 0.9rem; padding: 8px 10px; }
+.ajout-blocs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 var(--espace); }
+.ajout-blocs .bouton { font-size: 14px; padding: 8px 10px; }
 .apercu {
   margin: 0;
   padding: 12px;
-  border-radius: var(--rayon-petit);
+  border-radius: var(--rayon);
   background: var(--fond);
+  border: 1px solid var(--filet);
   font-family: ui-monospace, Consolas, monospace;
-  font-size: 0.9rem;
+  font-size: 14px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -553,49 +713,49 @@ button.icone-bouton { cursor: pointer; font: inherit; font-size: 1.25rem; }
 /* Bibliothèque (F-47) */
 .liste-modeles { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; max-height: 280px; overflow-y: auto; }
 .modele {
-  min-height: 44px;
+  min-height: var(--tactile);
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border-radius: var(--rayon-petit);
-  border: 1px solid var(--bordure);
-  background: var(--surface-2);
+  border-radius: var(--rayon);
+  border: 1px solid var(--filet);
+  background: var(--fond);
   color: var(--texte);
   font: inherit;
+  font-weight: 600;
   text-align: left;
   cursor: pointer;
 }
+.modele-icone { display: flex; color: var(--couleur-sport); }
 
 /* Liens vers la programmation */
-a.carte-prevue, a.seance-du-jour { display: block; color: inherit; text-decoration: none; }
-.seance-du-jour + .bouton, .carte .bouton { margin-top: 12px; }
-.bouton-programmer { margin-top: 12px; }
+.carte .bouton, .bouton-programmer { margin-top: 12px; }
 .lien-programmer { margin: 0 4px; }
 
-/* Profil (F-50 à F-54) */
-.navigation a { min-width: 56px; }
+/* ===== Profil (F-50 à F-54) ===== */
 .profil-tete { display: flex; align-items: center; gap: 16px; }
 .avatar {
   flex: none;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--rayon);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent);
-  color: var(--accent-texte);
-  font-size: 1.6rem;
-  font-weight: 800;
+  background: var(--texte);
+  color: var(--sur-clair);
+  font-size: 28px;
+  font-weight: 900;
 }
-.profil-nom { font-size: 1.4rem !important; }
+.profil-nom { font-size: 24px !important; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase; }
+.montre { display: inline-flex; align-items: center; gap: 6px; }
 .grille-totaux { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.grille-totaux .stat-valeur { font-size: 1.5rem; font-weight: 800; }
-.petit-texte { font-size: 0.8rem; margin-top: 4px; }
-.bloc-sport + .bloc-sport { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--bordure); }
-.bloc-sport .pastille { width: 36px; height: 36px; font-size: 1.1rem; }
-.zones-sport { border-top: 1px solid var(--bordure); }
+.grille-totaux .stat-valeur { font-size: 28px; }
+.petit-texte { font-size: 12px; margin-top: 4px; }
+.bloc-sport + .bloc-sport { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--filet); }
+.bloc-sport .carte-activite-tete strong { font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.zones-sport { border-top: 1px solid var(--filet); }
 .zones-sport:first-of-type { border-top: none; }
 .zones-sport summary {
   min-height: var(--tactile);
@@ -603,114 +763,100 @@ a.carte-prevue, a.seance-du-jour { display: block; color: inherit; text-decorati
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
   list-style: none;
 }
 .zones-sport summary::-webkit-details-marker { display: none; }
-.zones-sport summary::after { content: "+"; margin-left: auto; color: var(--texte-doux); font-size: 1.2rem; }
+.zones-sport summary::after { content: "+"; margin-left: auto; color: var(--texte-2); font-size: 20px; font-weight: 800; }
 .zones-sport[open] summary::after { content: "-"; }
-.zones-sport summary .pastille { width: 32px; height: 32px; font-size: 1rem; }
 .liste-zones { list-style: none; margin: 0 0 12px; padding: 0; }
-.liste-zones li { display: flex; gap: 12px; padding: 6px 0; font-variant-numeric: tabular-nums; font-size: 0.95rem; }
-.liste-zones .zone-nom { min-width: 64px; color: var(--texte-doux); }
+.liste-zones li { display: flex; gap: 12px; padding: 6px 0; font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 600; }
+.liste-zones .zone-nom { min-width: 64px; color: var(--texte-2); }
 
-/* Ressenti et bilan du jour (F-60 à F-63) */
+/* ===== Ressenti et bilan du jour (F-60 à F-63) ===== */
 .choix-groupe { display: flex; flex-wrap: wrap; gap: 8px; }
 .choix-court { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.choix-court .filtre { padding: 8px 0; font-weight: 700; font-variant-numeric: tabular-nums; }
-.filtre[aria-checked="true"] { background: var(--texte); color: var(--fond); border-color: var(--texte); font-weight: 700; }
+.choix-court .filtre { padding: 0; font-size: 16px; font-weight: 900; font-variant-numeric: tabular-nums; }
 .choix-groupe + .aide:empty { display: none; }
-.rappel {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: var(--tactile);
-  margin: 0 0 12px;
-  padding: 10px 14px;
-  border-radius: var(--rayon-petit);
-  background: var(--alerte-fond);
-  color: var(--texte);
-  text-decoration: none;
-}
-.rappel .pastille { width: 32px; height: 32px; font-size: 1rem; flex: none; }
-.lien-fleche-ligne { margin-left: auto; color: var(--accent); font-size: 1.2rem; }
 .choix-quatre { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.choix-quatre .filtre { padding: 8px 4px; }
+.choix-quatre .filtre { padding: 4px 2px; font-size: 12px; text-align: center; }
+.choix-quatre .filtre:has(.icone) { flex-direction: column; gap: 2px; min-height: 52px; }
 
-/* Cartes de parcours (F-70, F-71) */
+/* ===== Cartes de parcours (F-70, F-71) ===== */
 .carte-parcours { padding: 0; overflow: hidden; }
-.carte-leaflet { height: 280px; width: 100%; background: var(--surface-2); }
-/* Thème sombre (ENF-15) : tuiles assombries ; le tracé et les repères gardent leurs couleurs. */
-.carte-leaflet .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.6); }
-.carte-leaflet .leaflet-control-attribution { background: rgba(14, 16, 19, 0.75); color: var(--texte-doux); }
-.carte-leaflet .leaflet-control-attribution a { color: var(--accent); }
-.carte-leaflet .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; background: var(--surface); color: var(--texte); border-bottom-color: var(--bordure); }
-.apercu-trace { display: block; height: 72px; margin-top: 12px; border-radius: 10px; background: var(--surface-2); }
+.carte-leaflet { height: 280px; width: 100%; background: var(--carte-2); }
+.carte-leaflet .leaflet-control-attribution { background: var(--carte); color: var(--texte-2); }
+.carte-leaflet .leaflet-control-attribution a { color: var(--texte); }
+.carte-leaflet .leaflet-bar { border: 1px solid var(--filet-fort); border-radius: var(--rayon); }
+.carte-leaflet .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; background: var(--carte); color: var(--texte); border-bottom-color: var(--filet); }
+/* Thème sombre : tuiles assombries ; le tracé et les repères gardent leurs couleurs. */
+@media (prefers-color-scheme: dark) {
+  .carte-leaflet .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.5); }
+}
+.apercu-trace { display: block; height: 64px; margin-top: 12px; border-radius: var(--rayon); background: var(--carte-2); }
 .apercu-trace svg { display: block; width: 100%; height: 100%; }
-.apercu-trace path { fill: none; stroke: var(--couleur-sport); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.apercu-trace path { fill: none; stroke: var(--couleur-sport); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-/* Objectif (F-80) */
-.pastille-objectif { background: var(--surface-2); }
-.carte-objectif { border-color: #E8C547; }
+/* ===== Objectif et plan (F-80 à F-87) ===== */
+.titre-icone { display: flex; align-items: center; gap: 8px; }
+.carte-objectif { border-color: var(--filet-fort); }
 .objectif-ligne { display: flex; align-items: center; gap: 12px; margin-top: 4px; padding-right: 28px; }
 .objectif-ligne .carte-activite-titre { flex: 1; }
-.compte-rebours { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: #E8C547; white-space: nowrap; }
+.compte-rebours { font-size: 30px; font-weight: 900; letter-spacing: -0.02em; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
-/* Objectif et plan (F-80 à F-87) */
-.jour-type { border-top: 1px solid var(--bordure); padding: 8px 0; }
-.jour-type-tete { display: flex; align-items: center; justify-content: space-between; }
 .seance-type { display: flex; align-items: center; gap: 10px; min-height: var(--tactile); color: inherit; text-decoration: none; }
-.seance-type .pastille, .seances-semaine .pastille { width: 30px; height: 30px; font-size: 0.95rem; flex: none; }
-.seance-type-titre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seance-type-titre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
 .liste-semaines { display: flex; flex-direction: column; }
-.semaine-plan { border-top: 1px solid var(--bordure); }
+.semaine-plan { border-top: 1px solid var(--filet); }
 .semaine-plan summary { display: flex; align-items: center; gap: 10px; min-height: var(--tactile); padding: 6px 0; cursor: pointer; list-style: none; }
 .semaine-plan summary::-webkit-details-marker { display: none; }
-.semaine-num { width: 36px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.semaine-num { width: 36px; font-weight: 900; font-variant-numeric: tabular-nums; }
 .semaine-corps { flex: 1; min-width: 0; }
-.semaine-texte { display: flex; justify-content: space-between; gap: 8px; font-size: 0.85rem; margin-bottom: 4px; }
-.barre-plan { background: var(--accent); }
-.type-coupure .barre-plan { background: #8FA3B8; }
-.type-affutage .barre-plan { background: #6FD08C; }
-.type-course .barre-plan { background: #E8C547; }
+.semaine-texte { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+/* Type de semaine : nuances neutres (la couleur est réservée aux sports), le type est écrit en toutes lettres */
+.barre-plan { background: var(--texte); }
+.type-coupure .barre-plan { background: var(--texte-2); }
+.type-affutage .barre-plan { background: repeating-linear-gradient(90deg, var(--texte) 0 6px, var(--texte-2) 6px 9px); }
+.type-course .barre-plan { background: var(--texte); }
 .semaine-plan.passee { opacity: 0.5; }
 .seances-semaine { list-style: none; margin: 0 0 10px 46px; padding: 0; }
-.seances-semaine li { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.9rem; }
-.carte-interieure { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--bordure); }
+.seances-semaine li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 4px 0; font-size: 14px; }
+.seances-semaine .pastille { width: 24px; height: 24px; }
+.seances-semaine li .graphique-seance { flex-basis: 100%; }
+.carte-interieure { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--filet); }
 .erreurs:empty { display: none; }
 
 /* Grille hebdomadaire du planificateur (F-81) */
 .grille { --colonne-heures: 34px; margin-top: 8px; }
 .grille-ligne { display: grid; grid-template-columns: var(--colonne-heures) repeat(7, minmax(0, 1fr)); gap: 2px; }
-.grille-entete span { text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--texte-doux); padding-bottom: 4px; }
-.grille-sans-heure { border-bottom: 1px solid var(--bordure); padding-bottom: 6px; margin-bottom: 4px; }
-.grille-libelle { font-size: 0.65rem; color: var(--texte-doux); line-height: 1.1; align-self: center; }
-.grille-cellule { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 44px; justify-content: center; }
+.grille-entete span { text-align: center; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texte-2); padding-bottom: 4px; }
+.grille-sans-heure { border-bottom: 1px solid var(--filet); padding-bottom: 6px; margin-bottom: 4px; }
+.grille-libelle { font-size: 10px; font-weight: 700; color: var(--texte-2); line-height: 1.1; align-self: center; }
+.grille-cellule { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: var(--tactile); justify-content: center; }
 .grille-puce, .grille-ajout {
   width: 100%;
   min-height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 4px;
   text-decoration: none;
-  color: var(--texte);
 }
-.grille-puce { background: var(--couleur-sport); }
-.grille-ajout { color: var(--texte-doux); border: 1px dashed var(--bordure); font-size: 1.1rem; min-height: 44px; }
+.grille-puce { background: var(--couleur-sport); color: var(--sur-sport); }
+.grille-ajout { color: var(--texte-2); border: 1px dashed var(--filet-fort); min-height: var(--tactile); }
 .grille-defilement { max-height: 480px; overflow-y: auto; overscroll-behavior: contain; }
 .grille-corps {
   position: relative;
   display: grid;
   grid-template-columns: var(--colonne-heures) repeat(7, minmax(0, 1fr));
   gap: 2px;
-  background-image: repeating-linear-gradient(to bottom, var(--bordure) 0 1px, transparent 1px 48px);
+  background-image: repeating-linear-gradient(to bottom, var(--filet) 0 1px, transparent 1px 48px);
 }
 .grille-heures { position: relative; }
-.grille-heures span { position: absolute; left: 0; font-size: 0.65rem; color: var(--texte-doux); transform: translateY(-1px); }
-.grille-jour { position: relative; cursor: pointer; border-radius: 6px; }
-.grille-jour:active { background: var(--surface-2); }
-.grille-bloc { position: absolute; display: block; text-decoration: none; color: #FFFFFF; }
+.grille-heures span { position: absolute; left: 0; font-size: 10px; font-weight: 700; color: var(--texte-2); transform: translateY(-1px); font-variant-numeric: tabular-nums; }
+.grille-jour { position: relative; cursor: pointer; border-radius: 4px; }
+.grille-jour:active { background: var(--carte-2); }
+.grille-bloc { position: absolute; display: block; text-decoration: none; color: var(--sur-sport); }
 .grille-bloc-visuel {
   display: flex;
   flex-direction: column;
@@ -719,24 +865,21 @@ a.carte-prevue, a.seance-du-jour { display: block; color: inherit; text-decorati
   gap: 1px;
   padding: 2px 1px;
   overflow: hidden;
-  border-radius: 6px;
-  border: 1px solid var(--fond);
+  border-radius: 4px;
+  border: 1px solid var(--carte);
   background: var(--couleur-sport);
-  font-size: 0.85rem;
 }
-.grille-bloc:focus-visible .grille-bloc-visuel { outline: 2px solid var(--accent); }
-.grille-bloc-heure { font-size: 0.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.grille-bloc:focus-visible .grille-bloc-visuel { outline: 2px solid var(--texte); }
+.grille-bloc-heure { font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 /* Graphique des séances (F-41, F-84, F-20) */
 .graphique-seance { display: block; width: 100%; height: 80px; margin: 4px 0 10px; }
 .graphique-seance.compact { height: 36px; margin: 6px 0 2px; }
-.graphique-seance rect { stroke: var(--surface); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.barre-Z1 { fill: #8FA3B8; }
-.barre-Z2 { fill: #4CC25A; }
-.barre-Z3 { fill: #E8C547; }
-.barre-Z4 { fill: #FF8A3D; }
-.barre-Z5 { fill: #FF5A4E; }
-.barre-sans-zone { fill: #5C6570; }
-.graphique-seance rect.barre-estimee { fill-opacity: 0.45; stroke: var(--texte-doux); stroke-dasharray: 3 2; }
-.seances-semaine li { flex-wrap: wrap; }
-.seances-semaine li .graphique-seance { flex-basis: 100%; }
+.graphique-seance rect { stroke: var(--carte); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.barre-Z1 { fill: var(--zone-1); }
+.barre-Z2 { fill: var(--zone-2); }
+.barre-Z3 { fill: var(--zone-3); }
+.barre-Z4 { fill: var(--zone-4); }
+.barre-Z5 { fill: var(--zone-5); }
+.barre-sans-zone { fill: var(--zone-vide); }
+.graphique-seance rect.barre-estimee { fill-opacity: 0.45; stroke: var(--texte-2); stroke-dasharray: 3 2; }

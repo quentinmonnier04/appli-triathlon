@@ -240,13 +240,13 @@ flowchart LR
 ### E. Ergonomie et design
 | ID | Exigence | Critère de vérification |
 |---|---|---|
-| ENF-15 | Design inspiré de l'appli Suunto | Thème sombre par défaut, cartes arrondies, grands chiffres, barre de navigation flottante en bas |
+| ENF-15 | Design « E », décrit dans `docs/design.md` (D-20) | Fond noir type écran de montre, police Archivo très grasse pour les chiffres, cartes discrètes, couleur réservée aux sports, barre de navigation flottante en bas |
 | ENF-16 | Mode clair disponible | Suit le réglage du téléphone, choix manuel dans Réglages |
 | ENF-17 | Utilisable d'une main | Zones cliquables ≥ 44 x 44 px ; actions principales en bas |
 | ENF-18 | Une couleur et une icône par sport | Voir 9.3 |
 | ENF-19 | Accessibilité | Contraste ≥ 4,5:1 ; une icône accompagne chaque couleur |
 | ENF-20 | Langue et formats | Français, jj/mm/aaaa, unités métriques, semaine du lundi au dimanche |
-| ENF-21 | Polices système uniquement | Aucune police téléchargée |
+| ENF-21 | Police Archivo copiée en local (`fonts/`, licence OFL) autorisée, polices système en secours | Aucune police téléchargée depuis Internet (CSP `font-src 'self'`) |
 | ENF-22 | États clairs | Chaque écran gère : chargement (squelette), vide, erreur réseau, erreur d'identifiants |
 
 ### F. Maintenabilité
@@ -255,7 +255,7 @@ flowchart LR
 | ENF-23 | Code simple et lisible | Sans framework ; couches séparées ; commentaires en français |
 | ENF-24 | Logique testée | Conversions, formatage, calculs de totaux et génération du texte de séance couverts par `node --test` |
 | ENF-25 | API isolée | Tous les appels Intervals.icu passent par `api/` ; les données reçues sont converties en objets internes (9.2) avant d'aller vers l'affichage |
-| ENF-26 | Bibliothèques autorisées | Leaflet (cartes, L7), copiée en local dans `lib/`. Aucune autre sans décision au journal |
+| ENF-26 | Bibliothèques et ressources autorisées | Leaflet (cartes, L7), copiée en local dans `lib/` ; police Archivo (D-20), copiée en local dans `fonts/`. Aucune autre sans décision au journal |
 
 ---
 
@@ -300,7 +300,8 @@ appli_triathlon/
 ├── manifest.json
 ├── sw.js                   # Service worker (cache des fichiers), VERSION
 ├── package.json            # Uniquement pour node --test
-├── css/style.css           # Thèmes sombre et clair, couleurs par sport, composants
+├── css/style.css           # Design E : thèmes sombre et clair, couleurs par sport, composants (docs/design.md)
+├── fonts/                  # Police Archivo en woff2 + licence OFL (D-20)
 ├── icons/
 ├── js/
 │   ├── app.js              # Démarrage + routeur par ancre
@@ -458,17 +459,17 @@ flowchart LR
 | Athlete | `nom`, `seuils` par sport, `zones` par sport |
 
 ### 9.3 Sports
-| Sport | Code | Couleur | Icône | Types Intervals.icu (à confirmer) |
+| Sport | Code | Couleur (sombre / clair) | Icône SVG | Types Intervals.icu (à confirmer) |
 |---|---|---|---|---|
-| Natation | NATATION | #1565C0 | 🏊 | natation piscine et eau libre |
-| Vélo | VELO | #E65100 | 🚴 | vélo route, home trainer, VTT, gravel |
-| Course | CAP | #2E7D32 | 🏃 | course route, trail, tapis |
-| Renfo | RENFO | #6A1B9A | 💪 | musculation, renforcement |
-| Enchaînement | ENCHAINEMENT | #C62828 | 🔁 | multisport, transition |
-| Repos | REPOS | #616161 | 😴 | note de repos |
-| Autre | AUTRE | #455A64 | ⭐ | tout le reste (marche, randonnée...) |
+| Natation | NATATION | #3FA7FF / #0B6BC2 | nageur et vagues | natation piscine et eau libre |
+| Vélo | VELO | #FF7A1A / #C2410C | vélo | vélo route, home trainer, VTT, gravel |
+| Course | CAP | #3DDC84 / #0B7F43 | coureur | course route, trail, tapis |
+| Renfo | RENFO | #B98CFF / #7C3AED | haltère | musculation, renforcement |
+| Enchaînement | ENCHAINEMENT | #FFD23F / #8A6A00 | flèches en boucle | multisport, transition |
+| Repos | REPOS | #A3ABB3 / #5F6870 | lune | note de repos |
+| Autre | AUTRE | #F28CC6 / #B0307A | étoile | tout le reste (marche, randonnée...) |
 
-La correspondance exacte vit dans `logique/sports.js` et est testée.
+La correspondance exacte vit dans `logique/sports.js` et est testée. Les icônes sont des SVG dessinés en local (`ui/icones.js`) ; aucun emoji (D-20, `docs/design.md`).
 
 ### 9.4 Formats d'affichage
 - Durée : `1:39:34` (h:mm:ss) au-delà d'une heure, `45:12` sinon.
@@ -533,6 +534,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | D-17 | 23/11/2026 | L7 : D-03 confirmé (tuiles OpenStreetMap). Leaflet 1.9.4 copié dans `lib/leaflet/` (empreintes SHA-256 conformes aux valeurs officielles), chargé seulement à l'ouverture d'une carte. Tracé lu par `GET /activity/{id}/map` (`latlngs`), mis en cache sans expiration (un tracé ne change pas) et allégé à 3000 points ; une coupure GPS découpe le tracé en segments. `a_gps` = `stream_types` contient `latlng` (champ ajouté au fil ; `schema_version` passe à 3). Aperçu du fil (F-71) dessiné en SVG sans tuiles, chargé quand la carte devient visible, pour limiter les requêtes. CSP : `img-src` autorise `tile.openstreetmap.org` ; les tuiles envoient l'origine en Referer (exigé par OpenStreetMap). Sur téléphone, la carte se zoome à deux doigts ; un doigt fait défiler la page. Nouveaux fichiers : `logique/carte.js`, `ui/carte.js`. |
 | D-18 | 23/11/2026 | Ajout du lot L8 (objectif, semaine type, surcharge progressive), hors CDC initial. Conception : `docs/superpowers/specs/2026-11-23-objectif-semaine-type-design.md` ; plan : `docs/superpowers/plans/2026-11-23-objectif-semaine-type.md`. Objectif = événement `RACE_A` (triathlon = type `Transition`). Semaine type = dossier `FOLDER` « Semaine type (appli triathlon) » de la bibliothèque, jour dans les étiquettes `jour-1` à `jour-7`, repos étiqueté `repos`, réglages en clair dans la description du dossier ; ces séances ne sont pas proposées comme modèles (F-47). Séances du plan créées par `POST events/bulk` avec `external_id` `plan-{objectif}-s{n}-{date}-{i}`, régénérées par `bulk-delete` à partir du lundi suivant (semaine en cours intacte). Valeurs par défaut : hausse 8 points, 3 semaines, coupure 70 %, affûtage 70 % puis 50 % de la dernière semaine de hausse, plafond proposé 1,5 fois la semaine type. Arrondis : minute (5 min au-delà d'une heure), répétitions entières, 100 m en natation, 500 m ailleurs. La date de début est enregistrée au premier envoi (numérotation stable). Nouveaux fichiers : `logique/plan.js`, `api/objectif.js`, `api/semaine-type.js`, `api/plan.js`, `ui/objectif.js` ; l'éditeur `ui/programmer.js` gère aussi les séances types. |
 | D-19 | 23/11/2026 | L8, extension (conception `docs/superpowers/specs/2026-11-23-agenda-planificateur-design.md`) : heure facultative sur toutes les séances (`start_date_local` avec l'heure, minuit = sans heure ; séance type : étiquette `heure-hh:mm`) ; un déplacement garde l'heure ; séances d'un jour du plan triées par heure. Semaine type affichée en grille de 5 h à 23 h (1 h = 48 px, bloc d'au moins 24 px, chevauchements côte à côte, ligne « Sans heure » avec un bouton + par jour), toucher une case vide crée une séance à l'heure pleine. Graphique des blocs (SVG) dans l'éditeur, l'aperçu du plan et la Séance du jour : largeur = durée, hauteur et couleur = zone, étape en distance sans allure seuil = durée estimée (allures par défaut CAP 3, VÉLO 8, NATATION 1 m/s) et barre en pointillés. Nouveaux fichiers : `logique/grille.js`, `logique/graphique-seance.js` ; `api/profil.js` fournit `lireAlluresSeuil`. |
+| D-20 | 24/11/2026 | Design E validé sur maquettes (`docs/maquettes/E-Accueil.dc.html`, `E-Activites.dc.html`) : fond noir, Archivo, cartes discrètes, couleur réservée aux sports. Système décrit dans `docs/design.md`, variables en tête de `css/style.css`. Police Archivo tirée du dépôt officiel Google Fonts, réduite (graisses 500 à 900, caractères latins) et convertie en woff2 dans `fonts/` avec sa licence OFL ; CSP `font-src 'self'`. Icônes SVG dessinées en local (`ui/icones.js`, barre de navigation dans `index.html`), plus aucun emoji ; `icone` de `logique/sports.js` devient un nom d'icône. Nouvelles couleurs de sport (enchaînement jaune, repos gris, autre rose) ; mode clair automatique selon le téléphone (`prefers-color-scheme`), contrastes vérifiés ≥ 4,5:1 ; le choix manuel dans Réglages (ENF-16) reste à faire. Accueil réordonné comme la maquette (bloc Aujourd'hui, dernière activité, forme avec jauge, tuiles Mois et Semaine, puis bilan, calendrier, objectif). Fonctions pures ajoutées pour l'affichage : `positionJauge`, `numeroSemaine`, `libelleJourCourt`, `formaterDateCourte`, `decouperUnite`, `totauxSemaine`. Aucune fonction modifiée. Numéro D-20 et non D-08 (déjà pris par le test CORS). |
 
 ---
 

@@ -28,7 +28,7 @@ test('renfo, enchaînement et autres', () => {
 
 test('chaque sport a une couleur et une icône (9.3)', () => {
   assert.deepEqual(SPORTS.map((s) => s.code), ['NATATION', 'VELO', 'CAP', 'RENFO', 'ENCHAINEMENT', 'REPOS', 'AUTRE']);
-  assert.equal(sport('VELO').couleur, '#E65100');
-  assert.equal(sport('AUTRE').icone, '⭐');
+  assert.equal(sport('VELO').couleur, '#FF7A1A');
+  assert.equal(sport('AUTRE').icone, 'autre');
   for (const s of SPORTS) assert.ok(s.couleur && s.icone && s.libelle, s.code);
 });

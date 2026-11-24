@@ -16,7 +16,8 @@ import { SPORTS, sport } from '../logique/sports.js';
 import { jourISO } from '../logique/dates.js';
 import { MESSAGES } from '../logique/messages.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
-import { message, messageErreurApi, squelette, graphiqueSeance } from './composants.js';
+import { message, messageErreurApi, squelette, graphiqueSeance, boutonIcone } from './composants.js';
+import { icone, iconeSport } from './icones.js';
 import { lireAlluresSeuil } from '../api/profil.js';
 
 // Jours de la semaine type (1 = lundi, ENF-20).
@@ -79,7 +80,7 @@ function rendreBloc(b, i) {
   }
   return `<div class="carte bloc" data-bloc="${i}">
     <div class="bloc-tete"><strong>${titre}</strong>
-      <button type="button" class="icone-bouton petit" data-retirer="${i}" aria-label="Retirer ce bloc">✕</button></div>
+      <button type="button" class="icone-bouton petit" data-retirer="${i}" aria-label="Retirer ce bloc">${icone('fermer', 18)}</button></div>
     ${cible}${corps}<div class="erreur-bloc" data-erreur="blocs.${i}"></div></div>`;
 }
 
@@ -88,7 +89,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   const id = segments[1] && segments[1] !== 'nouvelle' ? decodeURIComponent(segments[1]) : null;
   const retour = modeType ? '#/objectif' : '#/agenda';
   const titreEcran = modeType ? (id ? 'Séance type' : 'Nouvelle séance type') : (id ? 'Modifier la séance' : 'Programmer');
-  conteneur.innerHTML = `<div class="entete"><a class="icone-bouton" href="${retour}" aria-label="Retour">←</a>
+  conteneur.innerHTML = `<div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: retour })}
     <span class="titre-petit">${titreEcran}</span><span class="espace-bouton"></span></div>${squelette()}`;
   conteneur.querySelector('.entete a').addEventListener('click', (ev) => { if (history.length > 1) { ev.preventDefault(); history.back(); } });
 
@@ -112,14 +113,14 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   if (!conteneur.isConnected) return;
 
   conteneur.innerHTML = `
-    <div class="entete"><a class="icone-bouton" href="${retour}" aria-label="Retour">←</a>
+    <div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: retour })}
       <span class="titre-petit">${titreEcran}</span><span class="espace-bouton"></span></div>
     <div id="hors-ligne"></div>
     <form id="formulaire" novalidate>
       <div class="carte">
         <div class="champ"><span class="etiquette-champ">Sport</span>
           <div class="choix-sport" role="group" aria-label="Sport">
-            ${SPORTS_PROGRAMMABLES.map((c) => `<button type="button" class="filtre" data-sport="${c}"><span aria-hidden="true">${sport(c).icone}</span> ${echapperHtml(sport(c).libelle)}</button>`).join('')}
+            ${SPORTS_PROGRAMMABLES.map((c) => `<button type="button" class="filtre filtre-sport sport-${c}" data-sport="${c}">${iconeSport(c, 18)} ${echapperHtml(sport(c).libelle)}</button>`).join('')}
           </div></div>
         ${modeType
     ? `<div class="champ"><label for="jour">Jour</label><select id="jour">${JOURS.map((j, i) => `<option value="${i + 1}" ${etat.jour === i + 1 ? 'selected' : ''}>${j}</option>`).join('')}</select></div>`
@@ -193,7 +194,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
     }
     zone.innerHTML = `${bascule}
       ${etat.blocs.map(rendreBloc).join('')}
-      <div class="ajout-blocs">${TYPES_BLOC.map((t) => `<button type="button" class="bouton" data-ajouter="${t.code}">+ ${t.libelle}</button>`).join('')}</div>
+      <div class="ajout-blocs">${TYPES_BLOC.map((t) => `<button type="button" class="bouton" data-ajouter="${t.code}">${icone('plus', 18)} ${t.libelle}</button>`).join('')}</div>
       <div class="carte"><div class="etiquette-carte">Aperçu envoyé à Intervals.icu</div>
         <div id="graphique"></div>
         <pre class="apercu" id="apercu"></pre><p class="doux" id="duree-estimee"></p></div>`;
@@ -293,7 +294,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
       const autres = modeles.filter((m) => m.sport !== etat.sport);
       zone.innerHTML = modeles.length
         ? `<div class="liste-modeles">${[...liste, ...autres].map((m) => `<button type="button" class="modele" data-modele="${echapperHtml(m.id)}">
-            <span aria-hidden="true">${sport(m.sport).icone}</span><span>${echapperHtml(m.titre)}</span></button>`).join('')}</div>`
+            <span class="sport-${sport(m.sport).code} modele-icone">${iconeSport(m.sport, 18)}</span><span>${echapperHtml(m.titre)}</span></button>`).join('')}</div>`
         : '<p class="doux">Ta bibliothèque Intervals.icu est vide.</p>';
     } catch (e) {
       zone.innerHTML = messageErreurApi(e);

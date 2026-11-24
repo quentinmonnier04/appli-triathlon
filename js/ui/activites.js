@@ -7,7 +7,7 @@ import { filtrerParSport, estPerime } from '../logique/activites.js';
 import { SPORTS } from '../logique/sports.js';
 import { MESSAGES } from '../logique/messages.js';
 import { echapperHtml } from '../logique/format.js';
-import { carteActivite, bandeauHorsLigne, message, messageErreurApi, squelette } from './composants.js';
+import { carteActivite, bandeauHorsLigne, message, messageErreurApi, squelette, boutonIcone } from './composants.js';
 import { remplirApercus } from './carte.js';
 
 // Filtre choisi, conservé pendant la session.
@@ -22,12 +22,12 @@ export async function afficherActivites(conteneur) {
   let enCours = false;
 
   conteneur.innerHTML = `<div class="ecran-activites">
-    <div class="entete"><span class="titre-petit">Activités</span>
-      <button type="button" class="icone-bouton" id="rafraichir" aria-label="Rafraîchir">⟳</button></div>
+    <div class="entete"><h1 class="titre-ecran">Activités</h1>
+      ${boutonIcone('rafraichir', 'Rafraîchir', { id: 'rafraichir' })}</div>
     <div id="tirage" class="tirage" aria-hidden="true">Relâche pour rafraîchir</div>
     <div class="filtres" role="group" aria-label="Filtrer par sport">
       <button type="button" class="filtre" data-sport="">Tous</button>
-      ${SPORTS.filter((s) => s.code !== 'REPOS').map((s) => `<button type="button" class="filtre" data-sport="${s.code}"><span aria-hidden="true">${s.icone}</span> ${echapperHtml(s.libelle)}</button>`).join('')}
+      ${SPORTS.filter((s) => s.code !== 'REPOS').map((s) => `<button type="button" class="filtre" data-sport="${s.code}">${echapperHtml(s.libelle)}</button>`).join('')}
     </div>
     <div id="etat"></div>
     <section id="liste" aria-live="polite"></section>

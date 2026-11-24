@@ -11,11 +11,12 @@ import {
 import { sport } from '../logique/sports.js';
 import { ECHELLE_RPE, RESSENTIS, libelleEchelle, validerRessenti } from '../logique/ressenti.js';
 import {
-  bandeauHorsLigne, messageErreurApi, pastilleSport, stat, squelette, message, groupeChoix, brancherChoix, surveillerReseau,
+  bandeauHorsLigne, messageErreurApi, stat, squelette, message, groupeChoix, brancherChoix, surveillerReseau, boutonIcone,
 } from './composants.js';
+import { iconeSport } from './icones.js';
 import { afficherCarteParcours } from './carte.js';
 
-const enteteRetour = `<div class="entete"><a class="icone-bouton" href="#/activites" aria-label="Retour">←</a>
+const enteteRetour = `<div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: '#/activites' })}
   <span class="titre-petit">Activité</span><span class="espace-bouton"></span></div>`;
 
 // Valeur suivie de son unité, ou null si absente.
@@ -52,10 +53,10 @@ function blocIntervalles(intervalles, sportCode) {
 function rendreHaut({ activite: a }) {
   const vitesse = formaterVitesse(a.sport, a.distance_m, a.duree_s);
   return `
-    <div class="carte hero">
-      <div class="carte-activite-tete">${pastilleSport(a.sport)}
-        <div class="carte-activite-titre"><strong>${echapperHtml(a.titre)}</strong>
-          <span class="doux">${echapperHtml(sport(a.sport).libelle)} · ${echapperHtml(formaterDateHeure(a.date, a.heure))}</span></div></div>
+    <div class="carte hero sport-${sport(a.sport).code}">
+      <span class="sport-titre">${iconeSport(a.sport)}<span class="sport-titre-texte">${echapperHtml(sport(a.sport).libelle)}</span></span>
+      <h1 class="titre-activite">${echapperHtml(a.titre)}</h1>
+      <span class="doux">${echapperHtml(formaterDateHeure(a.date, a.heure))}</span>
       <div class="resume">
         ${stat('Durée', formaterDuree(a.duree_s))}
         ${stat('Distance', formaterDistance(a.distance_m, a.sport))}

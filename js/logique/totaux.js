@@ -70,3 +70,11 @@ export function volumeSemaine(prevues, activites, lundi) {
       realise_s: r.filter((e) => e.sport === code).reduce((t, e) => t + (e.duree_s ?? 0), 0),
     }));
 }
+
+// Total de la semaine, tous sports confondus (tuile Semaine du design E, F-25) : { realise_s, prevu_s }.
+export function totauxSemaine(lignes) {
+  return {
+    realise_s: lignes.reduce((t, l) => t + (l.realise_s ?? 0), 0),
+    prevu_s: lignes.reduce((t, l) => t + (l.prevu_s ?? 0), 0),
+  };
+}
