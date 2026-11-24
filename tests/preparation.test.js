@@ -1,9 +1,12 @@
-// Semaine type dans la bibliothèque Intervals.icu et envoi du plan (F-81, F-85, F-86, F-87, ENF-24)
+// Préparation (Mes séances et blocs) dans la bibliothèque Intervals.icu et envoi du plan (F-81, F-85 à F-88, F-47, ENF-24)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  NOM_DOSSIER, reglagesVersTexte, texteVersReglages, versSeanceBibliotheque, convertirSeanceType,
-} from '../js/api/semaine-type.js';
+  NOM_DOSSIER, ANCIEN_NOM, ENTETE_PREPARATION, reglagesVersTexte, texteVersReglages, versSeanceBibliotheque,
+  convertirSeanceBibliotheque as convertirSeanceType, preparationVersTexte, texteVersPreparation, corpsDossier,
+} from '../js/api/preparation.js';
+import { REGLAGES_PAR_DEFAUT as REGLAGES_NOUVEAUX } from '../js/logique/plan.js';
+import { ajouterBloc } from '../js/logique/blocs.js';
 import { seancesASupprimer, versEvenementPlan, TAILLE_LOT, etiquettesConservees } from '../js/api/plan.js';
 import { estModeleAffichable } from '../js/api/bibliotheque.js';
 import { REGLAGES_ANCIENS_PAR_DEFAUT as REGLAGES_PAR_DEFAUT } from '../js/logique/plan.js';
@@ -27,29 +30,73 @@ const structuree = { jour: 2, heure: null, sport: 'CAP', titre: 'Fractionné', d
 test('séance type structurée -> séance de bibliothèque et retour', () => {
   const w = versSeanceBibliotheque(structuree, 42);
   assert.deepEqual(w, {
-    name: 'Fractionné', type: 'Run', folder_id: 42, tags: ['semaine-type', 'jour-2'],
+    name: 'Fractionné', type: 'Run', folder_id: 42, tags: ['semaine-type'],
     description: 'Échauffement\n- 15m Z2 Pace\n\nSérie 5x\n- 4m Z4 Pace\n- Récup 2m Z1 Pace',
   });
-  assert.deepEqual(convertirSeanceType({ id: 7, ...w }), { id: '7', ...structuree });
+  assert.deepEqual(convertirSeanceType({ id: 7, ...w }), { id: '7', ...structuree, jour: 1 });
+  // ancien format : jour et heure lus dans les étiquettes (migration)
+  assert.deepEqual(convertirSeanceType({ id: 7, ...w, tags: ['semaine-type', 'jour-2', 'heure-18:30'] }), { id: '7', ...structuree, heure: '18:30' });
 });
 
 test('séance type simple et repos -> bibliothèque et retour', () => {
   const simple = { jour: 7, heure: null, sport: 'VELO', titre: 'Sortie longue', duree_s: 7200, distance_m: 60000, description: 'Tranquille', blocs: null };
   const w = versSeanceBibliotheque(simple, 42);
-  assert.deepEqual(w, { name: 'Sortie longue', type: 'Ride', folder_id: 42, tags: ['semaine-type', 'jour-7'], description: 'Tranquille', moving_time: 7200, distance: 60000 });
-  assert.deepEqual(convertirSeanceType({ id: 8, ...w }), { id: '8', ...simple });
+  assert.deepEqual(w, { name: 'Sortie longue', type: 'Ride', folder_id: 42, tags: ['semaine-type'], description: 'Tranquille', moving_time: 7200, distance: 60000 });
+  assert.deepEqual(convertirSeanceType({ id: 8, ...w }), { id: '8', ...simple, jour: 1 });
   const repos = { jour: 1, heure: null, sport: 'REPOS', titre: 'Repos', duree_s: null, distance_m: null, description: '', blocs: null };
   const wr = versSeanceBibliotheque(repos, 42);
-  assert.deepEqual(wr.tags, ['semaine-type', 'jour-1', 'repos']);
+  assert.deepEqual(wr.tags, ['semaine-type', 'repos']);
   assert.equal(wr.type, 'Other');
   assert.deepEqual(convertirSeanceType({ id: 9, ...wr }), { id: '9', ...repos });
 });
 
-test('les séances de la semaine type ne sont pas proposées comme modèles (F-47)', () => {
-  assert.equal(estModeleAffichable({ tags: ['semaine-type', 'jour-1'] }), false);
+test('Mes séances sont proposées comme modèles, sauf les repos (F-47, conception 6)', () => {
+  assert.equal(estModeleAffichable({ tags: ['semaine-type', 'jour-1'] }), true);
+  assert.equal(estModeleAffichable({ tags: ['semaine-type', 'repos'] }), false);
   assert.equal(estModeleAffichable({ tags: ['seuil'] }), true);
   assert.equal(estModeleAffichable({}), true);
-  assert.equal(NOM_DOSSIER, 'Semaine type (appli triathlon)');
+  assert.equal(NOM_DOSSIER, 'Mes séances (appli triathlon)');
+  assert.equal(ANCIEN_NOM, 'Semaine type (appli triathlon)');
+});
+
+const BLOCS = [
+  { nom: 'Endurance', semaines: 4, emplacements: [{ seanceId: '7', jour: 2, heure: '18:30' }, { seanceId: '8', jour: 7, heure: null }] },
+  { nom: 'Spécifique', semaines: 3, coupure: true, emplacements: [] },
+];
+const REG = { hausse: 10, coupure: 60, affutage: [70], plafond_h: 7.5 };
+
+test('préparation <-> description du dossier (F-88)', () => {
+  const texte = preparationVersTexte({ reglages: REG, blocs: BLOCS });
+  assert.ok(texte.startsWith(`${ENTETE_PREPARATION}
+{`));
+  assert.deepEqual(texteVersPreparation(texte), { reglages: REG, blocs: BLOCS });
+  // champ inconnu ignoré, réglage absent remplacé par sa valeur par défaut
+  const json = JSON.parse(texte.slice(texte.indexOf('{')));
+  const enrichi = `${ENTETE_PREPARATION}
+${JSON.stringify({ ...json, inconnu: 1, reglages: { hausse: 5 } })}`;
+  assert.deepEqual(texteVersPreparation(enrichi).reglages, { ...REGLAGES_NOUVEAUX, hausse: 5 });
+});
+
+test('ancien format reconnu, y compris description vide', () => {
+  const ancien = "Réglages du plan (gérés par l'appli) : hausse 8 ; semaines 3 ; coupure 70 ; affûtage 70/50 ; plafond aucun ; début aucun";
+  assert.deepEqual(texteVersPreparation(ancien), { ancien: texteVersReglages(ancien) });
+  assert.deepEqual(texteVersPreparation(''), { ancien: REGLAGES_PAR_DEFAUT });
+  assert.deepEqual(texteVersPreparation(null), { ancien: REGLAGES_PAR_DEFAUT });
+});
+
+test('revue 3 : description illisible, aucune écriture possible', () => {
+  assert.deepEqual(texteVersPreparation(`${ENTETE_PREPARATION}
+{"v":2,"blocs":[`), { illisible: true });
+  assert.deepEqual(texteVersPreparation(`${ENTETE_PREPARATION}
+{"v":3,"blocs":[]}`), { illisible: true });
+  assert.throws(() => corpsDossier({ illisible: true }, (p) => p), (e) => e.type === 'ILLISIBLE');
+});
+
+test("revue 4 : la modification s'applique à la préparation relue (changements d'un autre appareil gardés)", () => {
+  const relue = { dossierId: 42, seances: [], reglages: REG, blocs: BLOCS, ancienFormat: null, illisible: false };
+  const corps = corpsDossier(relue, (p) => ({ reglages: p.reglages, blocs: ajouterBloc(p.blocs, 'Affûtage long') }));
+  assert.equal(corps.name, NOM_DOSSIER);
+  assert.deepEqual(texteVersPreparation(corps.description).blocs.map((b) => b.nom), ['Endurance', 'Spécifique', 'Affûtage long']);
 });
 
 test('sélection des séances à supprimer : préfixe du plan, à partir de la date', () => {
@@ -72,7 +119,7 @@ test('séance du plan -> événement avec son étiquette', () => {
   assert.equal(TAILLE_LOT, 50);
 });
 
-test("réglages : le début garde l'identifiant de son objectif (revue I-4)", () => {
+test("ancien format : le début garde l'identifiant de son objectif (revue I-4)", () => {
   const r = { hausse: 8, semainesHausse: 3, coupure: 70, affutage: [70, 50], plafond_h: null, debut: '2026-11-30', objectifDebut: '123' };
   assert.match(reglagesVersTexte(r), /début 2026-11-30 \(objectif 123\)$/);
   assert.deepEqual(texteVersReglages(reglagesVersTexte(r)), r);

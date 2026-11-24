@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { versEvenement, convertirSeancePrevue, corpsDeplacement } from '../js/api/evenements.js';
-import { versSeanceBibliotheque, convertirSeanceType } from '../js/api/semaine-type.js';
+import { versSeanceBibliotheque, convertirSeanceBibliotheque } from '../js/api/preparation.js';
 import { genererPlan, REGLAGES_PAR_DEFAUT } from '../js/logique/plan.js';
 import { validerSeance } from '../js/logique/seance.js';
 
@@ -28,16 +28,13 @@ test('corps de déplacement avec heure (F-44)', () => {
   assert.deepEqual(corpsDeplacement('2026-11-27', null), { start_date_local: '2026-11-27T00:00:00' });
 });
 
-test('séance type : heure dans les étiquettes, aller-retour', () => {
+test("ancien format : heure lue dans les étiquettes (migration) ; plus écrite sur la séance (F-88)", () => {
   const s = { jour: 2, heure: '18:30', sport: 'VELO', titre: 'Home trainer', duree_s: 3600, distance_m: null, description: '', blocs: null };
   const w = versSeanceBibliotheque(s, 42);
-  assert.deepEqual(w.tags, ['semaine-type', 'jour-2', 'heure-18:30']);
-  assert.deepEqual(convertirSeanceType({ id: 1, ...w }), { id: '1', ...s, description: null });
-  const sansHeure = versSeanceBibliotheque({ ...s, heure: null }, 42);
-  assert.deepEqual(sansHeure.tags, ['semaine-type', 'jour-2']);
-  assert.equal(convertirSeanceType({ id: 2, ...sansHeure }).heure, null);
-  const repos = versSeanceBibliotheque({ jour: 1, heure: null, sport: 'REPOS', titre: 'Repos', description: '' }, 42);
-  assert.equal(convertirSeanceType({ id: 3, ...repos }).heure, null);
+  assert.deepEqual(w.tags, ['semaine-type']);
+  assert.deepEqual(convertirSeanceBibliotheque({ id: 1, ...w, tags: ['semaine-type', 'jour-2', 'heure-18:30'] }), { id: '1', ...s, description: null });
+  assert.equal(convertirSeanceBibliotheque({ id: 2, ...w, tags: ['semaine-type', 'jour-2'] }).heure, null);
+  assert.equal(convertirSeanceBibliotheque({ id: 3, ...w, tags: ['semaine-type', 'heure-25:00'] }).heure, null);
 });
 
 test("plan : séances d'un jour triées par heure, heure recopiée", () => {

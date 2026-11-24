@@ -3,7 +3,10 @@
 // Écriture en ligne seulement (ENF-07). Route : #/objectif
 
 import { lireObjectif, enregistrerObjectif, supprimerObjectif, SPORTS_OBJECTIF } from '../api/objectif.js';
-import { lireSemaineType, enregistrerReglages } from '../api/semaine-type.js';
+import { lirePreparation as lireSemaineType, modifierPreparation } from '../api/preparation.js';
+
+// Transitoire (tâche 4 du plan 2026-11-24) : l'écran est refait à la tâche 6.
+const enregistrerReglages = (reglages) => modifierPreparation((p) => ({ reglages, blocs: p.blocs ?? [] }));
 import { envoyerPlan, supprimerPlan } from '../api/plan.js';
 import { lireAlluresSeuil } from '../api/profil.js';
 import {

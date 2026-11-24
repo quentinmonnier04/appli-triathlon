@@ -7,7 +7,9 @@
 
 import { lireSeance, creerSeance, modifierSeance, deplacerSeance, supprimerSeance } from '../api/evenements.js';
 import { listerModeles } from '../api/bibliotheque.js';
-import { lireSeanceType, enregistrerSeanceType, supprimerSeanceType } from '../api/semaine-type.js';
+import {
+  lireSeanceBibliotheque as lireSeanceType, enregistrerSeanceBibliotheque as enregistrerSeanceType, supprimerSeanceBibliotheque as supprimerSeanceType,
+} from '../api/preparation.js';
 import {
   TYPES_BLOC, CIBLES, cibleParDefaut, blocsVersTexte, dureeTotaleBlocs, validerSeance, modeleParDefaut,
   lireDureeSaisie, lireDureeEtape, formaterDureeSaisie, formaterDureeEtape,

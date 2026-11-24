@@ -24,9 +24,10 @@ export function convertirModele(brut) {
   };
 }
 
-// Les séances de la semaine type (L8, étiquette "semaine-type") ne sont pas proposées comme modèles.
+// Modèles proposés (F-47) : toutes les séances de la bibliothèque, y compris Mes séances (conception 2026-11-24,
+// section 6), sauf les repos.
 export function estModeleAffichable(brut) {
-  return !(brut.tags ?? []).includes('semaine-type');
+  return !(brut.tags ?? []).includes('repos');
 }
 
 // Modèles de la bibliothèque, depuis le cache s'il a moins de 5 min (ENF-11).
