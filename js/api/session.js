@@ -3,6 +3,7 @@
 
 import { initialiserStockage, lireReglages, ecrireReglages, toutEffacer, viderCache } from '../cache/stockage.js';
 import { testerConnexion, memoriserAthlete } from './athlete.js';
+import { normaliserTheme } from '../logique/theme.js';
 
 // Prépare le stockage au démarrage (4.2).
 export async function demarrerSession() {
@@ -31,6 +32,16 @@ export async function lireMontre() {
 
 export async function enregistrerMontre(texte) {
   await ecrireReglages({ montre: String(texte ?? '').trim() || MONTRE_PAR_DEFAUT });
+}
+
+// Thème d'affichage (ENF-16) : "auto", "clair" ou "sombre", stocké sur l'appareil (4.2).
+export async function lireTheme() {
+  const { theme } = await lireReglages();
+  return normaliserTheme(theme);
+}
+
+export async function enregistrerTheme(theme) {
+  await ecrireReglages({ theme: normaliserTheme(theme) });
 }
 
 // "Tester la connexion" (F-01, F-02) : une clé vide reprend la clé déjà enregistrée.

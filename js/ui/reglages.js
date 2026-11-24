@@ -1,9 +1,12 @@
-// Écran E-07 "Réglages" : identifiants Intervals.icu, test de connexion, déconnexion (F-01, F-02, F-03).
+// Écran E-07 "Réglages" : identifiants Intervals.icu, test de connexion, déconnexion (F-01, F-02, F-03), thème (ENF-16).
 // La clé est saisie masquée et n'est jamais réaffichée (ENF-13).
 
 import {
   lireIdentifiantsAffichables, connecter, seDeconnecter, estConnecte, lireMontre, enregistrerMontre,
+  lireTheme, enregistrerTheme,
 } from '../api/session.js';
+import { THEMES } from '../logique/theme.js';
+import { appliquerTheme } from './theme.js';
 import { validerIdentifiants } from '../logique/connexion.js';
 import { MESSAGES, formaterMessage } from '../logique/messages.js';
 import { echapperHtml } from '../logique/format.js';
@@ -14,6 +17,7 @@ export async function afficherReglages(conteneur) {
   const { athleteId, cleEnregistree } = await lireIdentifiantsAffichables();
   const connecte = await estConnecte();
   const montre = await lireMontre();
+  const theme = await lireTheme();
 
   conteneur.innerHTML = `
     <div class="entete"><h1 class="titre-ecran">Réglages</h1>
@@ -40,6 +44,11 @@ export async function afficherReglages(conteneur) {
         <input id="montre" maxlength="40" value="${echapperHtml(montre)}"></div>
       <button type="submit" class="bouton">Enregistrer</button>
       <div id="resultat-montre" aria-live="polite"></div></form>` : ''}
+    <div class="carte"><h2 id="titre-theme">Thème</h2>
+      <div class="bascule large" role="group" aria-labelledby="titre-theme">
+        ${THEMES.map((t) => `<button type="button" data-theme-choix="${echapperHtml(t.valeur)}"${t.valeur === theme ? ' class="actif" aria-pressed="true"' : ' aria-pressed="false"'}>${echapperHtml(t.libelle)}</button>`).join('')}
+      </div>
+      <p class="doux">Automatique suit le réglage du téléphone.</p></div>
     ${connecte ? `<div class="carte"><h2>Compte</h2>
       <p class="doux">Efface la clé et les données en cache de cet appareil.</p>
       <button type="button" class="bouton danger" id="deconnecter">Se déconnecter</button></div>` : ''}
@@ -103,10 +112,23 @@ export async function afficherReglages(conteneur) {
     conteneur.querySelector('#resultat-montre').innerHTML = message('succes', 'Montre enregistrée.');
   });
 
+  // ENF-16 : thème appliqué tout de suite et enregistré sur l'appareil.
+  conteneur.querySelectorAll('[data-theme-choix]').forEach((b) => b.addEventListener('click', async () => {
+    const choix = b.dataset.themeChoix;
+    appliquerTheme(choix);
+    conteneur.querySelectorAll('[data-theme-choix]').forEach((x) => {
+      const actif = x === b;
+      x.classList.toggle('actif', actif);
+      x.setAttribute('aria-pressed', String(actif));
+    });
+    await enregistrerTheme(choix);
+  }));
+
   // F-03 : "Se déconnecter" après confirmation M-06, puis retour à l'écran de bienvenue.
   conteneur.querySelector('#deconnecter')?.addEventListener('click', async () => {
     if (!confirm(MESSAGES['M-06'])) return;
     await seDeconnecter();
+    appliquerTheme('auto'); // les réglages de l'appareil sont effacés, thème compris
     document.dispatchEvent(new CustomEvent('connexion-changee'));
     location.hash = '#/bienvenue';
   });

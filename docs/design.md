@@ -136,4 +136,4 @@ Carte transparente avec un bord pointillé de 2 px à la couleur du sport ; le r
 ## 7. Thèmes (ENF-16)
 
 - Sombre par défaut. Le mode clair s'applique quand le téléphone est en mode clair (`prefers-color-scheme: light`) : mêmes règles, couleurs du tableau 2.
-- Le choix manuel dans Réglages (prévu par ENF-16) n'est pas encore codé.
+- Choix manuel dans Réglages (D-23) : Automatique, Clair ou Sombre. Le choix pose `data-theme="clair"` ou `"sombre"` sur `<html>` ; les jetons clairs sont définis à la fois sous la media query (sauf `data-theme="sombre"`) et sous `:root[data-theme="clair"]`. Toute nouvelle règle propre à un thème doit couvrir les deux cas.

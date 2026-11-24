@@ -57,9 +57,10 @@
   --nav-bas: 22px;
 }
 
-/* --- Thème clair (ENF-16) : mêmes règles, contrastes vérifiés >= 4,5:1 sur fond et cartes --- */
+/* --- Thème clair (ENF-16) : mêmes règles, contrastes vérifiés >= 4,5:1 sur fond et cartes.
+   Automatique : suit le téléphone, sauf choix "Sombre" dans Réglages (data-theme="sombre" sur <html>). --- */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="sombre"]) {
     color-scheme: light;
     --fond: #F4F5F6;
     --carte: #FFFFFF;
@@ -90,6 +91,38 @@
     --zone-6: #A93BE0;
     --zone-vide: #A3ABB3;
   }
+}
+/* Choix manuel "Clair" dans Réglages : mêmes valeurs que ci-dessus. */
+:root[data-theme="clair"] {
+  color-scheme: light;
+  --fond: #F4F5F6;
+  --carte: #FFFFFF;
+  --carte-2: #EEF0F2;
+  --filet: #E1E4E7;
+  --filet-fort: #CDD2D7;
+  --texte: #0A0B0C;
+  --texte-2: #5B6168;
+  --sur-clair: #FFFFFF;
+  --sur-sport: #FFFFFF;
+  --danger: #C62828;
+  --sport-cap: #0B7F43;
+  --sport-velo: #C2410C;
+  --sport-natation: #0B6BC2;
+  --sport-renfo: #7C3AED;
+  --sport-enchainement: #8A6A00;
+  --sport-repos: #5F6870;
+  --sport-autre: #B0307A;
+  --jauge-1: #F0C4C4;
+  --jauge-2: #EBDAB0;
+  --jauge-3: #C9E2BC;
+  --jauge-4: #BBD6EA;
+  --zone-1: #7A8EA3;
+  --zone-2: #3DA84A;
+  --zone-3: #D4AE1E;
+  --zone-4: #F07A2A;
+  --zone-5: #E5483C;
+  --zone-6: #A93BE0;
+  --zone-vide: #A3ABB3;
 }
 
 /* Couleur de chaque sport (9.3, ENF-18) : une classe sport-XXX pose --couleur-sport. */
@@ -791,8 +824,9 @@ a.aujourdhui:active { transform: scale(0.99); }
 .carte-leaflet .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; background: var(--carte); color: var(--texte); border-bottom-color: var(--filet); }
 /* Thème sombre : tuiles assombries ; le tracé et les repères gardent leurs couleurs. */
 @media (prefers-color-scheme: dark) {
-  .carte-leaflet .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.5); }
+  :root:not([data-theme="clair"]) .carte-leaflet .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.5); }
 }
+:root[data-theme="sombre"] .carte-leaflet .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.5); }
 .apercu-trace { display: block; height: 64px; margin-top: 12px; border-radius: var(--rayon); background: var(--carte-2); }
 .apercu-trace svg { display: block; width: 100%; height: 100%; }
 .apercu-trace path { fill: none; stroke: var(--couleur-sport); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

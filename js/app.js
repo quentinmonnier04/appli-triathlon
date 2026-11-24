@@ -1,6 +1,7 @@
 // Démarrage de l'application et routeur par ancre (5.2, 9.1).
 
-import { demarrerSession, estConnecte } from './api/session.js';
+import { demarrerSession, estConnecte, lireTheme } from './api/session.js';
+import { appliquerTheme } from './ui/theme.js';
 import { afficherBienvenue } from './ui/bienvenue.js';
 import { afficherAccueil } from './ui/accueil.js';
 import { afficherReglages } from './ui/reglages.js';
@@ -98,6 +99,7 @@ async function demarrer() {
   }
   enregistrerServiceWorker();
   await demarrerSession();
+  appliquerTheme(await lireTheme()); // ENF-16 : choix manuel enregistré dans Réglages
   window.addEventListener('hashchange', afficherRoute);
   // Connexion ou déconnexion depuis Réglages : mise à jour de la barre de navigation.
   document.addEventListener('connexion-changee', async () => {
