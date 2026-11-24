@@ -12,7 +12,7 @@ import { requeteAuthentifiee } from './client.js';
 import { lireCache, ecrireCache, supprimerCachePrefixe } from '../cache/stockage.js';
 import { sportDepuisType, sport } from '../logique/sports.js';
 import { blocsVersTexte, texteVersBlocs, sportVersType } from '../logique/seance.js';
-import { REGLAGES_PAR_DEFAUT } from '../logique/plan.js';
+import { REGLAGES_ANCIENS_PAR_DEFAUT as REGLAGES_PAR_DEFAUT } from '../logique/plan.js';
 import { estPerime } from '../logique/activites.js';
 
 export const NOM_DOSSIER = 'Semaine type (appli triathlon)';

@@ -74,3 +74,73 @@ export function genererPlanBlocs({ seances, blocs, reglages, dateCourse, allures
     return { ...c, nomBloc, lundi, seances: liste, volume_s: volumeSemaine_s(liste, allures) };
   });
 }
+
+// --- Édition des blocs (F-88) : chaque fonction renvoie une nouvelle liste, l'entrée n'est pas modifiée ---
+
+const copier = (blocs) => structuredClone(blocs);
+
+export function ajouterBloc(blocs, nom) {
+  return [...copier(blocs), { nom, semaines: 4, emplacements: [] }];
+}
+
+// Copie placée juste après, mêmes séances : point de départ du bloc suivant (conception 5.2). La coupure forcée
+// par la migration n'est pas recopiée.
+export function dupliquerBloc(blocs, index) {
+  const resultat = copier(blocs);
+  const { coupure, ...modele } = structuredClone(blocs[index]);
+  resultat.splice(index + 1, 0, { ...modele, nom: `${modele.nom} (copie)` });
+  return resultat;
+}
+
+export function supprimerBloc(blocs, index) {
+  return copier(blocs).filter((_, i) => i !== index);
+}
+
+export function modifierBloc(blocs, index, { nom, semaines }) {
+  const resultat = copier(blocs);
+  resultat[index] = { ...resultat[index], nom, semaines };
+  return resultat;
+}
+
+export function ajouterEmplacement(blocs, index, emplacement) {
+  const resultat = copier(blocs);
+  resultat[index].emplacements.push({ seanceId: String(emplacement.seanceId), jour: emplacement.jour, heure: emplacement.heure ?? null });
+  return resultat;
+}
+
+export function modifierEmplacement(blocs, index, n, { jour, heure }) {
+  const resultat = copier(blocs);
+  resultat[index].emplacements[n] = { ...resultat[index].emplacements[n], jour, heure: heure ?? null };
+  return resultat;
+}
+
+export function retirerEmplacement(blocs, index, n) {
+  const resultat = copier(blocs);
+  resultat[index].emplacements.splice(n, 1);
+  return resultat;
+}
+
+// Une séance supprimée de la bibliothèque disparaît de tous les blocs (conception 5.1).
+export function retirerSeanceDesBlocs(blocs, seanceId) {
+  return copier(blocs).map((b) => ({ ...b, emplacements: b.emplacements.filter((e) => String(e.seanceId) !== String(seanceId)) }));
+}
+
+// Nombre de blocs qui utilisent la séance (une séance placée deux fois dans un bloc compte une fois).
+export function utilisationsSeance(blocs, seanceId) {
+  return blocs.filter((b) => (b.emplacements ?? []).some((e) => String(e.seanceId) === String(seanceId))).length;
+}
+
+// Contrôle des blocs (F-88) : { champ: message } ; vide si tout est correct.
+export function validerBlocs(blocs) {
+  if (!blocs.length) return { blocs: 'Ajoute au moins un bloc.' };
+  const erreurs = {};
+  blocs.forEach((b, i) => {
+    const nom = String(b.nom ?? '').trim();
+    if (!nom || nom.length > 40) erreurs[`blocs.${i}.nom`] = 'Nom du bloc : de 1 à 40 caractères.';
+    if (!Number.isInteger(b.semaines) || b.semaines < 1 || b.semaines > 20) erreurs[`blocs.${i}.semaines`] = 'Durée du bloc : de 1 à 20 semaines.';
+    const valide = (e) => Number.isInteger(e.jour) && e.jour >= 1 && e.jour <= 7
+      && (e.heure === null || e.heure === undefined || /^([01]\d|2[0-3]):[0-5]\d$/.test(e.heure));
+    if (!(b.emplacements ?? []).every(valide)) erreurs[`blocs.${i}.emplacements`] = 'Jour ou heure invalide dans le bloc.';
+  });
+  return erreurs;
+}

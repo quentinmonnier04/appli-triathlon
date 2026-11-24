@@ -1,7 +1,11 @@
 // Préparation par blocs (F-83, F-84, F-88, ENF-24) : calcul du plan, édition des blocs, migration.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { coefficientsBlocs, debutDesBlocs, grilleDuBloc, blocsVides, genererPlanBlocs } from '../js/logique/blocs.js';
+import {
+  coefficientsBlocs, debutDesBlocs, grilleDuBloc, blocsVides, genererPlanBlocs,
+  ajouterBloc, dupliquerBloc, supprimerBloc, modifierBloc, ajouterEmplacement, modifierEmplacement, retirerEmplacement,
+  retirerSeanceDesBlocs, utilisationsSeance, validerBlocs,
+} from '../js/logique/blocs.js';
 import { genererPlan } from '../js/logique/plan.js';
 
 const R = { hausse: 8, coupure: 70, affutage: [70, 50], plafond_h: null };
@@ -80,4 +84,54 @@ test("non-régression : un bloc unique de la même grille donne le même plan qu
   const resume = (plan) => plan.map((s) => [s.lundi, s.pct, s.type, s.seances.map((x) => [x.external_id, x.titre, x.date, x.heure, x.duree_s, JSON.stringify(x.blocs)])]);
   assert.equal(ancien.length, 12);
   assert.deepEqual(resume(nouveau), resume(ancien));
+});
+
+// --- Édition des blocs (F-88) ---
+
+const deuxBlocs = () => [
+  { nom: 'Endurance', semaines: 4, emplacements: [place('a', 1), place('v', 6, '09:00')] },
+  { nom: 'Spécifique', semaines: 3, emplacements: [place('a', 2), place('a', 4, '18:30')] },
+];
+
+test("édition des blocs : ajouter, dupliquer, supprimer, modifier, sans toucher à l'entrée", () => {
+  const avant = deuxBlocs();
+  const copie = structuredClone(avant);
+  assert.deepEqual(ajouterBloc(avant, 'Affûtage long').at(-1), { nom: 'Affûtage long', semaines: 4, emplacements: [] });
+  const d = dupliquerBloc(avant, 0);
+  assert.deepEqual(d.map((b) => b.nom), ['Endurance', 'Endurance (copie)', 'Spécifique']);
+  assert.deepEqual(d[1].emplacements, avant[0].emplacements);
+  assert.notEqual(d[1].emplacements, avant[0].emplacements); // copie, pas la même liste
+  assert.equal('coupure' in dupliquerBloc([{ ...avant[0], coupure: true }], 0)[1], false);
+  assert.deepEqual(supprimerBloc(avant, 0).map((b) => b.nom), ['Spécifique']);
+  assert.deepEqual(modifierBloc(avant, 1, { nom: 'Seuil', semaines: 5 })[1], { ...avant[1], nom: 'Seuil', semaines: 5 });
+  assert.deepEqual(avant, copie);
+});
+
+test('édition des emplacements', () => {
+  const avant = deuxBlocs();
+  const copie = structuredClone(avant);
+  assert.deepEqual(ajouterEmplacement(avant, 1, place('v', 6, '08:00'))[1].emplacements.at(-1), place('v', 6, '08:00'));
+  assert.deepEqual(modifierEmplacement(avant, 1, 1, { jour: 5, heure: null })[1].emplacements[1], place('a', 5, null));
+  assert.deepEqual(retirerEmplacement(avant, 0, 0)[0].emplacements, [place('v', 6, '09:00')]);
+  assert.deepEqual(avant, copie);
+});
+
+test("revue 1 : retirer une séance de tous les blocs, compter les blocs qui l'utilisent", () => {
+  const blocs = deuxBlocs();
+  assert.equal(utilisationsSeance(blocs, 'a'), 2); // deux fois dans le bloc 2 = un bloc
+  assert.equal(utilisationsSeance(blocs, 'v'), 1);
+  assert.equal(utilisationsSeance(blocs, 'x'), 0);
+  const sans = retirerSeanceDesBlocs(blocs, 'a');
+  assert.deepEqual(sans.map((b) => b.emplacements), [[place('v', 6, '09:00')], []]);
+  assert.equal(utilisationsSeance(blocs, 'a'), 2);
+});
+
+test('validation des blocs', () => {
+  assert.deepEqual(validerBlocs(deuxBlocs()), {});
+  assert.deepEqual(validerBlocs([]), { blocs: 'Ajoute au moins un bloc.' });
+  const e = validerBlocs([{ nom: ' ', semaines: 0, emplacements: [] }, { nom: 'x'.repeat(41), semaines: 21, emplacements: [] }]);
+  assert.deepEqual(Object.keys(e).sort(), ['blocs.0.nom', 'blocs.0.semaines', 'blocs.1.nom', 'blocs.1.semaines']);
+  assert.ok(validerBlocs([{ nom: 'A', semaines: 2.5, emplacements: [] }])['blocs.0.semaines']);
+  assert.ok(validerBlocs([{ nom: 'A', semaines: 2, emplacements: [place('a', 8)] }])['blocs.0.emplacements']);
+  assert.ok(validerBlocs([{ nom: 'A', semaines: 2, emplacements: [place('a', 1, '25:00')] }])['blocs.0.emplacements']);
 });

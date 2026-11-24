@@ -6,9 +6,12 @@
 
 import { lundiDe, ajouterJours } from './dates.js';
 
-// Réglages par défaut (conception L8, section 6) ; plafond_h null = sans plafond ; debut null = lundi suivant.
-// objectifDebut : objectif pour lequel la date de début a été enregistrée (revue I-4).
-export const REGLAGES_PAR_DEFAUT = { hausse: 8, semainesHausse: 3, coupure: 70, affutage: [70, 50], plafond_h: null, debut: null, objectifDebut: null };
+// Réglages par défaut, communs à tous les blocs (F-82, conception 2026-11-24 section 5.3) ; plafond_h null = sans plafond.
+export const REGLAGES_PAR_DEFAUT = { hausse: 8, coupure: 70, affutage: [70, 50], plafond_h: null };
+
+// Réglages de l'ancienne semaine type unique (lecture de l'ancien format et migration, F-88) :
+// semaines de hausse par bloc ; debut null = lundi suivant ; objectifDebut : objectif de la date enregistrée (revue I-4).
+export const REGLAGES_ANCIENS_PAR_DEFAUT = { ...REGLAGES_PAR_DEFAUT, semainesHausse: 3, debut: null, objectifDebut: null };
 
 // Plafond proposé : 1,5 fois le volume de la semaine type, arrondi à l'heure supérieure, au moins 1 h.
 export function plafondParDefaut(volumeBase_s) {
@@ -25,7 +28,7 @@ export function lundisDuPlan(debut, dateCourse) {
 
 // Coefficient de chaque semaine : [{ numero, type: HAUSSE | COUPURE | AFFUTAGE | COURSE, pct }].
 export function coefficientsPlan(nbSemaines, reglages, volumeBase_s) {
-  const r = { ...REGLAGES_PAR_DEFAUT, ...reglages };
+  const r = { ...REGLAGES_ANCIENS_PAR_DEFAUT, ...reglages };
   const nbAffutage = Math.min(r.affutage.length, nbSemaines);
   const pctMax = r.plafond_h && volumeBase_s > 0 ? Math.round(((r.plafond_h * 3600) / volumeBase_s) * 100) : Infinity;
   const semaines = [];
@@ -58,7 +61,6 @@ const entierEntre = (v, min, max) => Number.isInteger(v) && v >= min && v <= max
 export function validerReglages(r) {
   const erreurs = {};
   if (!entierEntre(r.hausse, 0, 30)) erreurs.hausse = 'Hausse : entre 0 et 30 points par semaine.';
-  if (!entierEntre(r.semainesHausse, 1, 8)) erreurs.semainesHausse = 'Semaines de hausse par bloc : entre 1 et 8.';
   if (!entierEntre(r.coupure, 30, 100)) erreurs.coupure = 'Coupure : entre 30 et 100 %.';
   if (!Array.isArray(r.affutage) || r.affutage.length > 4 || !r.affutage.every((n) => entierEntre(n, 20, 100))) {
     erreurs.affutage = "Affûtage : jusqu'à 4 niveaux entre 20 et 100 %, par exemple 70, 50.";
@@ -66,7 +68,6 @@ export function validerReglages(r) {
   if (r.plafond_h !== null && r.plafond_h !== undefined && !(typeof r.plafond_h === 'number' && r.plafond_h >= 1 && r.plafond_h <= 40)) {
     erreurs.plafond_h = 'Plafond : entre 1 et 40 heures par semaine, ou vide.';
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(r.debut ?? '')) erreurs.debut = 'Choisis une date de début.';
   return erreurs;
 }
 
@@ -209,11 +210,9 @@ export function lireReglagesSaisis(champs) {
   const plafond = String(champs.plafond ?? '').trim().replace(',', '.');
   return {
     hausse: entier(champs.hausse),
-    semainesHausse: entier(champs.semainesHausse),
     coupure: entier(champs.coupure),
     affutage,
     plafond_h: !plafond ? null : /^\d+(\.\d+)?$/.test(plafond) ? Number(plafond) : NaN,
-    debut: champs.debut || null,
   };
 }
 

@@ -2,14 +2,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  REGLAGES_PAR_DEFAUT, plafondParDefaut, lundisDuPlan, coefficientsPlan, validerReglages,
+  REGLAGES_PAR_DEFAUT, REGLAGES_ANCIENS_PAR_DEFAUT, plafondParDefaut, lundisDuPlan, coefficientsPlan, validerReglages,
   lireReglagesSaisis, lundiSuivant, bornesPlan, debutEffectif, surchargerSeance, volumeSeance_s, volumeSemaine_s, distanceSansAllure, genererPlan, prefixePlan, externalId,
 } from '../js/logique/plan.js';
 
 const types = (plan) => plan.map((s) => [s.type[0], s.pct]);
 
 test('exemple validé de la spec (12 semaines)', () => {
-  const p = coefficientsPlan(12, { ...REGLAGES_PAR_DEFAUT }, 18000);
+  const p = coefficientsPlan(12, { ...REGLAGES_ANCIENS_PAR_DEFAUT }, 18000);
   assert.deepEqual(types(p), [
     ['H', 100], ['H', 108], ['H', 116], ['C', 81], ['H', 116], ['H', 124], ['H', 132], ['C', 92],
     ['H', 132], ['H', 140], ['A', 98], ['C', 70],
@@ -19,26 +19,26 @@ test('exemple validé de la spec (12 semaines)', () => {
 });
 
 test('plan très court : course dans 1 ou 2 semaines', () => {
-  assert.deepEqual(coefficientsPlan(1, REGLAGES_PAR_DEFAUT, 18000), [{ numero: 1, type: 'COURSE', pct: 50 }]);
-  assert.deepEqual(coefficientsPlan(2, REGLAGES_PAR_DEFAUT, 18000).map((s) => s.pct), [70, 50]);
-  assert.deepEqual(coefficientsPlan(0, REGLAGES_PAR_DEFAUT, 18000), []);
+  assert.deepEqual(coefficientsPlan(1, REGLAGES_ANCIENS_PAR_DEFAUT, 18000), [{ numero: 1, type: 'COURSE', pct: 50 }]);
+  assert.deepEqual(coefficientsPlan(2, REGLAGES_ANCIENS_PAR_DEFAUT, 18000).map((s) => s.pct), [70, 50]);
+  assert.deepEqual(coefficientsPlan(0, REGLAGES_ANCIENS_PAR_DEFAUT, 18000), []);
 });
 
 test('plafond sous la base : hausses au plafond, coupures et affûtage en dessous', () => {
   // base 5 h, plafond 4 h -> 80 %
-  const p = coefficientsPlan(6, { ...REGLAGES_PAR_DEFAUT, plafond_h: 4 }, 18000);
+  const p = coefficientsPlan(6, { ...REGLAGES_ANCIENS_PAR_DEFAUT, plafond_h: 4 }, 18000);
   assert.deepEqual(p.map((s) => s.pct), [80, 80, 80, 56, 56, 40]);
 });
 
 test('plafond atteint en cours de plan, sans affûtage', () => {
   // base 5 h, plafond 6 h -> 120 %
-  const p = coefficientsPlan(8, { ...REGLAGES_PAR_DEFAUT, affutage: [], plafond_h: 6 }, 18000);
+  const p = coefficientsPlan(8, { ...REGLAGES_ANCIENS_PAR_DEFAUT, affutage: [], plafond_h: 6 }, 18000);
   assert.deepEqual(p.map((s) => s.pct), [100, 108, 116, 81, 116, 120, 120, 84]);
   assert.equal(p.at(-1).type, 'COURSE');
 });
 
 test('semaine type vide : pas de plafond, pas d\'erreur', () => {
-  assert.equal(coefficientsPlan(4, { ...REGLAGES_PAR_DEFAUT, plafond_h: 5 }, 0)[0].pct, 100);
+  assert.equal(coefficientsPlan(4, { ...REGLAGES_ANCIENS_PAR_DEFAUT, plafond_h: 5 }, 0)[0].pct, 100);
 });
 
 test('lundis du plan', () => {
@@ -53,16 +53,16 @@ test('plafond par défaut : 1,5 fois la semaine type, arrondi à l\'heure supér
 });
 
 test('validation des réglages', () => {
-  const ok = { ...REGLAGES_PAR_DEFAUT, debut: '2026-11-30' };
+  const ok = { ...REGLAGES_PAR_DEFAUT };
+  assert.deepEqual(REGLAGES_PAR_DEFAUT, { hausse: 8, coupure: 70, affutage: [70, 50], plafond_h: null });
   assert.deepEqual(validerReglages(ok), {});
   assert.deepEqual(validerReglages({ ...ok, plafond_h: 8, affutage: [] }), {});
   assert.ok(validerReglages({ ...ok, coupure: 10 }).coupure);
   assert.ok(validerReglages({ ...ok, hausse: 31 }).hausse);
-  assert.ok(validerReglages({ ...ok, semainesHausse: 0 }).semainesHausse);
   assert.ok(validerReglages({ ...ok, affutage: [70, 60, 50, 40, 30] }).affutage);
   assert.ok(validerReglages({ ...ok, affutage: [10] }).affutage);
   assert.ok(validerReglages({ ...ok, plafond_h: 0 }).plafond_h);
-  assert.ok(validerReglages({ ...ok, debut: '30/11' }).debut);
+  assert.deepEqual(validerReglages({ ...ok, debut: null }), {}); // plus de date de début (conception 5.4)
 });
 
 // --- Surcharge des séances et génération (Task 2) ---
@@ -114,7 +114,7 @@ test('étiquette des séances du plan', () => {
 });
 
 test('rien le jour de la course ni après', () => {
-  const plan = genererPlan({ semaineType: [rep, { ...rep, id: 'w2', jour: 4 }], reglages: { ...REGLAGES_PAR_DEFAUT, debut: '2026-11-30' },
+  const plan = genererPlan({ semaineType: [rep, { ...rep, id: 'w2', jour: 4 }], reglages: { ...REGLAGES_ANCIENS_PAR_DEFAUT, debut: '2026-11-30' },
     dateCourse: '2026-12-10', allures: { CAP: 4 }, objectifId: '77' }); // jeudi 10/12
   const derniere = plan.at(-1);
   assert.equal(derniere.type, 'COURSE');
@@ -129,7 +129,7 @@ test('génération : dates, ordre, surcharge, repos recopié, volume réel', () 
     { id: 'b', jour: 1, sport: 'REPOS', titre: 'Repos' },
     { id: 'c', jour: 3, sport: 'CAP', titre: 'Footing', duree_s: 2700 },
   ];
-  const plan = genererPlan({ semaineType, reglages: { ...REGLAGES_PAR_DEFAUT, debut: '2026-11-30' },
+  const plan = genererPlan({ semaineType, reglages: { ...REGLAGES_ANCIENS_PAR_DEFAUT, debut: '2026-11-30' },
     dateCourse: '2027-02-21', allures: {}, objectifId: '9' }); // 12 semaines, course un dimanche
   assert.equal(plan.length, 12);
   const s2 = plan[1];
@@ -144,24 +144,23 @@ test('génération : dates, ordre, surcharge, repos recopié, volume réel', () 
 });
 
 test('génération : course avant le début, semaine type vide', () => {
-  assert.deepEqual(genererPlan({ semaineType: [rep], reglages: { ...REGLAGES_PAR_DEFAUT, debut: '2026-11-30' },
+  assert.deepEqual(genererPlan({ semaineType: [rep], reglages: { ...REGLAGES_ANCIENS_PAR_DEFAUT, debut: '2026-11-30' },
     dateCourse: '2026-11-01', allures: {}, objectifId: '1' }), []);
-  const vide = genererPlan({ semaineType: [], reglages: { ...REGLAGES_PAR_DEFAUT, debut: '2026-11-30' },
+  const vide = genererPlan({ semaineType: [], reglages: { ...REGLAGES_ANCIENS_PAR_DEFAUT, debut: '2026-11-30' },
     dateCourse: '2026-12-20', allures: {}, objectifId: '1' });
   assert.equal(vide.length, 3);
   assert.equal(vide.every((s) => s.seances.length === 0 && s.volume_s === 0), true);
 });
 
 test('lecture du formulaire des réglages', () => {
-  assert.deepEqual(lireReglagesSaisis({ hausse: '8', semainesHausse: '3', coupure: '70', affutage: '70, 50', plafond: '7,5', debut: '2026-11-30' }),
-    { hausse: 8, semainesHausse: 3, coupure: 70, affutage: [70, 50], plafond_h: 7.5, debut: '2026-11-30' });
-  const r = lireReglagesSaisis({ hausse: 'x', semainesHausse: '3', coupure: '70', affutage: '', plafond: '', debut: '' });
+  assert.deepEqual(lireReglagesSaisis({ hausse: '8', coupure: '70', affutage: '70, 50', plafond: '7,5' }),
+    { hausse: 8, coupure: 70, affutage: [70, 50], plafond_h: 7.5 });
+  const r = lireReglagesSaisis({ hausse: 'x', coupure: '70', affutage: '', plafond: '' });
   assert.ok(Number.isNaN(r.hausse));
   assert.deepEqual(r.affutage, []);
   assert.equal(r.plafond_h, null);
-  assert.equal(r.debut, null);
   assert.ok(validerReglages(r).hausse);
-  assert.ok(validerReglages(lireReglagesSaisis({ hausse: '8', semainesHausse: '3', coupure: '70', affutage: '70 x', plafond: 'abc', debut: '2026-11-30' })).affutage);
+  assert.ok(validerReglages(lireReglagesSaisis({ hausse: '8', coupure: '70', affutage: '70 x', plafond: 'abc' })).affutage);
 });
 
 test('lundi suivant', () => {

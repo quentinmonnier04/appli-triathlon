@@ -6,7 +6,7 @@ import {
 } from '../js/api/semaine-type.js';
 import { seancesASupprimer, versEvenementPlan, TAILLE_LOT, etiquettesConservees } from '../js/api/plan.js';
 import { estModeleAffichable } from '../js/api/bibliotheque.js';
-import { REGLAGES_PAR_DEFAUT } from '../js/logique/plan.js';
+import { REGLAGES_ANCIENS_PAR_DEFAUT as REGLAGES_PAR_DEFAUT } from '../js/logique/plan.js';
 
 test('réglages <-> texte lisible de la description du dossier', () => {
   const r = { hausse: 8, semainesHausse: 3, coupure: 70, affutage: [70, 50], plafond_h: 8, debut: '2026-11-30', objectifDebut: null };
