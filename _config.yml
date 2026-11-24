@@ -1,0 +1,8 @@
+# GitHub Pages (ENF-04, D-21) : seuls les fichiers de l'application sont publiés.
+# Les maquettes de docs/ chargent une police depuis Google Fonts : elles ne doivent pas être servies.
+exclude:
+  - docs/
+  - tests/
+  - CLAUDE.md
+  - creer_icones.py
+  - package.json

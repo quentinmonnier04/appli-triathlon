@@ -87,6 +87,12 @@ function enregistrerServiceWorker() {
 }
 
 async function demarrer() {
+  // D-21 : GitHub Pages ne permet pas l'en-tête frame-ancestors ; l'appli refuse de s'ouvrir dans le cadre d'une
+  // autre page (protection contre le détournement de clic).
+  if (window.top !== window.self) {
+    conteneur.textContent = "Ouvre l'application directement, pas dans une autre page.";
+    return;
+  }
   enregistrerServiceWorker();
   await demarrerSession();
   window.addEventListener('hashchange', afficherRoute);
