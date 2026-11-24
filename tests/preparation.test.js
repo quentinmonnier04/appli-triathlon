@@ -132,3 +132,10 @@ test("garde-fou : Intervals.icu doit renvoyer l'étiquette des séances créées
   assert.equal(etiquettesConservees(envoyes, [{ id: 5 }]), false);
   assert.equal(etiquettesConservees(envoyes, null), false);
 });
+
+test("revue finale I-1 : pas d'écriture sur une préparation encore à l'ancien format, sauf la migration", () => {
+  const relue = { dossierId: 42, seances: [], reglages: REG, blocs: null, ancienFormat: { reglages: REG }, illisible: false };
+  assert.throws(() => corpsDossier(relue, (p) => ({ reglages: p.reglages, blocs: [] })), (e) => e.type === 'MIGRATION');
+  const corps = corpsDossier(relue, () => ({ reglages: REG, blocs: BLOCS }), { migration: true });
+  assert.deepEqual(texteVersPreparation(corps.description).blocs, BLOCS);
+});

@@ -5,7 +5,7 @@
 
 import { lirePreparation, modifierPreparation } from '../api/preparation.js';
 import { lireAlluresSeuil } from '../api/profil.js';
-import { ajouterEmplacement, modifierEmplacement, retirerEmplacement } from '../logique/blocs.js';
+import { ajouterEmplacement, modifierEmplacement, retirerEmplacement, verifierPosition } from '../logique/blocs.js';
 import { volumeSeance_s } from '../logique/plan.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
 import { message, messageErreurApi, squelette, pastilleSport, surveillerReseau, boutonIcone, graphiqueSeance } from './composants.js';
@@ -64,7 +64,10 @@ export async function afficherPlacer(conteneur, segments, params = {}) {
       <div id="resultat" aria-live="polite"></div></div>`;
   zone.querySelectorAll('.choix-seance').forEach((b) => b.addEventListener('click', () => {
     b.disabled = true;
-    ecrire(zone, (blocs) => ajouterEmplacement(blocs, indexBloc, { seanceId: b.dataset.id, jour, heure }), indexBloc);
+    ecrire(zone, (blocs) => {
+      verifierPosition(blocs, indexBloc, bloc.nom); // revue finale I-2
+      return ajouterEmplacement(blocs, indexBloc, { seanceId: b.dataset.id, jour, heure });
+    }, indexBloc);
   }));
   surveillerReseau(zone, zone.querySelector('#hors-ligne-placement'), [...zone.querySelectorAll('.ecriture')]);
 }
@@ -103,11 +106,17 @@ export async function afficherEmplacement(conteneur, segments, params = {}) {
     const jour = entier($('#jour-emplacement').value, 1, 7);
     const heure = $('#heure-emplacement').value || null;
     if (jour === null || (heure !== null && !HEURE.test(heure))) { $('#resultat').innerHTML = message('erreur', 'Heure attendue au format hh:mm.'); return; }
-    ecrire(zone, (blocs) => modifierEmplacement(blocs, indexBloc, n, { jour, heure }), indexBloc);
+    ecrire(zone, (blocs) => {
+      verifierPosition(blocs, indexBloc, bloc.nom, n, e.seanceId); // revue finale I-2
+      return modifierEmplacement(blocs, indexBloc, n, { jour, heure });
+    }, indexBloc);
   });
   $('#retirer-emplacement').addEventListener('click', () => {
     if (!confirm('Retirer cette séance de ce bloc ? Elle reste dans Mes séances.')) return;
-    ecrire(zone, (blocs) => retirerEmplacement(blocs, indexBloc, n), indexBloc);
+    ecrire(zone, (blocs) => {
+      verifierPosition(blocs, indexBloc, bloc.nom, n, e.seanceId); // revue finale I-2
+      return retirerEmplacement(blocs, indexBloc, n);
+    }, indexBloc);
   });
   surveillerReseau(zone, $('#hors-ligne-placement'), [...zone.querySelectorAll('.ecriture')]);
 }

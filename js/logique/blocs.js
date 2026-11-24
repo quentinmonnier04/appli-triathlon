@@ -132,6 +132,20 @@ export function utilisationsSeance(blocs, seanceId) {
   return blocs.filter((b) => (b.emplacements ?? []).some((e) => String(e.seanceId) === String(seanceId))).length;
 }
 
+// Écriture par position (revue finale I-2) : le bloc "index" doit toujours s'appeler "nom" et, si "n" est donné,
+// son emplacement n doit toujours viser "seanceId" ; sinon la préparation a changé ailleurs (autre appareil).
+export class ErreurPosition extends Error {
+  constructor() {
+    super("Ta préparation a changé sur un autre appareil. Recharge l'écran puis recommence.");
+    this.type = 'CHANGEE';
+  }
+}
+export function verifierPosition(blocs, index, nom, n = null, seanceId = null) {
+  const bloc = blocs?.[index];
+  if (!bloc || bloc.nom !== nom) throw new ErreurPosition();
+  if (n !== null && String(bloc.emplacements?.[n]?.seanceId) !== String(seanceId)) throw new ErreurPosition();
+}
+
 // Contrôle des blocs (F-88) : { champ: message } ; vide si tout est correct.
 export function validerBlocs(blocs) {
   if (!blocs.length) return { blocs: 'Ajoute au moins un bloc.' };

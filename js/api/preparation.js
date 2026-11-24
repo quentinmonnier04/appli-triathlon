@@ -94,18 +94,25 @@ export function texteVersPreparation(texte) {
   }
 }
 
-// Erreur d'écriture : la description du dossier est illisible (revue 3).
+// Erreur d'écriture : description du dossier illisible (revue 3), ou préparation encore à l'ancien format, pas
+// encore migrée (revue finale I-1 : une écriture ne doit pas effacer l'ancienne semaine type).
+const MESSAGES_PREPARATION = {
+  ILLISIBLE: "La préparation enregistrée sur Intervals.icu est illisible. Rien n'a été modifié.",
+  MIGRATION: "Ta semaine type n'a pas encore été convertie en blocs. Rouvre l'écran Objectif avec du réseau, puis recommence.",
+};
 export class ErreurPreparation extends Error {
-  constructor() {
-    super('La préparation enregistrée sur Intervals.icu est illisible.');
-    this.type = 'ILLISIBLE';
+  constructor(type = 'ILLISIBLE') {
+    super(MESSAGES_PREPARATION[type]);
+    this.type = type;
   }
 }
 
 // Corps du dossier après modification de la préparation relue (revue 4) ; transformer reçoit
-// { reglages, blocs, seances, ancienFormat } et renvoie { reglages, blocs }.
-export function corpsDossier(relue, transformer) {
-  if (relue.illisible) throw new ErreurPreparation();
+// { reglages, blocs, seances, ancienFormat } et renvoie { reglages, blocs }. Tant que la préparation est à l'ancien
+// format, seule la migration peut l'écrire (options.migration).
+export function corpsDossier(relue, transformer, { migration = false } = {}) {
+  if (relue.illisible) throw new ErreurPreparation('ILLISIBLE');
+  if (relue.ancienFormat && !migration) throw new ErreurPreparation('MIGRATION');
   const { reglages, blocs } = transformer({ reglages: relue.reglages, blocs: relue.blocs, seances: relue.seances, ancienFormat: relue.ancienFormat });
   return { name: NOM_DOSSIER, description: preparationVersTexte({ reglages, blocs }) };
 }
@@ -193,9 +200,9 @@ async function invaliderCaches() {
 
 // Modifie la préparation (blocs, réglages, migration) : relecture forcée, transformation, écriture du dossier
 // (créé s'il n'existe pas). Une préparation illisible n'est jamais réécrite (revue 3, revue 4). Renvoie le dossier.
-export async function modifierPreparation(transformer) {
+export async function modifierPreparation(transformer, options = {}) {
   const relue = await lirePreparation({ forcer: true });
-  const corps = corpsDossier(relue, transformer);
+  const corps = corpsDossier(relue, transformer, options);
   const dossier = relue.dossierId
     ? await requeteAuthentifiee(`/athlete/0/folders/${encodeURIComponent(relue.dossierId)}`, null, { methode: 'PUT', corps })
     : await requeteAuthentifiee('/athlete/0/folders', null, { methode: 'POST', corps: { type: 'FOLDER', ...corps } });
@@ -203,9 +210,11 @@ export async function modifierPreparation(transformer) {
   return dossier;
 }
 
-// Identifiant du dossier, créé vide s'il n'existe pas encore (relecture forcée, revue I-5).
-async function dossierId() {
-  const { dossierId: id } = await lirePreparation({ forcer: true });
+// Identifiant du dossier, créé vide s'il n'existe pas encore (relecture forcée, revue I-5). Une séance existante ne
+// se réécrit pas avant la migration : ses étiquettes de jour et d'heure seraient perdues (revue finale I-1).
+async function dossierId(seanceExistante = false) {
+  const { dossierId: id, ancienFormat } = await lirePreparation({ forcer: true });
+  if (ancienFormat && seanceExistante) throw new ErreurPreparation('MIGRATION');
   if (id) return id;
   const dossier = await modifierPreparation((p) => ({ reglages: p.reglages, blocs: p.blocs ?? [] }));
   return dossier.id;
@@ -217,7 +226,7 @@ export async function lireSeanceBibliotheque(id) {
 
 // Création ou modification d'une séance de la bibliothèque ; renvoie la séance enregistrée.
 export async function enregistrerSeanceBibliotheque(s) {
-  const corps = versSeanceBibliotheque(s, await dossierId());
+  const corps = versSeanceBibliotheque(s, await dossierId(Boolean(s.id)));
   const brut = s.id
     ? await requeteAuthentifiee(`/athlete/0/workouts/${encodeURIComponent(s.id)}`, null, { methode: 'PUT', corps })
     : await requeteAuthentifiee('/athlete/0/workouts', null, { methode: 'POST', corps });

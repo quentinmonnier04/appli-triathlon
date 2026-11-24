@@ -18,6 +18,8 @@ export function message(type, texte, lienHtml = '') {
 // Message correspondant à une ErreurApi (5.4, 9.5) : M-02 pour les identifiants, M-07 sinon.
 // lienReglages : ajoute le lien vers Réglages (inutile quand on y est déjà).
 export function messageErreurApi(erreur, { lienReglages = true } = {}) {
+  // Préparation illisible, pas encore migrée ou changée ailleurs (L8, revue finale) : message propre à l'erreur.
+  if (['ILLISIBLE', 'MIGRATION', 'CHANGEE'].includes(erreur?.type)) return message('erreur', erreur.message);
   if (erreur?.type === 'IDENTIFIANTS') {
     return message('erreur', MESSAGES['M-02'], lienReglages ? '<a href="#/reglages">Ouvrir les réglages</a>' : '');
   }

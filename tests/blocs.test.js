@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   coefficientsBlocs, debutDesBlocs, grilleDuBloc, blocsVides, genererPlanBlocs,
   ajouterBloc, dupliquerBloc, supprimerBloc, modifierBloc, ajouterEmplacement, modifierEmplacement, retirerEmplacement,
-  retirerSeanceDesBlocs, utilisationsSeance, validerBlocs, migrerAncienFormat,
+  retirerSeanceDesBlocs, utilisationsSeance, validerBlocs, migrerAncienFormat, verifierPosition,
 } from '../js/logique/blocs.js';
 import { REGLAGES_ANCIENS_PAR_DEFAUT, lundiSuivant } from '../js/logique/plan.js';
 import { genererPlan } from './reference/ancien-plan.js';
@@ -190,4 +190,16 @@ test("migration : plan plus court que l'affûtage, la semaine de course à venir
   assert.deepEqual(m.blocs.map((b) => b.semaines), [1]);
   const nouveau = genererPlanBlocs({ seances: ANCIENNE, blocs: m.blocs, reglages: m.reglages, dateCourse: objectif.date, objectifId: 'o1' });
   assert.deepEqual(resume(nouveau.slice(-1)).map((x) => x.slice(0, 2)), resume(ancien).map((x) => x.slice(0, 2)));
+});
+
+test('revue finale I-2 : une écriture par position vérifie que le bloc et la séance visés sont toujours là', () => {
+  const blocs = deuxBlocs();
+  assert.doesNotThrow(() => verifierPosition(blocs, 1, 'Spécifique'));
+  assert.doesNotThrow(() => verifierPosition(blocs, 1, 'Spécifique', 1, 'a'));
+  const change = (fn) => assert.throws(fn, (e) => e.type === 'CHANGEE');
+  change(() => verifierPosition(blocs, 0, 'Spécifique')); // le bloc 1 a été supprimé ailleurs
+  change(() => verifierPosition(blocs, 2, 'Seuil')); // bloc disparu
+  change(() => verifierPosition(blocs, 1, 'Spécifique', 0, 'v')); // emplacement changé
+  change(() => verifierPosition(blocs, 1, 'Spécifique', 5, 'a'));
+  change(() => verifierPosition(null, 0, 'Endurance'));
 });

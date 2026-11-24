@@ -195,15 +195,20 @@ export async function afficherObjectif(conteneur, segments = [], params = {}) {
   const aujourdhui = jourISO();
 
   // Migration de l'ancienne semaine type (conception 5.8) : écrite une fois, en ligne ; hors ligne, seulement affichée.
+  // Tant qu'elle n'est pas écrite, aucune autre écriture n'est acceptée (revue finale I-1) et l'échec est signalé.
+  let echecMigration = '';
   if (lue.ancienFormat && navigator.onLine) {
     try {
       await modifierPreparation((p) => (p.ancienFormat
         ? migrerAncienFormat({ seances: p.seances, reglagesAnciens: p.ancienFormat.reglages, objectif, aujourdhui })
-        : { reglages: p.reglages, blocs: p.blocs }));
+        : { reglages: p.reglages, blocs: p.blocs }), { migration: true });
       lue = await lirePreparation();
-    } catch { /* la préparation migrée reste affichée ; la migration sera retentée */ }
+    } catch (e) {
+      echecMigration = message('erreur', "La conversion de ta semaine type en blocs n'a pas abouti. Rien n'a été modifié ; rouvre l'écran pour réessayer.");
+    }
     if (!zone.isConnected) return;
   }
+  if (lue.ancienFormat && !echecMigration) echecMigration = message('info', "Ta semaine type sera convertie en blocs à la prochaine ouverture de l'écran avec du réseau.");
   const preparation = preparationAffichee(lue, objectif, aujourdhui);
   const blocs = preparation.blocs ?? [];
   const indexBloc = Math.min(Math.max(0, /^\d+$/.test(params.bloc ?? '') ? Number(params.bloc) : 0), Math.max(0, blocs.length - 1));
@@ -234,7 +239,7 @@ export async function afficherObjectif(conteneur, segments = [], params = {}) {
   const sectionsPreparation = preparation.illisible
     ? `<div class="carte"><h2>Blocs</h2>${message('erreur', "La préparation enregistrée sur Intervals.icu est illisible. Rien n'a été modifié.")}</div>`
     : `${sectionMesSeances(preparation.seances, blocs, allures)}${sectionBlocs({ ...preparation, blocs }, allures, indexBloc)}${sectionReglages(preparation.reglages, volumeBase)}`;
-  zone.innerHTML = `<div id="hors-ligne-objectif"></div>${messageEnAttente}${sectionObjectif(objectif)}${sectionsPreparation}${apercu}`;
+  zone.innerHTML = `<div id="hors-ligne-objectif"></div>${messageEnAttente}${echecMigration}${sectionObjectif(objectif)}${sectionsPreparation}${apercu}`;
   messageEnAttente = '';
   zone.querySelectorAll('.barre-remplie').forEach((b) => { b.style.width = `${b.dataset.pct}%`; });
   brancherGrille(zone);
@@ -249,7 +254,7 @@ export async function afficherObjectif(conteneur, segments = [], params = {}) {
   };
   const echec = (cible, e) => {
     const zoneErreur = $(cible);
-    if (zoneErreur) zoneErreur.innerHTML = e?.type === 'ILLISIBLE' ? message('erreur', e.message) : messageErreurApi(e);
+    if (zoneErreur) zoneErreur.innerHTML = messageErreurApi(e);
   };
   if (!preparation.illisible) brancherBlocs(zone, { blocs, indexBloc, recharger, echec });
 

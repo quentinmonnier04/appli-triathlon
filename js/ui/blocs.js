@@ -5,7 +5,7 @@
 import { modifierPreparation } from '../api/preparation.js';
 import { volumeSeance_s, volumeSemaine_s } from '../logique/plan.js';
 import {
-  grilleDuBloc, utilisationsSeance, ajouterBloc, dupliquerBloc, supprimerBloc, modifierBloc, validerBlocs,
+  grilleDuBloc, utilisationsSeance, ajouterBloc, dupliquerBloc, supprimerBloc, modifierBloc, validerBlocs, verifierPosition,
 } from '../logique/blocs.js';
 import { GRILLE, dispositionSemaine, heureDepuisPosition } from '../logique/grille.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
@@ -111,6 +111,9 @@ export function brancherGrille(zone) {
 // Boutons de la section Blocs. recharger(texte, indexBloc) réaffiche l'écran ; echec(cible, e) affiche l'erreur.
 export function brancherBlocs(zone, { blocs, indexBloc, recharger, echec }) {
   const $ = (sel) => zone.querySelector(sel);
+  // Le bloc visé doit être toujours le même dans la préparation relue (revue finale I-2).
+  const nom = blocs[indexBloc]?.nom;
+  const surBloc = (transformer) => (b) => { verifierPosition(b, indexBloc, nom); return transformer(b); };
   const ecrire = async (transformer, texte, index, cible) => {
     try {
       await modifierPreparation((p) => ({ reglages: p.reglages, blocs: transformer(p.blocs ?? []) }));
@@ -125,11 +128,11 @@ export function brancherBlocs(zone, { blocs, indexBloc, recharger, echec }) {
     const modifie = modifierBloc(blocs, indexBloc, { nom: $('#nom-bloc').value.trim(), semaines });
     const erreurs = validerBlocs(modifie);
     if (Object.keys(erreurs).length) { $('#erreurs-bloc').innerHTML = message('erreur', Object.values(erreurs).join(' ')); return; }
-    ecrire((b) => modifierBloc(b, indexBloc, { nom: modifie[indexBloc].nom, semaines }), 'Bloc enregistré.', indexBloc, '#erreurs-bloc');
+    ecrire(surBloc((b) => modifierBloc(b, indexBloc, { nom: modifie[indexBloc].nom, semaines })), 'Bloc enregistré.', indexBloc, '#erreurs-bloc');
   });
-  $('#dupliquer-bloc').addEventListener('click', () => ecrire((b) => dupliquerBloc(b, indexBloc), 'Bloc dupliqué : modifie sa semaine pour le rendre plus spécifique.', indexBloc + 1, '#erreurs-bloc'));
+  $('#dupliquer-bloc').addEventListener('click', () => ecrire(surBloc((b) => dupliquerBloc(b, indexBloc)), 'Bloc dupliqué : modifie sa semaine pour le rendre plus spécifique.', indexBloc + 1, '#erreurs-bloc'));
   $('#supprimer-bloc').addEventListener('click', () => {
     if (!confirm(`Supprimer le bloc "${blocs[indexBloc].nom}" ? Ses séances restent dans Mes séances.`)) return; // texte, pas du HTML
-    ecrire((b) => supprimerBloc(b, indexBloc), 'Bloc supprimé.', Math.max(0, indexBloc - 1), '#erreurs-bloc');
+    ecrire(surBloc((b) => supprimerBloc(b, indexBloc)), 'Bloc supprimé.', Math.max(0, indexBloc - 1), '#erreurs-bloc');
   });
 }
