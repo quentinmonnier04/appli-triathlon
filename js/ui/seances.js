@@ -4,7 +4,6 @@
 
 import { lirePreparation } from '../api/preparation.js';
 import { lireAlluresSeuil } from '../api/profil.js';
-import { utilisationsSeance } from '../logique/blocs.js';
 import { volumeSeance_s } from '../logique/plan.js';
 import { rangerSeances } from '../logique/types-seance.js';
 import { sport } from '../logique/sports.js';
@@ -12,22 +11,21 @@ import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
 import { messageErreurApi, squelette, boutonIcone } from './composants.js';
 import { icone, iconeSport } from './icones.js';
 
-// Une séance : titre, durée estimée, nombre de blocs qui l'utilisent.
-function ligne(s, blocs, allures) {
-  const n = utilisationsSeance(blocs, s.id);
+// Une séance : titre et durée estimée.
+function ligne(s, allures) {
   const duree = s.sport === 'REPOS' ? '' : formaterDureeLongue(volumeSeance_s(s, allures));
   return `<li><a class="ligne-seance" href="#/seance-type/${encodeURIComponent(s.id)}?retour=seances">
     <span class="seance-type-titre">${echapperHtml(s.titre)}</span>
-    <span class="doux">${echapperHtml(duree)}${n ? ` · ${n} bloc${n > 1 ? 's' : ''}` : ''}</span></a></li>`;
+    <span class="doux">${echapperHtml(duree)}</span></a></li>`;
 }
 
 // Une carte par sport, un groupe par type.
-function carteSport(g, blocs, allures) {
+function carteSport(g, allures) {
   const s = sport(g.sport);
   return `<section class="carte sport-${s.code}">
     <h2 class="sport-titre">${iconeSport(s.code, 18)}<span class="sport-titre-texte">${echapperHtml(s.libelle)}</span><span class="compte-type">${g.nb}</span></h2>
     ${g.groupes.map((t) => `<div class="groupe-type"><div class="etiquette-carte">${echapperHtml(t.type)} <span class="compte-type">${t.seances.length}</span></div>
-      <ul class="liste-seances">${t.seances.map((x) => ligne(x, blocs, allures)).join('')}</ul></div>`).join('')}
+      <ul class="liste-seances">${t.seances.map((x) => ligne(x, allures)).join('')}</ul></div>`).join('')}
   </section>`;
 }
 
@@ -50,7 +48,6 @@ export async function afficherSeances(conteneur, segments = [], params = {}) {
   if (!zone.isConnected) return;
 
   const seances = preparation.seances ?? [];
-  const blocs = preparation.blocs ?? [];
   const tous = rangerSeances(seances);
   // Filtre contrôlé (D-21) : seulement un sport présent dans la banque.
   const filtre = tous.some((g) => g.sport === params.sport) ? params.sport : null;
@@ -62,6 +59,6 @@ export async function afficherSeances(conteneur, segments = [], params = {}) {
 
   zone.innerHTML = `<p class="doux">Tes séances types, rangées par sport et par type. Crée-les et modifie-les ici, puis place-les dans tes blocs depuis Objectif et plan.</p>
     ${filtres}
-    ${ranges.length ? ranges.map((g) => carteSport(g, blocs, allures)).join('') : '<div class="carte"><p class="doux">Aucune séance pour l\'instant.</p></div>'}
+    ${ranges.length ? ranges.map((g) => carteSport(g, allures)).join('') : '<div class="carte"><p class="doux">Aucune séance pour l\'instant.</p></div>'}
     <div class="pile"><a class="bouton principal" href="#/seance-type/nouvelle?retour=seances">${icone('plus', 18)} Nouvelle séance</a></div>`;
 }

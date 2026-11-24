@@ -238,7 +238,7 @@ export async function afficherObjectif(conteneur, segments = [], params = {}) {
 
   const sectionsPreparation = preparation.illisible
     ? `<div class="carte"><h2>Blocs</h2>${message('erreur', "La préparation enregistrée sur Intervals.icu est illisible. Rien n'a été modifié.")}</div>`
-    : `${sectionMesSeances(preparation.seances, blocs, allures)}${sectionBlocs({ ...preparation, blocs }, allures, indexBloc)}${sectionReglages(preparation.reglages, volumeBase)}`;
+    : `${sectionMesSeances(preparation.seances, allures)}${sectionBlocs({ ...preparation, blocs }, allures, indexBloc)}${sectionReglages(preparation.reglages, volumeBase)}`;
   zone.innerHTML = `<div id="hors-ligne-objectif"></div>${messageEnAttente}${echecMigration}${sectionObjectif(objectif)}${sectionsPreparation}${apercu}`;
   messageEnAttente = '';
   zone.querySelectorAll('.barre-remplie').forEach((b) => { b.style.width = `${b.dataset.pct}%`; });

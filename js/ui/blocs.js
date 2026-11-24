@@ -5,7 +5,7 @@
 import { modifierPreparation } from '../api/preparation.js';
 import { volumeSeance_s, volumeSemaine_s } from '../logique/plan.js';
 import {
-  grilleDuBloc, utilisationsSeance, ajouterBloc, dupliquerBloc, supprimerBloc, modifierBloc, validerBlocs, verifierPosition,
+  grilleDuBloc, ajouterBloc, dupliquerBloc, supprimerBloc, modifierBloc, validerBlocs, verifierPosition,
 } from '../logique/blocs.js';
 import { GRILLE, dispositionSemaine, heureDepuisPosition } from '../logique/grille.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
@@ -14,13 +14,12 @@ import { icone, iconeSport } from './icones.js';
 
 export const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
-// F-81 : liste de la bibliothèque, avec le nombre de blocs qui utilisent chaque séance.
-export function sectionMesSeances(seances, blocs, allures) {
+// F-81 : liste de la bibliothèque (titre et durée estimée).
+export function sectionMesSeances(seances, allures) {
   const lignes = seances.map((s) => {
-    const n = utilisationsSeance(blocs ?? [], s.id);
     return `<li><a class="ligne-seance" href="#/seance-type/${encodeURIComponent(s.id)}">${pastilleSport(s.sport)}
       <span class="seance-type-titre">${echapperHtml(s.titre)}</span>
-      <span class="doux">${s.sport === 'REPOS' ? '' : echapperHtml(formaterDureeLongue(volumeSeance_s(s, allures)))}${n ? ` · ${n} bloc${n > 1 ? 's' : ''}` : ''}</span></a></li>`;
+      <span class="doux">${s.sport === 'REPOS' ? '' : echapperHtml(formaterDureeLongue(volumeSeance_s(s, allures)))}</span></a></li>`;
   }).join('');
   return `<div class="carte"><h2>Mes séances</h2>
     ${seances.length ? `<ul class="liste-seances" id="mes-seances">${lignes}</ul>` : '<p class="doux">Aucune séance pour l\'instant.</p>'}
