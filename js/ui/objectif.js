@@ -13,7 +13,10 @@ import {
 import { genererPlanBlocs, grilleDuBloc, blocsVides, migrerAncienFormat } from '../logique/blocs.js';
 import { jourISO, ajouterJours } from '../logique/dates.js';
 import { sport } from '../logique/sports.js';
-import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
+import { echapperHtml, formaterDureeLongue, formaterDuree, formaterDistance, formaterVitesse, decouperUnite } from '../logique/format.js';
+import {
+  FORMATS_COURSE, segmentsDeLaCourse, lireObjectifsSaisis, tempsTotal, tempsDepuisAllure, lireTempsCourse,
+} from '../logique/objectifs-course.js';
 import {
   message, messageErreurApi, squelette, pastilleSport, groupeChoix, brancherChoix, surveillerReseau, graphiqueSeance, boutonIcone,
 } from './composants.js';
@@ -28,14 +31,95 @@ let messageEnAttente = '';
 
 // --- Sections ---
 
+// --- F-89 : objectifs de course par discipline et transitions ---
+
+const LIBELLES_SEGMENT = { NATATION: 'Natation', T1: 'T1', VELO: 'Vélo', T2: 'T2', CAP: 'Course' };
+const FORMATS = [['', 'Choisir'], ['XS', 'XS'], ['S', 'S'], ['M', 'M'], ['70.3', '70.3'], ['IRONMAN', 'Ironman'], ['PERSO', 'Personnalisé']];
+const estTransition = (seg) => seg === 'T1' || seg === 'T2';
+// Distance affichée dans le champ : mètres en natation, kilomètres ailleurs (virgule décimale).
+const distanceSaisie = (seg, m) => (m ? (seg === 'NATATION' ? String(m) : String(m / 1000).replace('.', ',')) : '');
+// Allure affichée dans le champ, sans unité : "4:27", "2:00", "34,3".
+const allureSaisie = (seg, m, s) => decouperUnite(formaterVitesse(seg, m, s))?.valeur ?? '';
+const UNITES = { NATATION: 'min/100 m', VELO: 'km/h', CAP: 'min/km' };
+
+// Tableau des objectifs enregistrés et temps total visé (conception 5.6).
+function tableauObjectifs(o) {
+  if (!o?.objectifs) return '';
+  const total = tempsTotal(o.objectifs, o.sport);
+  const lignes = segmentsDeLaCourse(o.sport).map((seg) => {
+    const x = o.objectifs.segments[seg];
+    if (!x) return '';
+    return `<tr><th scope="row">${echapperHtml(LIBELLES_SEGMENT[seg])}</th><td>${x.distance_m ? echapperHtml(formaterDistance(x.distance_m, seg)) : ''}</td>
+      <td>${echapperHtml(formaterDuree(x.temps_s))}</td><td>${estTransition(seg) ? '' : echapperHtml(formaterVitesse(seg, x.distance_m, x.temps_s) ?? '')}</td></tr>`;
+  }).join('');
+  return `<div class="objectifs-course">${total !== null ? `<p class="total-vise">Total visé : <strong>${echapperHtml(formaterDuree(total))}</strong></p>` : ''}
+    <div class="tableau-defilant"><table class="intervalles"><tbody>${lignes}</tbody></table></div></div>`;
+}
+
+// Champs de saisie : format (triathlon), puis distance, temps et allure par discipline ; temps seul pour T1 et T2.
+function champsObjectifs(sportCourse, objectifs) {
+  const triathlon = sportCourse === 'ENCHAINEMENT';
+  const format = triathlon ? (objectifs?.format ?? '') : '';
+  const lignes = segmentsDeLaCourse(sportCourse).map((seg) => {
+    const x = objectifs?.segments?.[seg] ?? {};
+    const distance = x.distance_m ?? (FORMATS_COURSE[format]?.[seg] ?? null);
+    const champ = (nom, libelle, valeur, aide = '') => `<div class="champ"><label for="${seg}-${nom}">${echapperHtml(libelle)}</label>
+      <input id="${seg}-${nom}" data-segment="${seg}" data-champ="${nom}" inputmode="decimal" value="${echapperHtml(valeur)}" placeholder="${echapperHtml(aide)}"></div>`;
+    if (estTransition(seg)) return `<fieldset class="segment-course"><legend>${echapperHtml(LIBELLES_SEGMENT[seg])}</legend>${champ('temps', 'Temps', x.temps_s ? formaterDuree(x.temps_s) : '', 'm:ss')}</fieldset>`;
+    return `<fieldset class="segment-course"><legend>${echapperHtml(LIBELLES_SEGMENT[seg])}</legend><div class="trois-colonnes">
+      ${champ('distance', seg === 'NATATION' ? 'Distance (m)' : 'Distance (km)', distanceSaisie(seg, distance))}
+      ${champ('temps', 'Temps', x.temps_s ? formaterDuree(x.temps_s) : '', 'h:mm:ss')}
+      ${champ('allure', `Allure (${UNITES[seg]})`, x.temps_s ? allureSaisie(seg, distance, x.temps_s) : '')}</div></fieldset>`;
+  }).join('');
+  return `${triathlon ? `<div class="champ"><label for="format-course">Format</label><select id="format-course">
+    ${FORMATS.map(([v, l]) => `<option value="${v}" ${v === format ? 'selected' : ''}>${echapperHtml(l)}</option>`).join('')}</select></div>` : ''}${lignes}`;
+}
+
+// Recalcul en direct : temps saisi -> allure, allure saisie -> temps ; format -> distances (sauf Personnalisé).
+function brancherObjectifs(zone) {
+  const champ = (seg, nom) => zone.querySelector(`#${seg}-${nom}`);
+  const distance = (seg) => {
+    const t = String(champ(seg, 'distance')?.value ?? '').trim().replace(',', '.');
+    if (!/^\d+(\.\d+)?$/.test(t)) return null;
+    return Math.round(seg === 'NATATION' ? Number(t) : Number(t) * 1000);
+  };
+  zone.querySelectorAll('[data-segment]').forEach((input) => input.addEventListener('change', () => {
+    const seg = input.dataset.segment;
+    if (estTransition(seg)) return;
+    const d = distance(seg);
+    if (input.dataset.champ === 'allure') {
+      const t = tempsDepuisAllure(seg, d, input.value);
+      if (t !== null) champ(seg, 'temps').value = formaterDuree(t);
+    } else {
+      const t = lireTempsCourse(champ(seg, 'temps').value);
+      if (t !== null && d) champ(seg, 'allure').value = allureSaisie(seg, d, t);
+    }
+  }));
+  zone.querySelector('#format-course')?.addEventListener('change', (ev) => {
+    const distances = FORMATS_COURSE[ev.target.value];
+    if (!distances) return;
+    for (const [seg, m] of Object.entries(distances)) if (champ(seg, 'distance')) champ(seg, 'distance').value = distanceSaisie(seg, m);
+  });
+}
+
+// Textes du formulaire pour lireObjectifsSaisis.
+function champsSaisis(zone) {
+  const champs = { format: zone.querySelector('#format-course')?.value ?? '' };
+  zone.querySelectorAll('[data-segment]').forEach((i) => { champs[`${i.dataset.segment}.${i.dataset.champ}`] = i.value; });
+  return champs;
+}
+
 function sectionObjectif(o) {
   const v = o ?? { nom: '', date: '', sport: 'ENCHAINEMENT' };
   const options = SPORTS_OBJECTIF.map((c) => ({ valeur: c, libelle: libelleSport(c), icone: iconeSport(c, 18) }));
   return `<form class="carte" id="form-objectif" novalidate><h2 class="titre-icone">${icone('drapeau', 18)} Objectif</h2>
+    ${tableauObjectifs(o)}
     <div class="champ"><label for="nom-objectif">Course</label>
       <input id="nom-objectif" maxlength="80" value="${echapperHtml(v.nom)}" placeholder="Ex. Triathlon d'Annecy"></div>
     <div class="champ"><label for="date-objectif">Date</label><input type="date" id="date-objectif" value="${echapperHtml(v.date)}"></div>
     ${groupeChoix('sport-objectif', 'Sport', options, v.sport)}
+    <h3 class="sous-titre">Mes objectifs pour la course</h3>
+    <div id="champs-objectifs">${champsObjectifs(v.sport, v.objectifs)}</div>
     <div class="erreurs" id="erreurs-objectif" aria-live="polite"></div>
     <div class="pile"><button type="submit" class="bouton principal ecriture">${o ? "Enregistrer l'objectif" : "Définir l'objectif"}</button>
       ${o ? '<button type="button" class="bouton danger ecriture" id="supprimer-objectif">Supprimer l\'objectif</button>' : ''}</div>
@@ -171,11 +255,19 @@ export async function afficherObjectif(conteneur, segments = [], params = {}) {
 
   // F-80 : objectif.
   let sportObjectif = objectif?.sport ?? 'ENCHAINEMENT';
-  brancherChoix($('#form-objectif'), (champ, valeur) => { sportObjectif = valeur; });
+  brancherChoix($('#form-objectif'), (champ, valeur) => {
+    sportObjectif = valeur;
+    if (!valeur) return; // choix retiré : validerObjectif le signalera
+    $('#champs-objectifs').innerHTML = champsObjectifs(sportObjectif, sportObjectif === objectif?.sport ? objectif.objectifs : null); // F-89
+    brancherObjectifs($('#champs-objectifs'));
+  });
+  brancherObjectifs($('#champs-objectifs'));
   $('#form-objectif').addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const o = { ...(objectif ?? {}), id: objectif?.id, nom: $('#nom-objectif').value.trim(), date: $('#date-objectif').value, sport: sportObjectif };
-    const erreurs = validerObjectif(o, aujourdhui);
+    const saisis = lireObjectifsSaisis(champsSaisis($('#champs-objectifs')), sportObjectif); // F-89
+    o.objectifs = saisis.objectifs;
+    const erreurs = { ...validerObjectif(o, aujourdhui), ...saisis.erreurs };
     if (Object.keys(erreurs).length) { $('#erreurs-objectif').innerHTML = message('erreur', Object.values(erreurs).join(' ')); return; }
     try {
       await enregistrerObjectif(o);

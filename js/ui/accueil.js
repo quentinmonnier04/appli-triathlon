@@ -4,6 +4,7 @@
 import { lireTableauEnCache, rafraichirTableau } from '../api/tableau.js';
 import { lireAthlete } from '../api/athlete.js';
 import { lireObjectif } from '../api/objectif.js';
+import { tempsTotal } from '../logique/objectifs-course.js';
 import { lireAlluresSeuil } from '../api/profil.js';
 import { estPerime } from '../logique/activites.js';
 import { comparaisonMois, sportsParJour, volumeSemaine, totauxSemaine } from '../logique/totaux.js';
@@ -16,7 +17,7 @@ import {
 import { sport } from '../logique/sports.js';
 import { formaterDureeSaisie } from '../logique/seance.js';
 import {
-  echapperHtml, formaterDistance, formaterDureeLongue, formaterEntier, formaterDate, formaterJourMois,
+  echapperHtml, formaterDistance, formaterDuree, formaterDureeLongue, formaterEntier, formaterDate, formaterJourMois,
 } from '../logique/format.js';
 import {
   bandeauHorsLigne, carteActivite, messageErreurApi, pastilleSport, squelette, graphiqueSeance, boutonIcone, flecheLien,
@@ -60,12 +61,14 @@ function widgetObjectif(o) {
       ${flecheLien()}<p class="doux">Définis ta prochaine course et ton plan d'entraînement.</p></a>`;
   }
   const j = joursEntre(jourISO(), o.date);
+  const total = tempsTotal(o.objectifs, o.sport); // F-89
   return `<a class="carte carte-lien carte-objectif" href="#/objectif"><div class="etiquette-carte">Objectif</div>
     ${flecheLien()}
     <div class="objectif-ligne"><span class="pastille pastille-objectif">${icone('drapeau')}</span>
       <div class="carte-activite-titre"><strong>${echapperHtml(o.nom)}</strong>
         <span class="doux">${formaterDate(o.date)}</span></div>
-      <span class="compte-rebours">${j === 0 ? "Aujourd'hui" : `J-${j}`}</span></div></a>`;
+      <span class="compte-rebours">${j === 0 ? "Aujourd'hui" : `J-${j}`}</span></div>
+    ${total !== null ? `<p class="doux total-vise">Total visé ${echapperHtml(formaterDuree(total))}</p>` : ''}</a>`;
 }
 
 // F-63 : rappel discret pour chaque activité du jour sans RPE.

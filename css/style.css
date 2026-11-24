@@ -922,3 +922,12 @@ a.aujourdhui:active { transform: scale(0.99); }
 }
 .ligne-seance .graphique-seance { flex-basis: 100%; }
 .semaine-plan.debut-bloc { border-top: 2px solid var(--texte-2); margin-top: 8px; }
+
+/* --- Objectifs de course (F-89) --- */
+.sous-titre { margin: 16px 0 8px; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texte-2); }
+.segment-course { border: 0; border-top: 1px solid var(--filet); margin: 0; padding: 8px 0 0; min-width: 0; }
+.segment-course legend { padding: 0; font-weight: 800; }
+.trois-colonnes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: end; }
+.trois-colonnes .champ label { font-size: 12px; }
+.total-vise { margin: 0 0 8px; }
+.objectifs-course { margin-bottom: 12px; }
