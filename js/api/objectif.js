@@ -11,6 +11,7 @@ import { lireCache, ecrireCache, supprimerCachePrefixe } from '../cache/stockage
 import { estPerime } from '../logique/activites.js';
 import { sportDepuisType } from '../logique/sports.js';
 import { sportVersType } from '../logique/seance.js';
+import { texteVersObjectifs, fusionnerDescription, tempsTotal } from '../logique/objectifs-course.js';
 import { jourISO, ajouterJours } from '../logique/dates.js';
 
 // Sports proposés pour un objectif ; ENCHAINEMENT est présenté comme "Triathlon" (type Intervals.icu Transition).
@@ -23,12 +24,21 @@ export function convertirObjectif(brut) {
     nom: brut.name || 'Objectif',
     date: (brut.start_date_local ?? '').slice(0, 10),
     sport: sportDepuisType(brut.type),
+    objectifs: texteVersObjectifs(brut.description), // F-89 : temps visés par discipline
+    descriptionBrute: brut.description ?? '', // texte libre de la course, conservé à l'écriture
   };
 }
 
 // Objectif -> corps EventEx.
+// F-89 : objectifs dans la description (texte libre conservé) ; temps total visé dans time_target (à vérifier en réel).
 export function versEvenementObjectif(o) {
-  return { category: 'RACE_A', start_date_local: `${o.date}T00:00:00`, name: o.nom, type: sportVersType(o.sport) };
+  const corps = {
+    category: 'RACE_A', start_date_local: `${o.date}T00:00:00`, name: o.nom, type: sportVersType(o.sport),
+    description: fusionnerDescription(o.descriptionBrute ?? '', o.objectifs ?? null),
+  };
+  const total = tempsTotal(o.objectifs, o.sport);
+  if (total !== null) corps.time_target = total;
+  return corps;
 }
 
 // Prochain objectif, ou null ; cache de 5 min (ENF-11) sauf si "forcer" ; hors ligne, le cache fait foi.
@@ -39,7 +49,7 @@ export async function lireObjectif({ forcer = false } = {}) {
   let bruts;
   try {
     bruts = await requeteAuthentifiee('/athlete/0/events', {
-      oldest: jour, newest: ajouterJours(jour, 730), category: 'RACE_A', fields: 'id,start_date_local,name,type,category',
+      oldest: jour, newest: ajouterJours(jour, 730), category: 'RACE_A', fields: 'id,start_date_local,name,type,category,description',
     });
   } catch (e) {
     if (cache && e.type === 'RESEAU') return cache.donnees; // hors ligne : dernier objectif connu (ENF-06)

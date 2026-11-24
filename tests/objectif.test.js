@@ -10,8 +10,8 @@ import { validerObjectif } from '../js/logique/plan.js';
 test('objectif -> événement RACE_A et retour (triathlon = type Transition)', () => {
   const o = { nom: "Triathlon d'Annecy", date: '2027-06-14', sport: 'ENCHAINEMENT' };
   const corps = versEvenementObjectif(o);
-  assert.deepEqual(corps, { category: 'RACE_A', start_date_local: '2027-06-14T00:00:00', name: "Triathlon d'Annecy", type: 'Transition' });
-  assert.deepEqual(convertirObjectif({ id: 55, ...corps }), { id: '55', ...o });
+  assert.deepEqual(corps, { category: 'RACE_A', start_date_local: '2027-06-14T00:00:00', name: "Triathlon d'Annecy", type: 'Transition', description: '' });
+  assert.deepEqual(convertirObjectif({ id: 55, ...corps }), { id: '55', ...o, objectifs: null, descriptionBrute: '' });
   assert.equal(convertirObjectif({ id: 1, start_date_local: '2027-04-04T00:00:00', type: 'Run' }).sport, 'CAP');
   assert.deepEqual(SPORTS_OBJECTIF, ['ENCHAINEMENT', 'CAP', 'VELO', 'NATATION']);
 });

@@ -27,6 +27,7 @@ const FICHIERS = [
   './js/api/objectif.js',
   './js/api/preparation.js',
   './js/logique/blocs.js',
+  './js/logique/objectifs-course.js',
   './js/api/plan.js',
   './js/cache/stockage.js',
   './js/logique/connexion.js',
