@@ -213,6 +213,34 @@ flowchart LR
 | F-88 | Bibliothèque « Mes séances » et blocs à contenu propre : chaque bloc a un nom, une durée et sa grille de la semaine ; une séance peut être placée dans plusieurs blocs ; le volume continue de monter de bloc en bloc ; migration de l'ancienne semaine type sans changer le plan en cours (ajouté le 24/11/2026, D-22) | M | L8 |
 | F-89 | Objectifs de course par discipline et transitions (temps ou allure, T1, T2), temps total visé affiché sur l'écran Objectif et l'accueil (ajouté le 24/11/2026, D-22) | S | L8 |
 
+### J. Analyse d'une activité (ajouté le 26/11/2026, D-31)
+
+Détail d'une activité (E-03) organisé en onglets sur mobile : Résumé · Graphiques · Zones · Intervalles · Courbe. Numéros F-100 et suivants : F-80 à F-89 sont déjà pris par L8.
+
+| ID | Fonction | Prio | Lot |
+|---|---|---|---|
+| F-100 | Résumé : sport, date et heure, nom, distance, durée, vitesse ou allure moyenne, dénivelé, charge, intensité, RPE et sensation ; puis, seulement si les données existent : puissance normalisée et moyenne, variabilité, FC moyenne et max, cadence, travail (kJ), calories. Une donnée absente ne s'affiche pas | M | LA |
+| F-101 | Graphiques : chronologie empilée sur un même axe (temps ou distance, au choix) : puissance, FC, cadence, vitesse ou allure, altitude, selon les flux disponibles ; intervalles en bandes ; curseur commun qui lit toutes les valeurs au même instant ; plein écran en paysage | M | LA |
+| F-102 | Intervalles : tableau des intervalles d'Intervals.icu (durée, puissance moyenne, FC moyenne et max, cadence, allure, pente, intensité, zone), filtre Travail / Tout / Récupération, ligne de moyenne ; toucher un intervalle le met en évidence sur la chronologie | M | LA |
+| F-103 | Zones : temps et pourcentage par zone (puissance pour le vélo, FC pour tous, allure pour course et natation), bornes et noms des zones d'Intervals.icu | M | LA |
+| F-104 | Histogramme : répartition du temps par tranche de puissance (vélo) ou d'allure (course, natation) | S | LA |
+| F-105 | Courbe : courbe de puissance (ou d'allure) de l'activité comparée aux 42 derniers jours, et tableau des meilleurs efforts (5 s, 1 min, 5 min, 20 min ; 400 m, 1 km, 5 km ; 100 m, 400 m), en valeur absolue et en W/kg quand c'est pertinent | M | LA |
+| F-106 | Activités sur le même parcours (`route_id` d'Intervals.icu), si elles existent | C | LA |
+
+### K. Performances (ajouté le 26/11/2026, D-31)
+
+Écran E-12 « Performances », ouvert depuis le Profil : un onglet par sport (Vélo · Course · Natation), sélecteur de période (42 jours, 90 jours, cette année, tout) et comparaison de deux périodes.
+
+| ID | Fonction | Prio | Lot |
+|---|---|---|---|
+| F-110 | Vélo : courbe de puissance de 1 s à plus de 2 h, en W ou en W/kg | M | LP |
+| F-111 | Course : courbe d'allure (meilleurs temps du 400 m au semi-marathon), et courbe de puissance si les données existent | M | LP |
+| F-112 | Natation : courbe d'allure (100 m, 200 m, 400 m, 1 500 m) | M | LP |
+| F-113 | FC : courbe de FC maximale tenue selon la durée, pour chaque sport | S | LP |
+| F-114 | Tableau des meilleurs efforts par durée ou distance, avec la date et un lien vers l'activité | M | LP |
+| F-115 | Évolution de l'eFTP dans le temps (l'API ne donne pas d'historique de l'allure seuil ni de la CSS) | C | LP |
+| F-116 | Widget « Records récents » sur le tableau de bord, seulement si Intervals.icu indique lui-même les records (à vérifier) et si l'accueil reste lisible | C | LP |
+
 ---
 
 ## 3. Exigences non fonctionnelles
@@ -393,6 +421,9 @@ flowchart LR
     L4 --> L5["L5 Profil"]
     L5 --> L6["L6 Ressenti et bien-etre"]
     L6 --> L7["L7 Cartes"]
+    L7 --> L8["L8 Objectif et plan"]
+    L8 --> LA["LA Analyse d'une activite"]
+    LA --> LP["LP Performances"]
 ```
 
 | Lot | But | Fonctions | Exigences clés |
@@ -406,6 +437,8 @@ flowchart LR
 | **L6 Ressenti et bien-être** | Noter mon ressenti au même endroit que mes données | F-60 à F-63 | ENF-07 |
 | **L7 Cartes** | Voir mes parcours | F-70, F-71 | ENF-12, 26 |
 | **L8 Objectif et plan** | Préparer une course par blocs de séances et une surcharge progressive | F-80 à F-89 | ENF-05, 07, 11 |
+| **LA Analyse d'une activité** | Comprendre une séance en détail (graphiques, zones, intervalles, courbe) | F-100 à F-106 | ENF-02, 09, 11, 19, 25 |
+| **LP Performances** | Suivre mes meilleures performances par sport et leur évolution | F-110 à F-116 | ENF-09, 11, 19 |
 
 **Mise en ligne (GitHub Pages)** : quand je le décide, après L2 au plus tôt. Nécessaire pour installer l'appli sur mon téléphone.
 
@@ -456,6 +489,7 @@ flowchart LR
 | E-07 | Réglages | `#/reglages` (icône engrenage sur Profil, ou directe avant L5) | L0 |
 | E-08 | Bilan du jour | `#/bilan?date=…` | L6 |
 | E-09 | Objectif et plan | `#/objectif?bloc=N` ; Mes séances : `#/seance-type/nouvelle` (`?bloc=N&jour=J&heure=hh:mm` pour la placer), `#/seance-type/{id}` ; placement : `#/placer?bloc=N&jour=J&heure=hh:mm`, `#/emplacement?bloc=N&n=K` | L8 |
+| E-12 | Performances (ouvert depuis le Profil) | `#/performances?sport=VELO\|CAP\|NATATION&periode=42j\|90j\|annee\|tout` (comparaison : `&comparer=...`) | LP |
 | E-11 | Historique de la forme (ouvert uniquement depuis le widget Forme de l'accueil) | `#/forme?periode=6s\|3m\|1a` (3 mois par défaut) | L2 |
 | E-10 | Mes séances (banque de séances par sport et par type, ouverte depuis le Profil) | `#/seances?sport=CODE` (filtre facultatif) ; l'éditeur ouvert d'ici revient ici (`?retour=seances`) | L8 |
 
@@ -519,6 +553,8 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | L5 | Mes totaux et seuils correspondent à Intervals.icu |
 | L6 | Le RPE saisi dans l'appli apparaît sur l'activité dans Intervals.icu ; le bilan du jour apparaît dans ses données wellness |
 | L7 | Le tracé de ma dernière sortie vélo s'affiche correctement |
+| LA | Sur une vraie sortie vélo et une vraie course, les onglets montrent les mêmes valeurs qu'Intervals.icu (résumé, intervalles, zones, meilleurs efforts) ; le curseur lit toutes les courbes au même instant ; l'écran reste fluide sur mon téléphone |
+| LP | Mes courbes de puissance, d'allure et de FC et mes meilleurs efforts correspondent à ceux d'Intervals.icu pour chaque période ; la comparaison de deux périodes est lisible sur mon téléphone |
 | L8 | Je définis ma course et mes objectifs, je construis mes blocs avec Mes séances, l'aperçu montre le volume qui monte de bloc en bloc, les séances arrivent dans Intervals.icu puis sur ma montre, et une régénération ne touche pas mes séances manuelles |
 
 ---
@@ -551,6 +587,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | D-22 | 24/11/2026 | L8, évolution (conception `docs/superpowers/specs/2026-11-24-blocs-bibliotheque-objectifs-design.md`, plan `docs/superpowers/plans/2026-11-24-blocs-bibliotheque-objectifs.md`) : la semaine type unique devient une bibliothèque « Mes séances » et des blocs ayant chacun sa grille (approche A : séances = séances de bibliothèque du dossier renommé « Mes séances (appli triathlon) » ; blocs et réglages = JSON après un en-tête dans la description du dossier ; description illisible = aucune écriture). Volume : le bloc 1 part de sa grille, chaque bloc monte de `hausse` points du volume du bloc 1, coupure en dernière semaine sauf pour le dernier bloc, le bloc suivant repart en heures du niveau de la dernière hausse (sa grille est mise à l'échelle), affûtage sur la grille du dernier bloc. Le plan se cale à rebours depuis la course (plus de date de début ni de semaines de hausse par bloc) ; chaque envoi demande confirmation. Migration automatique fidèle : autant de blocs que de cycles de l'ancien plan, `coupure` forcée sur un dernier cycle complet, vérifiée contre l'ancien calcul (gardé comme référence figée dans `tests/reference/ancien-plan.js`). Objectifs de course (F-89) : ligne gérée par l'appli dans la description de la course (texte libre conservé), temps total dans `time_target` (à vérifier en réel). Mes séances proposées comme modèles (F-47), sauf les repos. Nouveaux fichiers : `logique/blocs.js`, `logique/objectifs-course.js`, `api/preparation.js` (remplace `api/semaine-type.js`), `ui/blocs.js`, `ui/placement.js`. |
 | D-23 | 24/11/2026 | ENF-16 terminé : choix du thème dans Réglages (Automatique, Clair, Sombre), appliqué tout de suite et enregistré dans le store `reglages` (champ `theme`, déjà prévu en 4.2). Attribut `data-theme` sur `<html>` lu par `css/style.css` ; sans attribut, la page suit le téléphone. La couleur de la barre du navigateur suit le choix. « Se déconnecter » efface aussi ce réglage (retour en automatique). Nouveaux fichiers : `logique/theme.js`, `ui/theme.js`. |
 | D-24 | 24/11/2026 | Banque de séances accessible depuis le Profil : carte « Mes séances » qui ouvre l'écran E-10 (`#/seances`, `ui/seances.js`), avec la même liste que dans Objectif et plan (`sectionMesSeances`). Ouvert depuis cet écran, l'éditeur de séance (`#/seance-type/...?retour=seances`, valeur contrôlée) revient à `#/seances` après un enregistrement ou une suppression ; le placement dans un bloc reste dans Objectif et plan. Aucune nouvelle fonction de données (F-88). |
+| D-31 | 26/11/2026 | Ajout de deux lots après L8, validés le 26/11/2026 : LA « Analyse d'une activité » (F-100 à F-106, onglets de E-03) et LP « Performances » (F-110 à F-116, nouvel écran E-12). Numéros décalés : F-80 à F-89 et E-09 à E-11 étaient déjà pris. Données uniquement depuis l'API, endpoints relevés dans la spécification OpenAPI officielle (https://intervals.icu/api/v1/docs) : `GET /activity/{id}/streams` (`types`), `/intervals`, `/power-curve`, `/pace-curve`, `/hr-curve`, `/power-histogram`, `/hr-histogram`, `/pace-histogram`, `/best-efforts` ; `GET /athlete/{id}/power-curves`, `/pace-curves`, `/hr-curves` (`type`, `curves`, `newest`) ; wellness `sportInfo.eftp` (F-115) ; `route_id` et `GET /athlete/{id}/activities?route_id=` (F-106). Absents de l'API : activités « similaires » par type de séance, historique de l'allure seuil et de la CSS. À confirmer sur le forum officiel avant usage : noms des flux (`watts`, `heartrate`...) et codes de période du paramètre `curves`, absents de la spécification. Graphiques en SVG dessiné à la main ; réduction des points par une fonction pure qui garde les pics. Pas de calcul d'analyse refait dans l'appli (1.7). Affichage : gabarits HTML avec `echapperHtml` (D-21, contrôlé par `tests/securite.test.js`), choix confirmé pour ces lots. Pas de captures de référence : design E seul. |
 | D-30 | 26/11/2026 | Séances virtuelles (MyWhoosh, Zwift : types `VirtualRide`, `VirtualRun`...) : la carte a d'abord été masquée comme sur Intervals.icu, puis ce choix a été annulé le même jour à ma demande. La carte s'affiche avec les positions écrites par l'appli virtuelle (MyWhoosh place ses parcours au Moyen-Orient, même un parcours « Canada ») : le fichier ne permet pas de retrouver un autre lieu, l'appli ne déplace jamais un tracé. `schema_version` du cache passe à 5 (cache vidé une fois). |
 | D-29 | 26/11/2026 | Corrige D-28 : l'écran Objectif garde le récapitulatif par discipline et transitions avec le total visé ; en lecture, les champs des objectifs de course sont masqués (ils montraient la même chose) et réapparaissent avec le crayon. La banque Mes séances n'est plus affichée sur l'écran Objectif et plan (elle est dans le Profil, E-10) ; on place ou crée une séance depuis une case de bloc. Accueil : la dernière activité montre une vraie petite carte (fond OpenStreetMap, Leaflet, sans interaction : le toucher ouvre l'activité) au lieu du tracé dessiné sur fond gris ; le fil des activités garde le tracé dessiné. |
 | D-28 | 26/11/2026 | Objectif : seul le « Total visé » reste au-dessus des champs (le détail par discipline faisait doublon). Le bouton retour de l'écran Objectif et plan mène toujours à l'accueil. Accueil : aperçu du tracé GPS (F-71) sous la dernière activité (remplacé par une petite carte, D-29). Agenda (F-30, F-31, F-35) : toutes les vues ne listent que les jours qui ont du prévu ou du réalisé, du plus récent au plus ancien (jours à venir en haut, puis aujourd'hui, puis le passé) ; la vue mois garde sa grille, avec la liste des jours du mois dessous ; toucher un jour occupé descend jusqu'à lui, un jour vide propose « Programmer ce jour ». Nouvelle fonction pure `joursAffiches` (`logique/agenda.js`). |
@@ -575,6 +612,9 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | L8 | Validé en réel le 24/11/2026 pour la semaine type unique ; évolution blocs, Mes séances et objectifs de course (F-88, F-89) codée, recette PC faite (Intervals.icu simulé) ; test réel à faire |
 
 **Ancien code v1.0** : supprimé (commit « Suppression du code v1.0 »), récupérable dans l'historique git.
+
+| LA | Plan validé le 26/11/2026 (D-31) ; en cours |
+| LP | Plan validé le 26/11/2026 (D-31) ; à faire après LA |
 
 **Mise en ligne :** faite le 26/11/2026 sur GitHub Pages (https://quentinmonnier04.github.io/appli-triathlon/).
 
