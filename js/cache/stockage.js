@@ -8,7 +8,7 @@ const STORES = ['reglages', 'cache', 'meta'];
 // Format du cache (4.2) : l'incrémenter vide simplement le cache.
 // Version 2 (L6) : les activités en cache portent le RPE (rappel F-63).
 // Version 3 (L7) : les activités en cache indiquent si elles ont un tracé GPS (a_gps).
-const SCHEMA_VERSION = 4; // 4 : a_gps faux pour les séances virtuelles (D-30)
+const SCHEMA_VERSION = 5; // 5 : retour des cartes des séances virtuelles (D-30 annulée)
 
 let connexion = null;
 
