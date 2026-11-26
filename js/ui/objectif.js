@@ -13,7 +13,7 @@ import {
 import { genererPlanBlocs, grilleDuBloc, blocsVides, migrerAncienFormat } from '../logique/blocs.js';
 import { jourISO, ajouterJours } from '../logique/dates.js';
 import { sport } from '../logique/sports.js';
-import { echapperHtml, formaterDureeLongue, formaterDuree, formaterDistance, formaterVitesse, decouperUnite } from '../logique/format.js';
+import { echapperHtml, formaterDureeLongue, formaterDuree, formaterVitesse, decouperUnite } from '../logique/format.js';
 import {
   FORMATS_COURSE, segmentsDeLaCourse, lireObjectifsSaisis, tempsTotal, tempsDepuisAllure, lireTempsCourse,
 } from '../logique/objectifs-course.js';
@@ -45,16 +45,10 @@ const UNITES = { NATATION: 'min/100 m', VELO: 'km/h', CAP: 'min/km' };
 
 // Tableau des objectifs enregistrés et temps total visé (conception 5.6).
 function tableauObjectifs(o) {
+  // D-28 : seul le total visé est affiché ; le détail par discipline est déjà dans les champs dessous.
   if (!o?.objectifs) return '';
   const total = tempsTotal(o.objectifs, o.sport);
-  const lignes = segmentsDeLaCourse(o.sport).map((seg) => {
-    const x = o.objectifs.segments[seg];
-    if (!x) return '';
-    return `<tr><th scope="row">${echapperHtml(LIBELLES_SEGMENT[seg])}</th><td>${x.distance_m ? echapperHtml(formaterDistance(x.distance_m, seg)) : ''}</td>
-      <td>${echapperHtml(formaterDuree(x.temps_s))}</td><td>${estTransition(seg) ? '' : echapperHtml(formaterVitesse(seg, x.distance_m, x.temps_s) ?? '')}</td></tr>`;
-  }).join('');
-  return `<div class="objectifs-course">${total !== null ? `<p class="total-vise">Total visé : <strong>${echapperHtml(formaterDuree(total))}</strong></p>` : ''}
-    <div class="tableau-defilant"><table class="intervalles"><tbody>${lignes}</tbody></table></div></div>`;
+  return total !== null ? `<p class="total-vise">Total visé : <strong>${echapperHtml(formaterDuree(total))}</strong></p>` : '';
 }
 
 // Champs de saisie : format (triathlon), puis distance, temps et allure par discipline ; temps seul pour T1 et T2.
@@ -181,7 +175,7 @@ export async function afficherObjectif(conteneur, segments = [], params = {}) {
     <span class="titre-petit">Objectif et plan</span><span class="espace-bouton"></span></div>
     <div id="ecran-objectif">${squelette()}${squelette()}</div>`;
   const zone = conteneur.querySelector('#ecran-objectif');
-  conteneur.querySelector('.entete a').addEventListener('click', (ev) => { if (history.length > 1) { ev.preventDefault(); history.back(); } });
+  // D-28 : le retour mène toujours à l'accueil (l'historique peut contenir l'éditeur et les écrans du bloc).
 
   let objectif;
   let lue;

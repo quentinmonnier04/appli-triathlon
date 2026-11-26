@@ -1038,3 +1038,6 @@ form.carte.en-lecture > h2, form.carte.en-lecture > .titre-icone { padding-right
 .en-lecture .filtre, .en-lecture .bascule button { opacity: 1; cursor: default; }
 .ligne-crayon { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
 .ligne-crayon .etiquette-champ { margin: 0; }
+/* Jour touché dans la grille du mois, retrouvé dans la liste (D-28) */
+.jour-agenda.choisi .titre-jour { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; color: var(--texte); }
+.jour-agenda { scroll-margin-top: 12px; }

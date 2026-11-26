@@ -46,3 +46,16 @@ test('totaux de la période (F-33) : valeurs absentes = 0', () => {
   ]), { duree_s: 5400, distance_m: 10000, denivele_m: 120, nombre: 2 });
   assert.deepEqual(totauxPeriode([]), { duree_s: 0, distance_m: 0, denivele_m: 0, nombre: 0 });
 });
+
+// D-28 : jours occupés seulement, du plus récent au plus ancien.
+import { joursAffiches } from '../js/logique/agenda.js';
+test('jours affichés : occupés seulement, ordre décroissant', () => {
+  const parJour = {
+    '2026-11-23': { prevues: [], activites: [{}] },
+    '2026-11-24': { prevues: [], activites: [] },
+    '2026-11-27': { prevues: [{}], activites: [] },
+    '2026-12-01': { prevues: [{}], activites: [] },
+  };
+  assert.deepEqual(joursAffiches('2026-11-23', '2026-11-29', parJour), ['2026-11-27', '2026-11-23']);
+  assert.deepEqual(joursAffiches('2026-11-23', '2026-11-29', {}), []);
+});

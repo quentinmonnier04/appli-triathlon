@@ -47,3 +47,14 @@ export function elementsParJour(activites, prevues) {
   for (const j of Object.values(parJour)) j.activites.sort((x, y) => ((x.heure ?? '') < (y.heure ?? '') ? -1 : 1));
   return parJour;
 }
+
+// Jours listés dans l'agenda (D-28) : seulement ceux qui ont du prévu ou du réalisé, du plus récent au plus ancien
+// (les jours à venir en haut, puis aujourd'hui, puis le passé), pour toutes les vues.
+export function joursAffiches(debut, fin, parJour) {
+  const jours = [];
+  for (let d = fin; d >= debut; d = ajouterJours(d, -1)) {
+    const e = parJour[d];
+    if (e && (e.prevues.length || e.activites.length)) jours.push(d);
+  }
+  return jours;
+}

@@ -2,10 +2,10 @@
 // en plein (F-32), totaux de la période (F-33), détail d'un jour (F-34). Cache d'abord (5.5, ENF-06, ENF-11).
 
 import { lirePeriodeEnCache, rafraichirPeriode } from '../api/agenda.js';
-import { VUES, periodeAgenda, deplacerPeriode, libellePeriode, elementsParJour } from '../logique/agenda.js';
+import { VUES, periodeAgenda, deplacerPeriode, libellePeriode, elementsParJour, joursAffiches } from '../logique/agenda.js';
 import { totauxPeriode } from '../logique/totaux.js';
 import { estPerime } from '../logique/activites.js';
-import { grilleMois, jourISO, ajouterJours } from '../logique/dates.js';
+import { grilleMois, jourISO } from '../logique/dates.js';
 import { sport } from '../logique/sports.js';
 import {
   echapperHtml, formaterDateHeure, formaterDistance, formaterDureeLongue, formaterEntier,
@@ -54,12 +54,11 @@ function vueMois(date, parJour, jourChoisi, aujourdhui) {
     <div class="legende"><span class="legende-plein">Réalisé</span><span class="legende-contour">Prévu</span></div>`;
 }
 
-// F-31 / F-35 : liste jour par jour. En semaine, tous les jours ; sur 30 jours, seulement les jours occupés.
-function vueListe(debut, fin, parJour, aujourdhui, tousLesJours) {
-  const jours = [];
-  for (let d = debut; d <= fin; d = ajouterJours(d, 1)) if (tousLesJours || parJour[d]) jours.push(d);
+// F-31 / F-35, D-28 : liste jour par jour, seulement les jours occupés, du plus récent au plus ancien (toutes les vues).
+function vueListe(debut, fin, parJour, aujourdhui) {
+  const jours = joursAffiches(debut, fin, parJour);
   if (!jours.length) return '<p class="doux jour-vide">Rien sur cette période.</p>';
-  return jours.map((d) => `<section class="jour-agenda">
+  return jours.map((d) => `<section class="jour-agenda" id="jour-${d}">
     <h2 class="titre-jour${d === aujourdhui ? ' aujourdhui' : ''}">${echapperHtml(formaterDateHeure(d, null))}${d === aujourdhui ? ' · aujourd\'hui' : ''}</h2>
     ${contenuJour(parJour[d])}</section>`).join(''); // pas de bouton par jour : le + de la barre suffit
 }
@@ -88,20 +87,29 @@ export async function afficherAgenda(conteneur, segments, params = {}) {
     ${contientAujourdhui ? '' : `<div class="retour-aujourdhui"><a class="bouton" href="${lien(vue, aujourdhui)}">Revenir à aujourd'hui</a></div>`}
     <div id="etat"></div>
     <div id="totaux"></div>
-    <div id="contenu"></div>
-    <div id="jour"></div>`;
+    <div id="contenu"></div>`;
 
   const $ = (sel) => conteneur.querySelector(sel);
   const contenu = $('#contenu');
   let donnees = null;
 
-  // F-34 : liste du jour choisi sous la grille du mois.
-  function afficherJour() {
+  // F-34, D-28 : jour touché dans la grille du mois. Un jour occupé est déjà dans la liste sous la grille : on y
+  // descend. Un jour vide affiche un message et le bouton pour y programmer une séance.
+  function afficherJour(defiler = false) {
     if (vue !== 'mois' || !donnees) return;
-    const parJour = elementsParJour(donnees.activites, donnees.prevues);
-    $('#jour').innerHTML = jourChoisi
-      ? `<h2 class="titre-jour">${echapperHtml(formaterDateHeure(jourChoisi, null))}</h2>${contenuJour(parJour[jourChoisi])}
-        <a class="bouton bouton-programmer" href="#/seance/nouvelle?date=${jourChoisi}">${icone('plus', 18)} Programmer ce jour</a>`
+    const zoneJour = $('#jour-vide');
+    if (!zoneJour) return;
+    contenu.querySelectorAll('.jour-agenda.choisi').forEach((x) => x.classList.remove('choisi'));
+    const section = jourChoisi ? $(`#jour-${jourChoisi}`) : null;
+    if (section) {
+      zoneJour.innerHTML = '';
+      section.classList.add('choisi');
+      if (defiler) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    zoneJour.innerHTML = jourChoisi
+      ? `<div class="carte"><h2 class="titre-jour">${echapperHtml(formaterDateHeure(jourChoisi, null))}</h2><p class="doux jour-vide">Rien ce jour-là.</p>
+        <a class="bouton bouton-programmer" href="#/seance/nouvelle?date=${jourChoisi}">${icone('plus', 18)} Programmer ce jour</a></div>`
       : '';
   }
 
@@ -109,8 +117,8 @@ export async function afficherAgenda(conteneur, segments, params = {}) {
     const parJour = elementsParJour(donnees.activites, donnees.prevues);
     $('#totaux').innerHTML = blocTotaux(donnees.activites);
     contenu.innerHTML = vue === 'mois'
-      ? vueMois(date, parJour, jourChoisi, aujourdhui)
-      : vueListe(debut, fin, parJour, aujourdhui, vue === 'semaine');
+      ? `${vueMois(date, parJour, jourChoisi, aujourdhui)}<div id="jour-vide"></div>${vueListe(debut, fin, parJour, aujourdhui)}`
+      : vueListe(debut, fin, parJour, aujourdhui);
     afficherJour();
   }
 
@@ -146,7 +154,7 @@ export async function afficherAgenda(conteneur, segments, params = {}) {
     contenu.querySelectorAll('.case-agenda.choisi').forEach((c) => { c.classList.remove('choisi'); c.setAttribute('aria-pressed', 'false'); });
     caseJour.classList.add('choisi');
     caseJour.setAttribute('aria-pressed', 'true');
-    afficherJour();
+    afficherJour(true);
   });
   $('#rafraichir').addEventListener('click', rafraichir);
 

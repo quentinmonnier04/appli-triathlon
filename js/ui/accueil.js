@@ -23,6 +23,7 @@ import {
   bandeauHorsLigne, carteActivite, messageErreurApi, pastilleSport, squelette, graphiqueSeance, boutonIcone, flecheLien,
 } from './composants.js';
 import { icone, iconeSport } from './icones.js';
+import { remplirApercus } from './carte.js';
 
 const LARGEUR_COURBE = 150;
 const HAUTEUR_COURBE = 34;
@@ -84,10 +85,10 @@ function lienBilan(jour) {
     <p class="doux">Fatigue, sommeil, douleurs, poids : note ta journée.</p></a>`;
 }
 
-// F-21 : dernière activité, qui ouvre son détail.
+// F-21 : dernière activité, qui ouvre son détail ; tracé GPS dessous quand elle en a un (F-71, D-28).
 function widgetDerniereActivite(derniere) {
   if (!derniere) return '';
-  return carteActivite(derniere, { grille: true, prefixeDate: 'Dernière activité' });
+  return carteActivite(derniere, { grille: true, prefixeDate: 'Dernière activité', apercu: true });
 }
 
 // F-23 : TSB en grand avec sa phrase (9.4), CTL et ATL, jauge en 4 segments avec un repère.
@@ -206,6 +207,7 @@ export async function afficherAccueil(conteneur) {
   function afficher(t) {
     zone.innerHTML = rendreTableau(t, allures);
     appliquerBarres(zone);
+    remplirApercus(zone); // F-71 : tracé de la dernière activité
   }
 
   async function rafraichir() {
