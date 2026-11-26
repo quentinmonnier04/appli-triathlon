@@ -181,3 +181,63 @@ export function zonesDetaillees(temps, zones = []) {
 export function classeZone(numero) {
   return `zone-c${Math.min(6, Math.max(1, numero))}`;
 }
+
+// Aire sous une série (altitude, F-101) : chaque morceau continu est fermé vers le bas séparément. Avec une pause
+// (trou dans la série), on obtient plusieurs aires au lieu d'une forme déformée qui relierait les morceaux.
+export function cheminAire(xs, ys, indices, versX, versY, bas) {
+  const morceaux = [];
+  let courant = [];
+  for (const i of indices) {
+    const y = ys[i];
+    if (y === null || y === undefined || Number.isNaN(y)) { if (courant.length) morceaux.push(courant); courant = []; continue; }
+    courant.push([Math.round(versX(xs[i]) * 10) / 10, Math.round(versY(y) * 10) / 10]);
+  }
+  if (courant.length) morceaux.push(courant);
+  return morceaux.filter((m) => m.length > 1)
+    .map((m) => `M${m[0][0]},${bas}${m.map(([x, y]) => `L${x},${y}`).join('')}L${m[m.length - 1][0]},${bas}Z`).join('');
+}
+
+// --- Meilleurs efforts d'une activité (F-105, D-33) ---
+// Durées (vélo, et course avec puissance) et distances (course, natation) cherchées, limitées à ce que la séance
+// permet (une séance de 40 min n'a pas de meilleur effort sur 1 h).
+export const DUREES_PUISSANCE = [1, 5, 15, 30, 60, 300, 600, 1200, 3600];
+export const DISTANCES_COURSE = [400, 1000, 5000, 10000, 21097];
+export const DISTANCES_NATATION = [100, 200, 400, 1000, 1500];
+
+// Recherches à faire pour une activité : [{ cle, stream, duree } | { cle, stream, distance }].
+// Puissance : flux "watts" (vélo, ou course avec capteur) ; allure : flux de vitesse (course, natation).
+export function effortsAChercher(a) {
+  const flux = a.flux ?? [];
+  const liste = [];
+  if (flux.includes('watts') && (a.sport === 'VELO' || a.sport === 'CAP')) {
+    for (const d of DUREES_PUISSANCE) if (!a.duree_s || d <= a.duree_s) liste.push({ cle: `w${d}`, stream: 'watts', duree: d });
+  }
+  const distances = a.sport === 'CAP' ? DISTANCES_COURSE : a.sport === 'NATATION' ? DISTANCES_NATATION : [];
+  if (flux.includes('velocity_smooth')) {
+    for (const m of distances) if (!a.distance_m || m <= a.distance_m) liste.push({ cle: `d${m}`, stream: 'velocity_smooth', distance: m });
+  }
+  return liste;
+}
+
+// Libellé d'une durée d'effort (1 s, 30 s, 5 min, 1 h) ou d'une distance (400 m, 1 km, semi).
+export function libelleEffort(r) {
+  if (r.duree) return r.duree < 60 ? `${r.duree} s` : r.duree < 3600 ? `${r.duree / 60} min` : `${r.duree / 3600} h`;
+  if (r.distance === 21097) return 'Semi';
+  return r.distance >= 1000 ? `${String(r.distance / 1000).replace('.', ',')} km` : `${r.distance} m`;
+}
+
+// Pauses (F-101) : indices où le temps saute de plus de "seuil" secondes depuis le point précédent. Sur l'axe du temps,
+// le trait est coupé à ces endroits au lieu de relier l'avant et l'après de la pause par une diagonale.
+export function indicesApresPause(temps, seuil = 15) {
+  const indices = [];
+  for (let i = 1; i < temps.length; i += 1) if (temps[i] - temps[i - 1] > seuil) indices.push(i);
+  return indices;
+}
+
+// Copie d'une série avec un trou au premier point après chaque pause (la valeur reste lisible au curseur).
+export function couperAuxPauses(ys, indices) {
+  if (!indices.length) return ys;
+  const copie = ys.slice();
+  for (const i of indices) copie[i] = null;
+  return copie;
+}

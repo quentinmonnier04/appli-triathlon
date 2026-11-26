@@ -3,8 +3,9 @@
 // et la réduction des points viennent de logique/analyse.js. Toute donnée de l'API passe par echapperHtml (D-21).
 
 import {
-  reduirePoints, indiceProche, graduations, etendue, cheminSerie, formaterIntensite, valeursFacultatives,
-  FILTRES_INTERVALLES, filtrerIntervalles, moyenneIntervalles, zonesDetaillees, classeZone,
+  reduirePoints, indiceProche, graduations, etendue, cheminSerie, cheminAire, formaterIntensite, valeursFacultatives,
+  FILTRES_INTERVALLES, filtrerIntervalles, moyenneIntervalles, zonesDetaillees, classeZone, libelleEffort,
+  indicesApresPause, couperAuxPauses,
 } from '../logique/analyse.js';
 import { zonesDuSport } from '../logique/profil.js';
 import { RESSENTIS, libelleEchelle } from '../logique/ressenti.js';
@@ -20,6 +21,7 @@ export const ONGLETS = [
   { code: 'graphiques', libelle: 'Graphiques' },
   { code: 'zones', libelle: 'Zones' },
   { code: 'intervalles', libelle: 'Intervalles' },
+  { code: 'top', libelle: 'Top' },
 ];
 
 export function rendreOnglets(disponibles, actif) {
@@ -116,6 +118,29 @@ export function rendreIntervalles(intervalles, sportCode, filtre, choisi = null)
   </div>`;
 }
 
+// --- F-105 : meilleurs efforts de l'activité (D-33) ---
+
+// Puissance : W et W/kg (poids du jour de l'activité) ; allure : temps et allure sur la distance.
+export function rendreTop(efforts, a) {
+  const puissance = efforts.filter((e) => e.duree);
+  const allure = efforts.filter((e) => e.distance);
+  if (!puissance.length && !allure.length) return '<div class="carte"><p class="doux">Pas de meilleurs efforts pour cette activité.</p></div>';
+  const ligne = (e, cellules) => `<tr data-effort="${echapperHtml(e.cle)}" tabindex="0" aria-label="${echapperHtml(libelleEffort(e))} : le montrer sur les graphiques">
+    <th scope="row">${echapperHtml(libelleEffort(e))}</th>${cellules.map((c) => `<td>${echapperHtml(c)}</td>`).join('')}</tr>`;
+  const avecWkg = a.poids_kg > 0;
+  const wkg = (w) => String(Math.round((w / a.poids_kg) * 100) / 100).replace('.', ',');
+  const tetePuissance = `<th scope="col">Durée</th><th scope="col">Puissance</th>${avecWkg ? '<th scope="col">W/kg</th>' : ''}`;
+  const blocPuissance = puissance.length ? `<div class="carte"><h2>Top puissance</h2>
+    <div class="tableau-defilant"><table class="intervalles tableau-analyse"><thead><tr>${tetePuissance}</tr></thead>
+    <tbody>${puissance.map((e) => ligne(e, [`${formaterEntier(e.moyenne)} W`, ...(avecWkg ? [wkg(e.moyenne)] : [])])).join('')}</tbody></table></div></div>` : '';
+  const titreAllure = a.sport === 'NATATION' ? 'Top natation' : 'Top course';
+  const blocAllure = allure.length ? `<div class="carte"><h2>${titreAllure}</h2>
+    <div class="tableau-defilant"><table class="intervalles tableau-analyse"><thead><tr><th scope="col">Distance</th><th scope="col">Temps</th><th scope="col">Allure</th></tr></thead>
+    <tbody>${allure.map((e) => ligne(e, [formaterDuree(e.duree_s) ?? '', formaterVitesse(a.sport, e.distance_m ?? e.distance, e.duree_s) ?? ''])).join('')}</tbody></table></div></div>` : '';
+  return `${blocPuissance}${blocAllure}
+  <p class="doux petit-texte">Meilleurs efforts calculés par Intervals.icu sur cette séance. Touche une ligne pour la voir sur les graphiques.</p>`;
+}
+
 // --- F-101 : chronologie ---
 
 // Séries dessinées, dans l'ordre d'affichage. lire(v, sport) : valeur affichée (nombre) ; texte(v, sport) : lecture.
@@ -144,8 +169,13 @@ function preparer(flux, sportCode, axe) {
   const n = Math.max(...Object.values(flux).map((d) => d.length), 0);
   const temps = flux.time ?? Array.from({ length: n }, (_, i) => i);
   const xs = axe === 'distance' && flux.distance ? flux.distance : temps;
+  // Sur l'axe du temps, une pause coupe les traits (pas de diagonale entre l'avant et l'après).
+  const pauses = axe === 'distance' ? [] : indicesApresPause(temps);
   const series = SERIES.filter((s) => flux[s.flux] && etendue(flux[s.flux]))
-    .map((s) => ({ ...s, ys: s.lire ? flux[s.flux].map((v) => (v === null ? null : s.lire(v, sportCode))) : flux[s.flux], brut: flux[s.flux] }));
+    .map((s) => {
+      const ys = s.lire ? flux[s.flux].map((v) => (v === null ? null : s.lire(v, sportCode))) : flux[s.flux];
+      return { ...s, ys: couperAuxPauses(ys, pauses), brut: flux[s.flux] };
+    });
   return { xs, temps, series, n };
 }
 
@@ -154,8 +184,16 @@ function texteX(x, axe) {
   return formaterDuree(Math.round(x)) ?? '0:00';
 }
 
+// Bande du segment choisi (intervalle ou meilleur effort), plus foncée.
+function bandeSegment(segment, xs, versX, hauteur) {
+  if (!segment || xs[segment.debut_i] === undefined) return '';
+  const xa = versX(xs[segment.debut_i]);
+  const xb = versX(xs[Math.min(segment.fin_i, xs.length - 1)]);
+  return `<rect class="bande-intervalle choisie" x="${xa}" y="0" width="${Math.max(2, xb - xa)}" height="${hauteur}"></rect>`;
+}
+
 // Dessin d'un graphique de la pile ; bandes des intervalles de travail, intervalle choisi en évidence.
-function svgSerie(s, donnees, largeur, hauteur, sportCode, intervalles, choisi) {
+function svgSerie(s, donnees, largeur, hauteur, sportCode, intervalles, segment) {
   const { xs } = donnees;
   const plage = etendue(s.ys);
   // Puissance depuis 0 ; FC, cadence, vitesse et altitude resserrées sur leurs valeurs (courbes lisibles).
@@ -165,14 +203,14 @@ function svgSerie(s, donnees, largeur, hauteur, sportCode, intervalles, choisi) 
   const versX = (x) => MARGE_GAUCHE + ((x - x0) / ((x1 - x0) || 1)) * (largeur - MARGE_GAUCHE);
   const versY = (y) => hauteur - 2 - ((y - g.min) / ((g.max - g.min) || 1)) * (hauteur - 6);
   const indices = reduirePoints(xs, s.ys, Math.max(10, Math.round(largeur - MARGE_GAUCHE)));
-  let d = cheminSerie(xs, s.ys, indices, versX, versY);
-  if (s.aire && d) d += `L${versX(x1)},${hauteur}L${versX(x0)},${hauteur}Z`;
+  // Altitude : une aire par morceau continu (une pause coupe la série sans déformer l'aire).
+  const d = s.aire ? cheminAire(xs, s.ys, indices, versX, versY, hauteur) : cheminSerie(xs, s.ys, indices, versX, versY);
   const bandes = intervalles.map((iv, n) => ({ iv, n })).filter(({ iv }) => iv.type !== 'RECOVERY' && Number.isInteger(iv.debut_i) && Number.isInteger(iv.fin_i) && xs[iv.debut_i] !== undefined)
     .map(({ iv, n }) => {
       const xa = versX(xs[iv.debut_i]);
       const xb = versX(xs[Math.min(iv.fin_i, xs.length - 1)]);
-      return `<rect class="bande-intervalle${n === choisi ? ' choisie' : ''}" x="${xa}" y="0" width="${Math.max(1, xb - xa)}" height="${hauteur}"></rect>`;
-    }).join('');
+      return `<rect class="bande-intervalle" x="${xa}" y="0" width="${Math.max(1, xb - xa)}" height="${hauteur}"></rect>`;
+    }).join('') + bandeSegment(segment, xs, versX, hauteur);
   const axeTexte = (v) => (s.axe ? s.axe(v, sportCode) : formaterEntier(v));
   const reperes = s.flux === 'velocity_smooth' && sportCode !== 'VELO' ? [] : [g.min, g.max];
   const titre = titreSerie(s, sportCode);
@@ -190,9 +228,11 @@ function svgSerie(s, donnees, largeur, hauteur, sportCode, intervalles, choisi) 
 const chronologiesActives = new WeakMap();
 
 // Affiche la chronologie dans "zone" et branche le curseur commun. Renvoie une fonction de nettoyage.
-// options : { sportCode, intervalles, choisi (numéro d'intervalle), axe ('temps' | 'distance'), surAxe(axe) }
+// options : { sportCode, intervalles, segment ({ debut_i, fin_i } mis en évidence : intervalle ou meilleur effort),
+//   axe ('temps' | 'distance'), surAxe(axe) }
 export function afficherChronologie(zone, flux, options) {
-  const { sportCode, intervalles = [], choisi = null } = options;
+  const { sportCode, intervalles = [] } = options;
+  const segment = Number.isInteger(options.segment?.debut_i) && Number.isInteger(options.segment?.fin_i) ? options.segment : null;
   let axe = options.axe === 'distance' && flux.distance ? 'distance' : 'temps';
   const paysage = window.matchMedia('(orientation: landscape) and (max-height: 560px)');
   let lecture = null;
@@ -217,10 +257,10 @@ export function afficherChronologie(zone, flux, options) {
         ${flux.distance ? `<div class="bascule" role="group" aria-label="Axe des graphiques">
           <button type="button" data-axe="temps" class="${axe === 'temps' ? 'actif' : ''}" aria-pressed="${axe === 'temps'}">Temps</button>
           <button type="button" data-axe="distance" class="${axe === 'distance' ? 'actif' : ''}" aria-pressed="${axe === 'distance'}">Distance</button></div>` : ''}
-        <div class="chrono-lecture" aria-live="polite"><span class="doux">Touche ou glisse sur les graphiques pour lire les valeurs.</span></div>
+        <div class="chrono-lecture"><span class="doux">Touche ou glisse sur les graphiques pour lire les valeurs.</span></div>
       </div>
       <div class="chrono-pile">
-        ${donnees.series.map((s) => svgSerie(s, donnees, largeur, hauteur, sportCode, intervalles, choisi)).join('')}
+        ${donnees.series.map((s) => svgSerie(s, donnees, largeur, hauteur, sportCode, intervalles, segment)).join('')}
         <div class="chrono-curseur" hidden></div>
       </div>
       <div class="axe-x doux"><span>${echapperHtml(texteX(x0, axe))}</span><span>${echapperHtml(texteX((x0 + x1) / 2, axe))}</span><span>${echapperHtml(texteX(x1, axe))}</span></div>
@@ -232,25 +272,31 @@ export function afficherChronologie(zone, flux, options) {
       dessiner();
     }));
     brancherCurseur(donnees, largeur);
-    if (Number.isInteger(choisi) && Number.isInteger(intervalles[choisi]?.debut_i)) placer(donnees, largeur, intervalles[choisi].debut_i);
+    if (segment) placer(donnees, largeur, segment.debut_i);
   }
 
   // Curseur commun (F-101) : la même verticale sur tous les graphiques, valeurs lues au même instant.
+  // Fluidité : la lecture est construite une seule fois, puis seuls ses textes changent, une fois par image.
   function placer(donnees, largeur, i) {
-    const pile = zone.querySelector('.chrono-pile');
     const curseur = zone.querySelector('.chrono-curseur');
-    if (!pile || !curseur || i < 0) return;
+    const zoneLecture = zone.querySelector('.chrono-lecture');
+    if (!curseur || !zoneLecture || i < 0) return;
+    if (!zoneLecture.dataset.prete) {
+      const cases = donnees.series.map((s, k) => `<span><span class="doux">${titreSerie(s, sportCode)}</span> <strong data-lecture="${k}"></strong></span>`).join('');
+      zoneLecture.innerHTML = `<span><strong data-lecture="x"></strong></span>${cases}`;
+      zoneLecture.dataset.prete = '1';
+    }
     const { xs } = donnees;
     const x0 = xs[0];
     const x1 = xs[xs.length - 1] || 1;
     const px = MARGE_GAUCHE + ((xs[i] - x0) / ((x1 - x0) || 1)) * (largeur - MARGE_GAUCHE);
     curseur.hidden = false;
-    curseur.style.left = `${px}px`;
-    const valeurs = donnees.series.map((s) => {
+    curseur.style.transform = `translateX(${px}px)`;
+    zoneLecture.querySelector('[data-lecture="x"]').textContent = texteX(xs[i], axe);
+    donnees.series.forEach((s, k) => {
       const v = s.brut[i];
-      return `<span><span class="doux">${titreSerie(s, sportCode)}</span> <strong>${v === null || v === undefined ? '-' : echapperHtml(s.texte(v, sportCode))}</strong></span>`;
-    }).join('');
-    zone.querySelector('.chrono-lecture').innerHTML = `<span><strong>${echapperHtml(texteX(xs[i], axe))}</strong></span>${valeurs}`;
+      zoneLecture.querySelector(`[data-lecture="${k}"]`).textContent = v === null || v === undefined ? '-' : s.texte(v, sportCode);
+    });
   }
 
   function brancherCurseur(donnees, largeur) {
@@ -258,14 +304,23 @@ export function afficherChronologie(zone, flux, options) {
     const { xs } = donnees;
     const x0 = xs[0];
     const x1 = xs[xs.length - 1] || 1;
-    const lire = (ev) => {
-      const r = pile.getBoundingClientRect();
-      const px = Math.min(largeur, Math.max(MARGE_GAUCHE, ev.clientX - r.left));
+    let gauche = null;
+    let demande = 0;
+    let dernierX = 0;
+    const appliquer = () => {
+      demande = 0;
+      const px = Math.min(largeur, Math.max(MARGE_GAUCHE, dernierX - gauche));
       const x = x0 + ((px - MARGE_GAUCHE) / (largeur - MARGE_GAUCHE)) * (x1 - x0);
       placer(donnees, largeur, indiceProche(xs, x));
     };
-    pile.addEventListener('pointerdown', lire);
+    const lire = (ev) => {
+      if (gauche === null) gauche = pile.getBoundingClientRect().left;
+      dernierX = ev.clientX;
+      if (!demande) demande = requestAnimationFrame(appliquer);
+    };
+    pile.addEventListener('pointerdown', (ev) => { gauche = pile.getBoundingClientRect().left; lire(ev); });
     pile.addEventListener('pointermove', lire);
+    pile.addEventListener('pointerleave', () => { gauche = null; });
   }
 
   // Redessin au changement d'orientation ou de taille (plein écran en paysage).

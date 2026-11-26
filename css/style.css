@@ -1047,7 +1047,7 @@ form.carte.en-lecture > h2, form.carte.en-lecture > .titre-icone { padding-right
 
 /* ===== Analyse d'une activité (lot LA, D-31) ===== */
 .onglets-activite { overflow-x: auto; scrollbar-width: none; }
-.onglets-activite a { flex: 1 0 auto; }
+.onglets-activite a { flex: 1 1 auto; min-width: 0; padding-left: 4px; padding-right: 4px; font-size: 11px; letter-spacing: 0.02em; }
 .panneau[hidden] { display: none; }
 
 /* F-103 : zones, couleurs communes à toute l'appli */
@@ -1083,7 +1083,7 @@ form.carte.en-lecture > h2, form.carte.en-lecture > .titre-icone { padding-right
 .bande-intervalle { fill: var(--carte-2); }
 .bande-intervalle.choisie { fill: var(--filet-fort); }
 .axe-texte { font-size: 10px; fill: var(--texte-2); font-variant-numeric: tabular-nums; font-family: inherit; }
-.chrono-curseur { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--texte); pointer-events: none; }
+.chrono-curseur { position: absolute; top: 0; bottom: 0; left: 0; will-change: transform; width: 1px; background: var(--texte); pointer-events: none; }
 .chrono-curseur[hidden] { display: none; }
 .axe-x { display: flex; justify-content: space-between; padding-left: 34px; font-size: 11px; font-variant-numeric: tabular-nums; margin-top: 4px; }
 /* En paysage, la chronologie occupe tout l'écran (F-101) */

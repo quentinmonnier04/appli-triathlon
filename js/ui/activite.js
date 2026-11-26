@@ -4,7 +4,10 @@
 // L6 : saisie du RPE, du ressenti et d'un commentaire, enregistrés dans Intervals.icu (F-60, F-61, ENF-07).
 // L7 : carte du parcours pour une activité GPS (F-70).
 
-import { lireDetailEnCache, rafraichirDetail, enregistrerRessenti, lireFlux, fluxADemander } from '../api/activites.js';
+import {
+  lireDetailEnCache, rafraichirDetail, enregistrerRessenti, lireFlux, fluxADemander, lireMeilleursEfforts,
+} from '../api/activites.js';
+import { effortsAChercher } from '../logique/analyse.js';
 import { lireReglagesSport } from '../api/profil.js';
 import { estPerime } from '../logique/activites.js';
 import {
@@ -22,7 +25,7 @@ const estNote = (s) => s.rpe !== null && s.rpe !== undefined || (s.ressenti !== 
 import { iconeSport } from './icones.js';
 import { afficherCarteParcours } from './carte.js';
 import {
-  ONGLETS, rendreOnglets, rendreResume, famillesZones, rendreZones, rendreIntervalles, afficherChronologie,
+  ONGLETS, rendreOnglets, rendreResume, famillesZones, rendreZones, rendreIntervalles, rendreTop, afficherChronologie,
 } from './analyse.js';
 
 const enteteRetour = `<div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: '#/activites' })}
@@ -75,7 +78,8 @@ export async function afficherActivite(conteneur, segments, params = {}) {
     <div class="panneau" data-panneau="resume"><div id="resume"></div><div id="parcours"></div><div id="ressenti"></div></div>
     <div class="panneau" data-panneau="graphiques" hidden></div>
     <div class="panneau" data-panneau="zones" hidden></div>
-    <div class="panneau" data-panneau="intervalles" hidden></div>`;
+    <div class="panneau" data-panneau="intervalles" hidden></div>
+    <div class="panneau" data-panneau="top" hidden></div>`;
   // Retour à l'écran précédent (fil, agenda ou accueil) ; sans historique, retour au fil.
   conteneur.querySelector('.entete a').addEventListener('click', (ev) => {
     if (history.length > 1) { ev.preventDefault(); history.back(); }
@@ -141,7 +145,9 @@ export async function afficherActivite(conteneur, segments, params = {}) {
   // --- Onglets (lot LA) ---
   let detail = null;
   let filtre = 'travail'; // F-102 : intervalles de travail par défaut
-  let choisi = null; // intervalle mis en évidence sur la chronologie
+  let choisi = null; // numéro de l'intervalle choisi (ligne du tableau)
+  let segment = null; // { debut_i, fin_i } mis en évidence sur la chronologie : intervalle ou meilleur effort
+  let efforts = null;
   let axe = 'temps';
   let chronoAffichee = false;
   let reglagesSport;
@@ -153,6 +159,7 @@ export async function afficherActivite(conteneur, segments, params = {}) {
     if (fluxADemander(a.flux).some((f) => f !== 'time' && f !== 'distance')) dispo.push('graphiques');
     if ([a.zones_fc, a.zones_puissance, a.zones_allure].some((z) => Array.isArray(z) && z.length)) dispo.push('zones');
     if (d.intervalles.length) dispo.push('intervalles');
+    if (effortsAChercher(a).length) dispo.push('top'); // F-105 : puissance, ou allure en course et natation
     return dispo;
   }
 
@@ -182,6 +189,8 @@ export async function afficherActivite(conteneur, segments, params = {}) {
       panneau('zones').querySelectorAll('.zone-remplie').forEach((b) => { b.style.width = `${b.dataset.pct}%`; });
     } else if (onglet === 'intervalles') {
       afficherIntervalles();
+    } else if (onglet === 'top') {
+      await afficherTop();
     } else if (onglet === 'graphiques' && !chronoAffichee) {
       await afficherGraphiques();
     }
@@ -192,7 +201,45 @@ export async function afficherActivite(conteneur, segments, params = {}) {
     p.innerHTML = rendreIntervalles(detail.intervalles, detail.activite.sport, filtre, choisi);
     p.querySelectorAll('[data-filtre]').forEach((b) => b.addEventListener('click', () => { filtre = b.dataset.filtre; afficherIntervalles(); }));
     p.querySelectorAll('[data-intervalle]').forEach((ligne) => {
-      const ouvrir = () => { choisi = Number(ligne.dataset.intervalle); chronoAffichee = false; changerOnglet('graphiques'); };
+      const ouvrir = () => {
+        choisi = Number(ligne.dataset.intervalle);
+        const iv = detail.intervalles[choisi];
+        segment = iv ? { debut_i: iv.debut_i, fin_i: iv.fin_i } : null;
+        montrerSurGraphiques();
+      };
+      ligne.addEventListener('click', ouvrir);
+      ligne.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ouvrir(); } });
+    });
+  }
+
+  // Ouvre les graphiques avec le segment choisi en évidence (si l'activité a des graphiques).
+  function montrerSurGraphiques() {
+    chronoAffichee = false;
+    if (conteneur.querySelector('.onglets-activite [data-onglet="graphiques"]')) changerOnglet('graphiques');
+  }
+
+  // F-105 : meilleurs efforts, demandés à l'ouverture de l'onglet puis gardés en cache.
+  async function afficherTop() {
+    const p = panneau('top');
+    const a = detail.activite;
+    if (!efforts) {
+      p.innerHTML = `<div class="carte">${squelette()}</div>`;
+      try {
+        efforts = await lireMeilleursEfforts(id, a);
+      } catch (e) {
+        p.innerHTML = messageErreurApi(e);
+        return;
+      }
+      if (!conteneur.isConnected || onglet !== 'top') return;
+    }
+    p.innerHTML = rendreTop(efforts, a);
+    p.querySelectorAll('[data-effort]').forEach((ligne) => {
+      const ouvrir = () => {
+        const e = efforts.find((x) => x.cle === ligne.dataset.effort);
+        segment = e ? { debut_i: e.debut_i, fin_i: e.fin_i } : null;
+        choisi = null;
+        montrerSurGraphiques();
+      };
       ligne.addEventListener('click', ouvrir);
       ligne.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ouvrir(); } });
     });
@@ -206,7 +253,7 @@ export async function afficherActivite(conteneur, segments, params = {}) {
       const flux = await lireFlux(id, a.flux);
       if (!conteneur.isConnected || onglet !== 'graphiques') return;
       chronoAffichee = true;
-      afficherChronologie(p, flux, { sportCode: a.sport, intervalles: detail.intervalles, choisi, axe, surAxe: (x) => { axe = x; } });
+      afficherChronologie(p, flux, { sportCode: a.sport, intervalles: detail.intervalles, segment, axe, surAxe: (x) => { axe = x; } });
     } catch (e) {
       p.innerHTML = messageErreurApi(e); // hors ligne sans flux en cache
     }
@@ -223,7 +270,8 @@ export async function afficherActivite(conteneur, segments, params = {}) {
     conteneur.querySelector('#onglets').innerHTML = dispo.length > 1 ? rendreOnglets(dispo, onglet) : '';
     conteneur.querySelectorAll('.onglets-activite [data-onglet]').forEach((b) => b.addEventListener('click', (ev) => {
       ev.preventDefault();
-      if (b.dataset.onglet === 'graphiques' && onglet !== 'graphiques') chronoAffichee = chronoAffichee && choisi === null;
+      // Ouvrir Graphiques par l'onglet efface le segment choisi.
+      if (b.dataset.onglet === 'graphiques' && onglet !== 'graphiques' && segment) { segment = null; choisi = null; chronoAffichee = false; }
       changerOnglet(b.dataset.onglet);
     }));
     changerOnglet(onglet);

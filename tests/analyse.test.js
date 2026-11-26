@@ -123,3 +123,48 @@ test('flux : seulement ceux que l\'activité annonce et que les graphiques lisen
   ]);
   assert.deepEqual(f, { time: [0, 1, 2], watts: [200, null, null] });
 });
+
+// D-33 : altitude avec une pause, meilleurs efforts.
+import { cheminAire, effortsAChercher, libelleEffort } from '../js/logique/analyse.js';
+import { convertirEffort } from '../js/api/activites.js';
+
+test('aire : une pause donne deux aires fermées vers le bas, sans relier les morceaux', () => {
+  const d = cheminAire([0, 1, 2, 3, 4, 5], [10, 12, null, null, 11, 13], [0, 1, 2, 3, 4, 5], (x) => x * 10, (y) => 50 - y, 50);
+  assert.equal(d, 'M0,50L0,40L10,38L10,50ZM40,50L40,39L50,37L50,50Z');
+  assert.equal(cheminAire([0, 1], [null, 5], [0, 1], (x) => x, (y) => y, 9), ''); // un seul point : rien
+});
+
+test('efforts cherchés selon le sport et la longueur de la séance', () => {
+  const velo = effortsAChercher({ sport: 'VELO', duree_s: 2400, flux: ['time', 'watts'] });
+  assert.deepEqual(velo.map((r) => r.duree), [1, 5, 15, 30, 60, 300, 600, 1200]);
+  assert.ok(velo.every((r) => r.stream === 'watts'));
+  const course = effortsAChercher({ sport: 'CAP', duree_s: 3000, distance_m: 10500, flux: ['velocity_smooth'] });
+  assert.deepEqual(course.map((r) => r.distance), [400, 1000, 5000, 10000]);
+  const natation = effortsAChercher({ sport: 'NATATION', distance_m: 1500, flux: ['velocity_smooth'] });
+  assert.deepEqual(natation.map((r) => r.distance), [100, 200, 400, 1000, 1500]);
+  assert.deepEqual(effortsAChercher({ sport: 'RENFO', flux: ['heartrate'] }), []);
+  assert.equal(effortsAChercher({ sport: 'CAP', duree_s: 600, distance_m: 2000, flux: ['watts', 'velocity_smooth'] }).filter((r) => r.duree).length, 7); // 1 s à 10 min
+});
+
+test('libellés des efforts', () => {
+  assert.deepEqual([1, 30, 300, 3600].map((duree) => libelleEffort({ duree })), ['1 s', '30 s', '5 min', '1 h']);
+  assert.deepEqual([400, 1000, 21097].map((distance) => libelleEffort({ distance })), ['400 m', '1 km', 'Semi']);
+});
+
+test('effort reçu (réponse simulée) -> objet interne ; réponse vide ignorée', () => {
+  const e = convertirEffort({ cle: 'w300', duree: 300 }, { efforts: [{ start_index: 610, end_index: 910, average: 318.4, duration: 300, distance: 3400 }] });
+  assert.deepEqual(e, { cle: 'w300', duree: 300, distance: null, moyenne: 318.4, duree_s: 300, distance_m: 3400, debut_i: 610, fin_i: 910 });
+  assert.equal(convertirEffort({ cle: 'd1000', distance: 1000 }, { efforts: [] }), null);
+  assert.equal(convertirEffort({ cle: 'd1000', distance: 1000 }, null), null);
+});
+
+import { indicesApresPause, couperAuxPauses } from '../js/logique/analyse.js';
+test('pauses : le trait est coupé quand le temps saute', () => {
+  const temps = [0, 1, 2, 300, 301, 302, 303, 700];
+  assert.deepEqual(indicesApresPause(temps), [3, 7]);
+  assert.deepEqual(indicesApresPause([0, 5, 10, 20]), []); // enregistrement toutes les 5 ou 10 s : pas une pause
+  const ys = [1, 2, 3, 4, 5, 6, 7, 8];
+  assert.deepEqual(couperAuxPauses(ys, [3, 7]), [1, 2, 3, null, 5, 6, 7, null]);
+  assert.equal(couperAuxPauses(ys, []), ys);
+  assert.equal(ys[3], 4); // série d'origine intacte
+});

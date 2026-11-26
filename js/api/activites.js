@@ -12,6 +12,7 @@ import { requeteAuthentifiee } from './client.js';
 import { lireCache, ecrireCache, supprimerCachePrefixe } from '../cache/stockage.js';
 import { sportDepuisType, sport } from '../logique/sports.js';
 import { fusionnerActivites } from '../logique/activites.js';
+import { effortsAChercher } from '../logique/analyse.js';
 import { decouperSegments, alleger } from '../logique/carte.js';
 
 // Nombre d'activités par page du fil (F-10).
@@ -64,6 +65,7 @@ export function convertirActivite(brut) {
     cadence_moy: ou(brut.average_cadence),
     travail_j: ou(brut.icu_joules),
     calories: ou(brut.calories),
+    poids_kg: ou(brut.icu_weight), // poids du jour de l'activité, pour les W/kg (F-105)
     flux: Array.isArray(brut.stream_types) ? brut.stream_types : [],
   };
 }
@@ -236,4 +238,46 @@ export async function lireFlux(id, streamTypes) {
   const flux = convertirFlux(bruts);
   await ecrireCache(cle, flux);
   return flux;
+}
+
+// --- Meilleurs efforts d'une activité (lot LA, F-105, D-33) ---
+// GET /api/v1/activity/{id}/best-efforts (spécification OpenAPI : "stream" obligatoire, "duration" en secondes ou
+// "distance" en mètres, "count") -> BestEfforts { efforts: Effort[] } ; Effort : start_index, end_index, average
+// (moyenne du flux sur l'effort), duration (s), distance (m). Une recherche par durée ou distance, count = 1.
+export function convertirEffort(recherche, brut) {
+  const e = brut?.efforts?.[0];
+  if (!e || !Number.isFinite(e.average)) return null;
+  return {
+    cle: recherche.cle,
+    duree: recherche.duree ?? null,
+    distance: recherche.distance ?? null,
+    moyenne: e.average,
+    duree_s: ou(e.duration),
+    distance_m: ou(e.distance),
+    debut_i: ou(e.start_index),
+    fin_i: ou(e.end_index),
+  };
+}
+
+// Meilleurs efforts, chargés à l'ouverture de l'onglet et gardés en cache sans expiration (activité terminée).
+// Trois requêtes à la fois au plus (ENF-11) ; une recherche sans résultat est simplement absente.
+export async function lireMeilleursEfforts(id, activite) {
+  const cle = `efforts:${id}`;
+  const cache = await lireCache(cle);
+  if (cache) return cache.donnees;
+  const recherches = effortsAChercher(activite);
+  const resultats = [];
+  for (let i = 0; i < recherches.length; i += 3) {
+    const lot = recherches.slice(i, i + 3);
+    const reponses = await Promise.all(lot.map((r) => {
+      const params = { stream: r.stream, count: '1', ...(r.duree ? { duration: String(r.duree) } : { distance: String(r.distance) }) };
+      return requeteAuthentifiee(`/activity/${encodeURIComponent(id)}/best-efforts`, params).catch((e) => {
+        if (e.type === 'IDENTIFIANTS' || e.type === 'RESEAU') throw e;
+        return null; // flux absent ou recherche impossible : effort ignoré
+      });
+    }));
+    lot.forEach((r, k) => { const e = convertirEffort(r, reponses[k]); if (e) resultats.push(e); });
+  }
+  await ecrireCache(cle, resultats);
+  return resultats;
 }
