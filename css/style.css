@@ -282,6 +282,16 @@ abbr { text-decoration: none; }
   text-transform: none;
 }
 .champ textarea { resize: vertical; }
+/* Date et heure : sur iPhone, ces champs gardent une largeur minimale propre et dépassent de l'écran (ENF-02).
+   Apparence native retirée (le sélecteur du téléphone s'ouvre toujours au toucher) et largeur minimale annulée. */
+input[type="date"], input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value { text-align: left; }
 .champ input:focus, .champ textarea:focus, .champ select:focus, .etape input:focus, .etape select:focus, .cible select:focus, .repetitions input:focus {
   outline: 2px solid var(--texte); outline-offset: 1px;
 }
@@ -528,7 +538,6 @@ a.aujourdhui:active { transform: scale(0.99); }
 /* Graphique de la séance du jour en une seule teinte, posé sur la couleur du sport */
 .aujourdhui .graphique-seance rect { fill: var(--sur-sport); fill-opacity: 0.85; stroke: var(--couleur-sport); }
 .aujourdhui .graphique-seance rect.barre-estimee { fill-opacity: 0.4; stroke: var(--sur-sport); }
-.bouton-sur-sport { margin-top: 8px; background: var(--sur-sport); border-color: var(--sur-sport); color: var(--couleur-sport); }
 @media (max-width: 380px) { .aujourdhui-titre, .aujourdhui-duree { font-size: 36px; } }
 
 .seance-du-jour { color: inherit; }

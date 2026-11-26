@@ -30,15 +30,14 @@ const HAUTEUR_COURBE = 34;
 const SEGMENTS_FORME = ['Fatigue', 'En charge', 'Équilibré', 'Frais'];
 
 // F-20 : bloc "Aujourd'hui" (design E) : fond à la couleur du sport, titre en grand et durée à droite,
-// détail de la séance dessous ; "Repos" si rien n'est prévu.
+// détail de la séance dessous ; "Repos" si rien n'est prévu (ouvre la semaine en cours dans l'Agenda).
 function widgetSeanceDuJour(prevues, jour, allures) {
   const duJour = prevues.filter((s) => s.date === jour && !s.objectif); // la course du jour a son propre widget (F-80)
   if (!duJour.length) {
-    return `<section class="aujourdhui sport-REPOS" aria-label="Séance du jour">
+    return `<a class="aujourdhui sport-REPOS" href="#/agenda?vue=semaine&date=${jour}" aria-label="Séance du jour : repos. Ouvrir l'agenda de la semaine">
       <div class="aujourdhui-tete"><span>Aujourd'hui · Repos</span>${iconeSport('REPOS', 18)}</div>
       <div class="aujourdhui-ligne"><span class="aujourdhui-titre">Repos</span></div>
-      <span class="aujourdhui-detail">Rien n'est prévu aujourd'hui.</span>
-      <a class="bouton bouton-sur-sport" href="#/seance/nouvelle?date=${jour}">Programmer une séance</a></section>`;
+      <span class="aujourdhui-detail">Rien n'est prévu aujourd'hui.</span></a>`;
   }
   return duJour.map((s) => {
     const sp = sport(s.sport);
@@ -116,7 +115,8 @@ function widgetDureeMois(activites, jour) {
   const sens = c.ecart_s > 0 ? 'Hausse de' : c.ecart_s < 0 ? 'Baisse de' : '';
   const fleche = c.ecart_s > 0 ? '▲' : c.ecart_s < 0 ? '▼' : '=';
   const ecart = c.ecart_s === 0 ? 'Autant' : formaterDureeLongue(c.ecart_s);
-  return `<div class="carte tuile"><div class="etiquette-carte">${libelleMois(jour)}</div>
+  // Ouvre l'Agenda sur le mois en cours.
+  return `<a class="carte carte-lien tuile" href="#/agenda?vue=mois&date=${jour}"><div class="etiquette-carte">${libelleMois(jour)}</div>${flecheLien()}
     <span class="chiffre-tuile">${formaterDureeLongue(c.actuel_s)}</span>
     <span class="tuile-ecart"><span class="lecteur">${sens} </span><span aria-hidden="true">${fleche}</span> ${ecart}
       <span class="doux">vs ${repere.slice(8, 10)}/${repere.slice(5, 7)} (${formaterDureeLongue(c.precedent_s)})</span></span>
@@ -124,14 +124,15 @@ function widgetDureeMois(activites, jour) {
       aria-label="Durée cumulée du mois (trait plein), comparée au mois précédent (pointillés)">
       <path class="courbe-precedente" d="${cheminCourbe(c.courbePrecedente, c.nbJours, max, LARGEUR_COURBE, HAUTEUR_COURBE)}"></path>
       <path class="courbe-actuelle" d="${cheminCourbe(c.courbeActuelle, c.nbJours, max, LARGEUR_COURBE, HAUTEUR_COURBE)}"></path>
-    </svg></div>`;
+    </svg></a>`;
 }
 
 // F-25 : tuile Semaine : réalisé sur prévu, puis le détail par sport.
 function widgetSemaine(prevues, activites, jour) {
   const lignes = volumeSemaine(prevues, activites, lundiDe(jour));
   const t = totauxSemaine(lignes);
-  return `<div class="carte tuile"><div class="etiquette-carte">Semaine</div>
+  // Ouvre l'Agenda sur la semaine en cours.
+  return `<a class="carte carte-lien tuile" href="#/agenda?vue=semaine&date=${jour}"><div class="etiquette-carte">Semaine</div>${flecheLien()}
     <span class="chiffre-tuile">${formaterDureeSaisie(t.realise_s) || '0:00'}</span>
     <span class="doux tuile-sous">${t.prevu_s ? `sur ${formaterDureeSaisie(t.prevu_s)} prévues` : 'rien de prévu'}</span>
     ${lignes.length ? `<div class="semaine-sports">${lignes.map((l) => {
@@ -139,7 +140,7 @@ function widgetSemaine(prevues, activites, jour) {
     return `<div class="ligne-semaine sport-${l.sport}">${pastilleSport(l.sport)}
         <span class="barre-progression"><span class="barre-remplie" data-pct="${pct ?? 100}"></span></span>
         <span class="ligne-semaine-texte">${formaterDureeSaisie(l.realise_s) || '0:00'}${l.prevu_s ? `<span class="doux"> / ${formaterDureeSaisie(l.prevu_s)}</span>` : ''}</span></div>`;
-  }).join('')}</div>` : ''}</div>`;
+  }).join('')}</div>` : ''}</a>`;
 }
 
 // F-24 : mini-calendrier du mois, un point coloré par sport pratiqué chaque jour.
@@ -187,8 +188,8 @@ export async function afficherAccueil(conteneur) {
         ${boutonIcone('rafraichir', 'Rafraîchir', { id: 'rafraichir' })}
         ${boutonIcone('reglages', 'Réglages', { href: '#/reglages' })}</span></div>
     <div id="etat"></div>
-    <div id="tableau"></div>
-    <div id="objectif"></div>`;
+    <div id="objectif"></div>
+    <div id="tableau"></div>`;
   const $ = (sel) => conteneur.querySelector(sel);
   const zone = $('#tableau');
   let tableau = null;
