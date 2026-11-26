@@ -278,6 +278,24 @@ export async function lireMeilleursEfforts(id, activite) {
     }));
     lot.forEach((r, k) => { const e = convertirEffort(r, reponses[k]); if (e) resultats.push(e); });
   }
-  await ecrireCache(cle, resultats);
+  if (resultats.length) await ecrireCache(cle, resultats); // un résultat vide n'est pas gardé : nouvel essai la prochaine fois
   return resultats;
+}
+
+// Meilleurs temps de la séance sur des distances (course, natation ; F-105, D-34) :
+// GET /api/v1/activity/{id}/pace-curve.json -> PaceCurve (spécification : "distance" en m, "values" entiers = temps en s,
+// "start_index" et "end_index" alignés). Gardée en cache sans expiration si elle contient des points.
+export async function lireCourbeAllure(id) {
+  const cle = `allure:${id}`;
+  const cache = await lireCache(cle);
+  if (cache) return cache.donnees;
+  const brut = await requeteAuthentifiee(`/activity/${encodeURIComponent(id)}/pace-curve.json`);
+  const courbe = {
+    distance: Array.isArray(brut?.distance) ? brut.distance : [],
+    values: Array.isArray(brut?.values) ? brut.values : [],
+    start_index: Array.isArray(brut?.start_index) ? brut.start_index : [],
+    end_index: Array.isArray(brut?.end_index) ? brut.end_index : [],
+  };
+  if (courbe.distance.length) await ecrireCache(cle, courbe);
+  return courbe;
 }

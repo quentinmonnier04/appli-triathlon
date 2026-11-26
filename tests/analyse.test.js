@@ -138,10 +138,8 @@ test('efforts cherchés selon le sport et la longueur de la séance', () => {
   const velo = effortsAChercher({ sport: 'VELO', duree_s: 2400, flux: ['time', 'watts'] });
   assert.deepEqual(velo.map((r) => r.duree), [1, 5, 15, 30, 60, 300, 600, 1200]);
   assert.ok(velo.every((r) => r.stream === 'watts'));
-  const course = effortsAChercher({ sport: 'CAP', duree_s: 3000, distance_m: 10500, flux: ['velocity_smooth'] });
-  assert.deepEqual(course.map((r) => r.distance), [400, 1000, 5000, 10000]);
-  const natation = effortsAChercher({ sport: 'NATATION', distance_m: 1500, flux: ['velocity_smooth'] });
-  assert.deepEqual(natation.map((r) => r.distance), [100, 200, 400, 1000, 1500]);
+  // D-34 : les distances ne passent plus par best-efforts (courbe d'allure de la séance).
+  assert.deepEqual(effortsAChercher({ sport: 'CAP', duree_s: 3000, distance_m: 10500, flux: ['velocity_smooth'] }), []);
   assert.deepEqual(effortsAChercher({ sport: 'RENFO', flux: ['heartrate'] }), []);
   assert.equal(effortsAChercher({ sport: 'CAP', duree_s: 600, distance_m: 2000, flux: ['watts', 'velocity_smooth'] }).filter((r) => r.duree).length, 7); // 1 s à 10 min
 });

@@ -5,9 +5,10 @@
 // L7 : carte du parcours pour une activité GPS (F-70).
 
 import {
-  lireDetailEnCache, rafraichirDetail, enregistrerRessenti, lireFlux, fluxADemander, lireMeilleursEfforts,
+  lireDetailEnCache, rafraichirDetail, enregistrerRessenti, lireFlux, fluxADemander, lireMeilleursEfforts, lireCourbeAllure,
 } from '../api/activites.js';
-import { effortsAChercher } from '../logique/analyse.js';
+import { effortsAChercher, distancesAChercher } from '../logique/analyse.js';
+import { tempsAuxDistances } from '../logique/performances.js';
 import { lireReglagesSport } from '../api/profil.js';
 import { estPerime } from '../logique/activites.js';
 import {
@@ -148,6 +149,8 @@ export async function afficherActivite(conteneur, segments, params = {}) {
   let choisi = null; // numéro de l'intervalle choisi (ligne du tableau)
   let segment = null; // { debut_i, fin_i } mis en évidence sur la chronologie : intervalle ou meilleur effort
   let efforts = null;
+  let temps = null; // meilleurs temps par distance (course, natation)
+  let diagnostic = '';
   let axe = 'temps';
   let chronoAffichee = false;
   let reglagesSport;
@@ -159,7 +162,7 @@ export async function afficherActivite(conteneur, segments, params = {}) {
     if (fluxADemander(a.flux).some((f) => f !== 'time' && f !== 'distance')) dispo.push('graphiques');
     if ([a.zones_fc, a.zones_puissance, a.zones_allure].some((z) => Array.isArray(z) && z.length)) dispo.push('zones');
     if (d.intervalles.length) dispo.push('intervalles');
-    if (effortsAChercher(a).length) dispo.push('top'); // F-105 : puissance, ou allure en course et natation
+    if (effortsAChercher(a).length || distancesAChercher(a).length) dispo.push('top'); // F-105 : puissance, ou temps en course et natation
     return dispo;
   }
 
@@ -224,18 +227,27 @@ export async function afficherActivite(conteneur, segments, params = {}) {
     const a = detail.activite;
     if (!efforts) {
       p.innerHTML = `<div class="carte">${squelette()}</div>`;
+      const distances = distancesAChercher(a);
       try {
-        efforts = await lireMeilleursEfforts(id, a);
-      } catch (e) {
-        p.innerHTML = messageErreurApi(e);
+        // Puissance par best-efforts ; temps par distance lus dans la courbe d'allure de la séance (une requête).
+        const [e, courbe] = await Promise.all([
+          lireMeilleursEfforts(id, a),
+          distances.length ? lireCourbeAllure(id).catch((err) => { diagnostic = `courbe d'allure : ${err.type ?? 'erreur'}${err.statut ? ` ${err.statut}` : ''}`; return null; }) : null,
+        ]);
+        efforts = e;
+        temps = courbe ? tempsAuxDistances(courbe, distances) : [];
+        if (courbe && !temps.length) diagnostic = `courbe d'allure reçue avec ${courbe.distance.length} points, aucun sur ${distances.join(', ')} m`;
+        if (!diagnostic && !efforts.length && !temps.length) diagnostic = `flux de la séance : ${(a.flux ?? []).join(', ') || 'aucun'}`;
+      } catch (err) {
+        p.innerHTML = messageErreurApi(err);
         return;
       }
       if (!conteneur.isConnected || onglet !== 'top') return;
     }
-    p.innerHTML = rendreTop(efforts, a);
+    p.innerHTML = rendreTop(efforts, temps, a, diagnostic);
     p.querySelectorAll('[data-effort]').forEach((ligne) => {
       const ouvrir = () => {
-        const e = efforts.find((x) => x.cle === ligne.dataset.effort);
+        const e = [...efforts, ...temps.map((t) => ({ ...t, cle: `d${t.distance}` }))].find((x) => x.cle === ligne.dataset.effort);
         segment = e ? { debut_i: e.debut_i, fin_i: e.fin_i } : null;
         choisi = null;
         montrerSurGraphiques();

@@ -24,6 +24,12 @@ function lienObjectif() {
     ${flecheLien()}<p class="doux">Ta course, ta semaine type et ta progression.</p></a>`;
 }
 
+// Lot LP : records par sport (E-12).
+function lienPerformances() {
+  return `<a class="carte carte-lien" href="#/performances"><div class="etiquette-carte">Performances</div>
+    ${flecheLien()}<p class="doux">Tes records par sport : puissance, course et natation.</p></a>`;
+}
+
 // F-88 : banque de séances (Mes séances), D-24.
 function lienMesSeances() {
   return `<a class="carte carte-lien" href="#/seances"><div class="etiquette-carte">Mes séances</div>
@@ -85,7 +91,7 @@ function carteZones(reglages) {
 }
 
 function rendreProfil(p, montre) {
-  return `${enTete(p.nom, montre)}${lienObjectif()}${lienMesSeances()}${carteTotaux(p)}${carteParSport(p.activites)}${carteSeuils(p.reglages)}${carteZones(p.reglages)}`;
+  return `${enTete(p.nom, montre)}${lienObjectif()}${lienPerformances()}${lienMesSeances()}${carteTotaux(p)}${carteParSport(p.activites)}${carteSeuils(p.reglages)}${carteZones(p.reglages)}`;
 }
 
 // Largeur des barres (CSP : pas de style inline dans le HTML ; element.style est permis).

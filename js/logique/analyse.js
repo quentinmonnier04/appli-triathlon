@@ -204,19 +204,20 @@ export const DUREES_PUISSANCE = [1, 5, 15, 30, 60, 300, 600, 1200, 3600];
 export const DISTANCES_COURSE = [400, 1000, 5000, 10000, 21097];
 export const DISTANCES_NATATION = [100, 200, 400, 1000, 1500];
 
-// Recherches à faire pour une activité : [{ cle, stream, duree } | { cle, stream, distance }].
-// Puissance : flux "watts" (vélo, ou course avec capteur) ; allure : flux de vitesse (course, natation).
+// Recherches de puissance à faire pour une activité : [{ cle, stream, duree }] (flux "watts" : vélo, ou course avec
+// capteur). Les meilleurs temps sur une distance viennent de la courbe d'allure de la séance (D-34).
 export function effortsAChercher(a) {
-  const flux = a.flux ?? [];
   const liste = [];
-  if (flux.includes('watts') && (a.sport === 'VELO' || a.sport === 'CAP')) {
+  if ((a.flux ?? []).includes('watts') && (a.sport === 'VELO' || a.sport === 'CAP')) {
     for (const d of DUREES_PUISSANCE) if (!a.duree_s || d <= a.duree_s) liste.push({ cle: `w${d}`, stream: 'watts', duree: d });
   }
-  const distances = a.sport === 'CAP' ? DISTANCES_COURSE : a.sport === 'NATATION' ? DISTANCES_NATATION : [];
-  if (flux.includes('velocity_smooth')) {
-    for (const m of distances) if (!a.distance_m || m <= a.distance_m) liste.push({ cle: `d${m}`, stream: 'velocity_smooth', distance: m });
-  }
   return liste;
+}
+
+// Distances des meilleurs temps de la séance (course, natation), limitées à la distance parcourue.
+export function distancesAChercher(a) {
+  const distances = a.sport === 'CAP' ? DISTANCES_COURSE : a.sport === 'NATATION' ? DISTANCES_NATATION : [];
+  return distances.filter((m) => a.distance_m > 0 && m <= a.distance_m * 1.01);
 }
 
 // Libellé d'une durée d'effort (1 s, 30 s, 5 min, 1 h) ou d'une distance (400 m, 1 km, semi).

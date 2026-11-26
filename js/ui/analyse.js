@@ -118,25 +118,27 @@ export function rendreIntervalles(intervalles, sportCode, filtre, choisi = null)
   </div>`;
 }
 
-// --- F-105 : meilleurs efforts de l'activité (D-33) ---
+// --- F-105 : meilleurs efforts de l'activité (D-33, D-34) ---
 
-// Puissance : W et W/kg (poids du jour de l'activité) ; allure : temps et allure sur la distance.
-export function rendreTop(efforts, a) {
-  const puissance = efforts.filter((e) => e.duree);
-  const allure = efforts.filter((e) => e.distance);
-  if (!puissance.length && !allure.length) return '<div class="carte"><p class="doux">Pas de meilleurs efforts pour cette activité.</p></div>';
-  const ligne = (e, cellules) => `<tr data-effort="${echapperHtml(e.cle)}" tabindex="0" aria-label="${echapperHtml(libelleEffort(e))} : le montrer sur les graphiques">
-    <th scope="row">${echapperHtml(libelleEffort(e))}</th>${cellules.map((c) => `<td>${echapperHtml(c)}</td>`).join('')}</tr>`;
+// efforts : meilleures puissances (best-efforts) ; temps : meilleurs temps par distance (courbe d'allure).
+// diagnostic : texte affiché quand Intervals.icu ne renvoie rien (pour comprendre pourquoi sur une vraie séance).
+export function rendreTop(efforts, temps, a, diagnostic = '') {
+  if (!efforts.length && !temps.length) {
+    return `<div class="carte"><p class="doux">Intervals.icu n'a renvoyé aucun meilleur effort pour cette séance.</p>
+      ${diagnostic ? `<p class="doux petit-texte">Détail technique : ${echapperHtml(diagnostic)}</p>` : ''}</div>`;
+  }
+  const ligne = (cle, libelle, cellules) => `<tr data-effort="${echapperHtml(cle)}" tabindex="0" aria-label="${echapperHtml(libelle)} : le montrer sur les graphiques">
+    <th scope="row">${echapperHtml(libelle)}</th>${cellules.map((c) => `<td>${echapperHtml(c)}</td>`).join('')}</tr>`;
   const avecWkg = a.poids_kg > 0;
   const wkg = (w) => String(Math.round((w / a.poids_kg) * 100) / 100).replace('.', ',');
   const tetePuissance = `<th scope="col">Durée</th><th scope="col">Puissance</th>${avecWkg ? '<th scope="col">W/kg</th>' : ''}`;
-  const blocPuissance = puissance.length ? `<div class="carte"><h2>Top puissance</h2>
+  const blocPuissance = efforts.length ? `<div class="carte"><h2>Top puissance</h2>
     <div class="tableau-defilant"><table class="intervalles tableau-analyse"><thead><tr>${tetePuissance}</tr></thead>
-    <tbody>${puissance.map((e) => ligne(e, [`${formaterEntier(e.moyenne)} W`, ...(avecWkg ? [wkg(e.moyenne)] : [])])).join('')}</tbody></table></div></div>` : '';
+    <tbody>${efforts.map((e) => ligne(e.cle, libelleEffort(e), [`${formaterEntier(e.moyenne)} W`, ...(avecWkg ? [wkg(e.moyenne)] : [])])).join('')}</tbody></table></div></div>` : '';
   const titreAllure = a.sport === 'NATATION' ? 'Top natation' : 'Top course';
-  const blocAllure = allure.length ? `<div class="carte"><h2>${titreAllure}</h2>
+  const blocAllure = temps.length ? `<div class="carte"><h2>${titreAllure}</h2>
     <div class="tableau-defilant"><table class="intervalles tableau-analyse"><thead><tr><th scope="col">Distance</th><th scope="col">Temps</th><th scope="col">Allure</th></tr></thead>
-    <tbody>${allure.map((e) => ligne(e, [formaterDuree(e.duree_s) ?? '', formaterVitesse(a.sport, e.distance_m ?? e.distance, e.duree_s) ?? ''])).join('')}</tbody></table></div></div>` : '';
+    <tbody>${temps.map((t) => ligne(`d${t.distance}`, libelleEffort(t), [formaterDuree(t.temps_s) ?? '', formaterVitesse(a.sport, t.distance, t.temps_s) ?? ''])).join('')}</tbody></table></div></div>` : '';
   return `${blocPuissance}${blocAllure}
   <p class="doux petit-texte">Meilleurs efforts calculés par Intervals.icu sur cette séance. Touche une ligne pour la voir sur les graphiques.</p>`;
 }
