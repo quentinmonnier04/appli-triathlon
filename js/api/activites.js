@@ -10,7 +10,7 @@
 
 import { requeteAuthentifiee } from './client.js';
 import { lireCache, ecrireCache, supprimerCachePrefixe } from '../cache/stockage.js';
-import { sportDepuisType, sport } from '../logique/sports.js';
+import { sportDepuisType, sport, estVirtuelle } from '../logique/sports.js';
 import { fusionnerActivites } from '../logique/activites.js';
 import { decouperSegments, alleger } from '../logique/carte.js';
 
@@ -52,7 +52,8 @@ export function convertirActivite(brut) {
     rpe: ou(brut.icu_rpe),
     ressenti: ou(brut.feel),
     commentaire: brut.description || null,
-    a_gps: Array.isArray(brut.stream_types) && brut.stream_types.includes('latlng'),
+    // Pas de carte pour une séance virtuelle (D-30), comme sur Intervals.icu.
+    a_gps: Array.isArray(brut.stream_types) && brut.stream_types.includes('latlng') && !estVirtuelle(brut.type),
     zones_fc: ou(brut.icu_hr_zone_times),
     zones_puissance: ou(brut.icu_zone_times),
     zones_allure: ou(brut.pace_zone_times),

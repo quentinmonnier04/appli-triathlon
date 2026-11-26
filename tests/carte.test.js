@@ -41,6 +41,9 @@ test('activité avec tracé GPS : stream_types contient latlng (F-70, F-71)', ()
   assert.equal(convertirActivite({ id: 'i1', stream_types: ['time', 'latlng'] }).a_gps, true);
   assert.equal(convertirActivite({ id: 'i2', stream_types: ['time', 'heartrate'] }).a_gps, false);
   assert.equal(convertirActivite({ id: 'i3' }).a_gps, false);
+  // D-30 : séance virtuelle (MyWhoosh, Zwift) : positions du monde virtuel, pas de carte.
+  assert.equal(convertirActivite({ id: 'i4', type: 'VirtualRide', stream_types: ['latlng'] }).a_gps, false);
+  assert.equal(convertirActivite({ id: 'i5', type: 'Ride', stream_types: ['latlng'] }).a_gps, true);
 });
 
 test('MapData -> tracé interne allégé', () => {

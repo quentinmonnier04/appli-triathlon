@@ -32,3 +32,9 @@ test('chaque sport a une couleur et une icône (9.3)', () => {
   assert.equal(sport('AUTRE').icone, 'autre');
   for (const s of SPORTS) assert.ok(s.couleur && s.icone && s.libelle, s.code);
 });
+
+import { estVirtuelle } from '../js/logique/sports.js';
+test('séance virtuelle : types Virtual... seulement (D-30)', () => {
+  for (const t of ['VirtualRide', 'VirtualRun', 'VirtualRow']) assert.equal(estVirtuelle(t), true, t);
+  for (const t of ['Ride', 'Run', 'Swim', '', null, undefined]) assert.equal(estVirtuelle(t), false, String(t));
+});

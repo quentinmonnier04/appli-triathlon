@@ -45,3 +45,9 @@ export function sportDepuisType(type) {
 export function sport(code) {
   return SPORTS.find((s) => s.code === code) ?? SPORTS[SPORTS.length - 1];
 }
+
+// D-30 : séance virtuelle (home trainer connecté, tapis : MyWhoosh, Zwift...). Ses positions GPS sont celles du monde
+// virtuel, pas un vrai parcours : comme Intervals.icu, l'appli n'affiche pas de carte pour ces séances.
+export function estVirtuelle(type) {
+  return /^Virtual/.test(String(type ?? ''));
+}
