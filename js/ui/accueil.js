@@ -91,6 +91,7 @@ function widgetDerniereActivite(derniere) {
 }
 
 // F-23 : TSB en grand avec sa phrase (9.4), CTL et ATL, jauge en 4 segments avec un repère.
+// Le widget ouvre l'historique de la forme (F-26), seul accès à cet écran.
 function widgetForme(forme, jour) {
   if (!forme) {
     return '<div class="carte"><h2>Forme</h2><p class="doux">Pas encore de données de forme sur Intervals.icu.</p></div>';
@@ -98,13 +99,13 @@ function widgetForme(forme, jour) {
   const phrase = phraseForme(forme.tsb);
   const date = forme.date === jour ? '' : ` <span class="doux">au ${formaterJourMois(forme.date)}</span>`;
   const signe = forme.tsb > 0 ? '+' : forme.tsb < 0 ? '&minus;' : '';
-  return `<section class="carte carte-forme" aria-label="Forme">
+  return `<a class="carte carte-lien carte-forme" href="#/forme" aria-label="Forme : ouvrir l'historique">${flecheLien()}
     <div class="carte-ligne"><h2>Forme${date}</h2>
       <span class="info-droite"><abbr title="Forme de fond">CTL</abbr> ${formaterEntier(forme.ctl)} · <abbr title="Fatigue récente">ATL</abbr> ${formaterEntier(forme.atl)}</span></div>
     <div class="forme-valeur"><span class="chiffre-forme"><span class="lecteur">Fraîcheur (TSB) : </span>${signe}${formaterEntier(Math.abs(forme.tsb))}</span><span class="phrase-forme">${phrase}</span></div>
     <div class="jauge" aria-hidden="true">${SEGMENTS_FORME.map((_, i) => `<span class="jauge-segment jauge-${i + 1}"></span>`).join('')}
       <span class="jauge-repere" data-position="${positionJauge(forme.tsb)}"></span></div>
-    <div class="jauge-libelles" aria-hidden="true">${SEGMENTS_FORME.map((l) => `<span>${l}</span>`).join('')}</div></section>`;
+    <div class="jauge-libelles" aria-hidden="true">${SEGMENTS_FORME.map((l) => `<span>${l}</span>`).join('')}</div></a>`;
 }
 
 // F-22 : tuile Mois : durée du mois, écart avec le mois précédent à la même date, courbe du cumul.

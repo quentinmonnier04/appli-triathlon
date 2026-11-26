@@ -11,6 +11,7 @@ import { afficherAgenda } from './ui/agenda.js';
 import { afficherProgrammer } from './ui/programmer.js';
 import { afficherProfil } from './ui/profil.js';
 import { afficherBilan } from './ui/bilan.js';
+import { afficherForme } from './ui/forme.js';
 import { afficherObjectif } from './ui/objectif.js';
 import { afficherSeances } from './ui/seances.js';
 import { afficherPlacer, afficherEmplacement } from './ui/placement.js';
@@ -29,6 +30,7 @@ const ROUTES = {
   seance: afficherProgrammer,
   profil: afficherProfil,
   bilan: afficherBilan,
+  forme: afficherForme, // historique de la forme, ouvert depuis le widget Forme (F-26)
   objectif: afficherObjectif,
   seances: afficherSeances, // Mes séances depuis le Profil (D-24)
   'seance-type': afficherProgrammer,
@@ -59,7 +61,7 @@ async function afficherRoute() {
 
   navigation.classList.toggle('masque', !connecte);
   // Le détail dépend de l'onglet Activités ; les Réglages s'ouvrent depuis le Profil (9.1) ; le bilan depuis l'Accueil.
-  const onglet = { activite: 'activites', reglages: 'profil', seances: 'profil', bilan: 'accueil', objectif: 'accueil', 'seance-type': 'accueil', placer: 'accueil', emplacement: 'accueil' }[route] ?? route;
+  const onglet = { activite: 'activites', reglages: 'profil', seances: 'profil', bilan: 'accueil', forme: 'accueil', objectif: 'accueil', 'seance-type': 'accueil', placer: 'accueil', emplacement: 'accueil' }[route] ?? route;
   navigation.querySelectorAll('a').forEach((a) => a.classList.toggle('actif', a.dataset.onglet === onglet));
   await ROUTES[route](conteneur, segments, parametresCourants());
   window.scrollTo(0, 0);

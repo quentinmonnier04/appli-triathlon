@@ -83,3 +83,22 @@ export async function enregistrerBilan(bilan) {
   await ecrireCache(cle(bilan.date), enregistre);
   return enregistre;
 }
+
+// --- Historique de la forme (F-26, D-26) : mis en cache par période (code 6s, 3m ou 1a). ---
+
+const cleHistorique = (code) => `forme:${code}`;
+
+// Historique en cache : { formes, debut, fin, charge_le } ou null.
+export async function lireHistoriqueEnCache(code) {
+  const cache = await lireCache(cleHistorique(code));
+  return cache ? { ...cache.donnees, charge_le: cache.charge_le } : null;
+}
+
+// Recharge l'historique depuis Intervals.icu (même endpoint et mêmes champs que le widget Forme).
+export async function rafraichirHistorique(code, debut, fin) {
+  const formes = await chargerFormes(debut, fin);
+  const donnees = { formes, debut, fin };
+  const chargeLe = new Date().toISOString();
+  await ecrireCache(cleHistorique(code), donnees, chargeLe);
+  return { ...donnees, charge_le: chargeLe };
+}

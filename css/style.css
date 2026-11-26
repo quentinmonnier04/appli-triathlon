@@ -773,7 +773,6 @@ a.aujourdhui:active { transform: scale(0.99); }
 
 /* Liens vers la programmation */
 .carte .bouton, .bouton-programmer { margin-top: 12px; }
-.lien-programmer { margin: 0 4px; }
 
 /* ===== Profil (F-50 à F-54) ===== */
 .profil-tete { display: flex; align-items: center; gap: 16px; }
@@ -981,3 +980,31 @@ a.filtre { text-decoration: none; }
 .trois-colonnes .champ label { font-size: 12px; }
 .total-vise { margin: 0 0 8px; }
 .objectifs-course { margin-bottom: 12px; }
+
+/* Widget Forme cliquable (F-26) : place pour la flèche à droite de CTL et ATL. carte-lien met display: block, la carte reste en colonne. */
+a.carte-forme { display: flex; }
+a.carte-forme .carte-ligne { padding-right: 28px; }
+
+/* Historique de la forme (F-26) : graphiques sans couleur de sport (design E), bandes aux teintes de la jauge */
+.graphique-forme { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px; margin-top: 8px; }
+.graphique-forme svg { width: 100%; height: 160px; display: block; overflow: hidden; }
+.graphique-forme path { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.trait-ctl { stroke: var(--texte); }
+.trait-atl { stroke: var(--texte-2); stroke-dasharray: 4 3; }
+.bande-tsb { stroke: none; }
+.bande-1 { fill: var(--jauge-1); }
+.bande-2 { fill: var(--jauge-2); }
+.bande-3 { fill: var(--jauge-3); }
+.bande-4 { fill: var(--jauge-4); }
+.axe-valeurs { display: flex; flex-direction: column; justify-content: space-between; font-size: 11px; color: var(--texte-2); font-variant-numeric: tabular-nums; text-align: right; }
+.axe-dates { display: flex; justify-content: space-between; font-size: 11px; color: var(--texte-2); margin-top: 4px; padding-left: 26px; font-variant-numeric: tabular-nums; }
+.legende-forme { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--texte-2); }
+.legende-forme span { display: inline-flex; align-items: center; gap: 6px; }
+.legende-ctl::before, .legende-atl::before { content: ""; width: 16px; border-top: 2px solid var(--texte); }
+.legende-atl::before { border-top: 2px dashed var(--texte-2); }
+.legende-bandes span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; }
+.legende-bande-1::before { background: var(--jauge-1); }
+.legende-bande-2::before { background: var(--jauge-2); }
+.legende-bande-3::before { background: var(--jauge-3); }
+.legende-bande-4::before { background: var(--jauge-4); }
+.stats-forme { grid-template-columns: repeat(2, minmax(0, 1fr)); }

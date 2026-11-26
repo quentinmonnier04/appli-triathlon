@@ -61,8 +61,7 @@ function vueListe(debut, fin, parJour, aujourdhui, tousLesJours) {
   if (!jours.length) return '<p class="doux jour-vide">Rien sur cette période.</p>';
   return jours.map((d) => `<section class="jour-agenda">
     <h2 class="titre-jour${d === aujourdhui ? ' aujourdhui' : ''}">${echapperHtml(formaterDateHeure(d, null))}${d === aujourdhui ? ' · aujourd\'hui' : ''}</h2>
-    ${contenuJour(parJour[d])}
-    ${tousLesJours ? `<a class="lien-action lien-programmer" href="#/seance/nouvelle?date=${d}">${icone('plus', 18)} Programmer</a>` : ''}</section>`).join('');
+    ${contenuJour(parJour[d])}</section>`).join(''); // pas de bouton par jour : le + de la barre suffit
 }
 
 export async function afficherAgenda(conteneur, segments, params = {}) {

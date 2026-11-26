@@ -146,6 +146,7 @@ flowchart LR
 | F-23 | Widget « Forme » : CTL, ATL, TSB du jour avec une phrase simple (ex. « Frais », « Fatigue élevée ») | M | L2 |
 | F-24 | Widget mini-calendrier du mois (un point coloré par jour d'activité) qui ouvre l'Agenda | S | L2 |
 | F-25 | Widget « Semaine en cours » : volume prévu et réalisé par sport | S | L2 |
+| F-26 | Historique de la forme (CTL, ATL, TSB sur 6 semaines, 3 mois ou 1 an), ouvert uniquement depuis le widget « Forme » (ajouté le 26/11/2026, D-26) | S | L2 |
 
 ### D. Agenda
 
@@ -455,6 +456,7 @@ flowchart LR
 | E-07 | Réglages | `#/reglages` (icône engrenage sur Profil, ou directe avant L5) | L0 |
 | E-08 | Bilan du jour | `#/bilan?date=…` | L6 |
 | E-09 | Objectif et plan | `#/objectif?bloc=N` ; Mes séances : `#/seance-type/nouvelle` (`?bloc=N&jour=J&heure=hh:mm` pour la placer), `#/seance-type/{id}` ; placement : `#/placer?bloc=N&jour=J&heure=hh:mm`, `#/emplacement?bloc=N&n=K` | L8 |
+| E-11 | Historique de la forme (ouvert uniquement depuis le widget Forme de l'accueil) | `#/forme?periode=6s\|3m\|1a` (3 mois par défaut) | L2 |
 | E-10 | Mes séances (banque de séances par sport et par type, ouverte depuis le Profil) | `#/seances?sport=CODE` (filtre facultatif) ; l'éditeur ouvert d'ici revient ici (`?retour=seances`) | L8 |
 
 **Barre de navigation flottante (bas)** : Accueil · Agenda · Programmer (bouton central +) · Activités · Profil. Les onglets des lots non livrés sont masqués.
@@ -549,6 +551,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | D-22 | 24/11/2026 | L8, évolution (conception `docs/superpowers/specs/2026-11-24-blocs-bibliotheque-objectifs-design.md`, plan `docs/superpowers/plans/2026-11-24-blocs-bibliotheque-objectifs.md`) : la semaine type unique devient une bibliothèque « Mes séances » et des blocs ayant chacun sa grille (approche A : séances = séances de bibliothèque du dossier renommé « Mes séances (appli triathlon) » ; blocs et réglages = JSON après un en-tête dans la description du dossier ; description illisible = aucune écriture). Volume : le bloc 1 part de sa grille, chaque bloc monte de `hausse` points du volume du bloc 1, coupure en dernière semaine sauf pour le dernier bloc, le bloc suivant repart en heures du niveau de la dernière hausse (sa grille est mise à l'échelle), affûtage sur la grille du dernier bloc. Le plan se cale à rebours depuis la course (plus de date de début ni de semaines de hausse par bloc) ; chaque envoi demande confirmation. Migration automatique fidèle : autant de blocs que de cycles de l'ancien plan, `coupure` forcée sur un dernier cycle complet, vérifiée contre l'ancien calcul (gardé comme référence figée dans `tests/reference/ancien-plan.js`). Objectifs de course (F-89) : ligne gérée par l'appli dans la description de la course (texte libre conservé), temps total dans `time_target` (à vérifier en réel). Mes séances proposées comme modèles (F-47), sauf les repos. Nouveaux fichiers : `logique/blocs.js`, `logique/objectifs-course.js`, `api/preparation.js` (remplace `api/semaine-type.js`), `ui/blocs.js`, `ui/placement.js`. |
 | D-23 | 24/11/2026 | ENF-16 terminé : choix du thème dans Réglages (Automatique, Clair, Sombre), appliqué tout de suite et enregistré dans le store `reglages` (champ `theme`, déjà prévu en 4.2). Attribut `data-theme` sur `<html>` lu par `css/style.css` ; sans attribut, la page suit le téléphone. La couleur de la barre du navigateur suit le choix. « Se déconnecter » efface aussi ce réglage (retour en automatique). Nouveaux fichiers : `logique/theme.js`, `ui/theme.js`. |
 | D-24 | 24/11/2026 | Banque de séances accessible depuis le Profil : carte « Mes séances » qui ouvre l'écran E-10 (`#/seances`, `ui/seances.js`), avec la même liste que dans Objectif et plan (`sectionMesSeances`). Ouvert depuis cet écran, l'éditeur de séance (`#/seance-type/...?retour=seances`, valeur contrôlée) revient à `#/seances` après un enregistrement ou une suppression ; le placement dans un bloc reste dans Objectif et plan. Aucune nouvelle fonction de données (F-88). |
+| D-26 | 26/11/2026 | Mise en ligne sur GitHub Pages (dépôt public `quentinmonnier04/appli-triathlon`, branche `main`). Accueil : l'objectif passe en haut de la page ; le bouton « Programmer une séance » du bloc Repos est retiré (le + de la barre suffit) ; chaque widget ouvre sa page (bloc Repos et tuile Semaine : agenda de la semaine ; tuile Mois : agenda du mois ; Forme : historique). Agenda : plus de bouton « Programmer » sous chaque jour de la vue semaine (le bouton « Programmer ce jour » de la vue mois reste). Champs date et heure adaptés à la largeur de l'écran sur iPhone. Nouvelle fonction F-26 : historique de la forme (E-11, `ui/forme.js`), mêmes données wellness que F-23 (`ctl`, `atl`), mis en cache par période ; graphiques sans couleur de sport (design E), bandes du TSB aux teintes de la jauge. |
 | D-25 | 24/11/2026 | Banque Mes séances rangée par sport puis par type de séance (choix de l'utilisateur). Types : liste fixe par sport (Course : Endurance, Seuil, Fractionné, Sortie longue, Récupération, Enchaînement ; Vélo : idem avec PMA à la place de Fractionné ; Natation : Technique, Endurance, Seuil, Vitesse ; Renfo : Gainage, Force ; Autre : Autre) plus des types libres (30 caractères). Le type est rangé dans une étiquette de la séance de bibliothèque : `type-<code>` pour un type fixe, `type-<texte>` pour un type libre ; relu sans casse ni accents. Choisi dans l'éditeur (boutons + champ libre, pas pour le repos). Pas de séances toutes faites proposées par l'appli. Écran E-10 : filtre par sport, une carte par sport, un groupe par type, « Sans type » à la fin. Nouveau fichier : `logique/types-seance.js`. |
 
 ---
@@ -569,4 +572,6 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 
 **Ancien code v1.0** : supprimé (commit « Suppression du code v1.0 »), récupérable dans l'historique git.
 
-**Prochaine étape :** tester en réel les blocs et les objectifs de course (migration de ma semaine type, `time_target` de la course), puis mise en ligne sur GitHub Pages.
+**Mise en ligne :** faite le 26/11/2026 sur GitHub Pages (https://quentinmonnier04.github.io/appli-triathlon/).
+
+**Prochaine étape :** tester en réel les blocs et les objectifs de course (migration de ma semaine type, `time_target` de la course).
