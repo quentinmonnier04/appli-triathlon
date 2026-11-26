@@ -23,7 +23,7 @@ import {
   bandeauHorsLigne, carteActivite, messageErreurApi, pastilleSport, squelette, graphiqueSeance, boutonIcone, flecheLien,
 } from './composants.js';
 import { icone, iconeSport } from './icones.js';
-import { remplirApercus } from './carte.js';
+import { afficherCarteParcours } from './carte.js';
 
 const LARGEUR_COURBE = 150;
 const HAUTEUR_COURBE = 34;
@@ -85,7 +85,7 @@ function lienBilan(jour) {
     <p class="doux">Fatigue, sommeil, douleurs, poids : note ta journée.</p></a>`;
 }
 
-// F-21 : dernière activité, qui ouvre son détail ; tracé GPS dessous quand elle en a un (F-71, D-28).
+// F-21 : dernière activité, qui ouvre son détail ; petite carte du parcours dessous quand elle en a un (F-71, D-29).
 function widgetDerniereActivite(derniere) {
   if (!derniere) return '';
   return carteActivite(derniere, { grille: true, prefixeDate: 'Dernière activité', apercu: true });
@@ -207,7 +207,13 @@ export async function afficherAccueil(conteneur) {
   function afficher(t) {
     zone.innerHTML = rendreTableau(t, allures);
     appliquerBarres(zone);
-    remplirApercus(zone); // F-71 : tracé de la dernière activité
+    // F-71, D-29 : vraie carte (fond de carte) du parcours de la dernière activité, sans interaction.
+    zone.querySelectorAll('.apercu-trace[data-apercu]').forEach((el) => {
+      el.classList.add('carte-mini');
+      afficherCarteParcours(el, el.dataset.apercu, t.derniere.sport, { fixe: true })
+        .then((affichee) => { if (!affichee) el.remove(); })
+        .catch(() => el.remove()); // hors ligne sans tracé en cache : pas de carte
+    });
   }
 
   async function rafraichir() {

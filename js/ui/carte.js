@@ -32,21 +32,27 @@ function chargerLeaflet() {
 }
 
 // F-70 : affiche la carte du parcours dans "element" (bloc vide prévu par l'écran).
+// fixe : petite carte sans aucune interaction (accueil, D-29) ; toucher la carte ouvre l'activité.
 // Renvoie false si l'activité n'a finalement aucun point GPS (l'écran retire alors le bloc).
-export async function afficherCarteParcours(element, id, sportCode) {
+export async function afficherCarteParcours(element, id, sportCode, { fixe = false } = {}) {
   const [L, trace] = await Promise.all([chargerLeaflet(), lireTrace(id)]);
   if (!element.isConnected) return true;
   if (!nombrePoints(trace.segments)) return false;
   // Couleur du sport selon le thème actif (design E : variable --couleur-sport posée par la classe sport-XXX).
   element.classList.add(`sport-${sport(sportCode).code}`);
   const couleur = getComputedStyle(element).getPropertyValue('--couleur-sport').trim() || sport(sportCode).couleur;
-  const carte = L.map(element, {
-    zoomControl: true,
-    attributionControl: true,
-    // ENF-17 : sur téléphone, un doigt fait défiler la page ; on zoome à deux doigts ou avec les boutons.
-    dragging: !L.Browser.mobile,
-    scrollWheelZoom: false,
-  });
+  const carte = L.map(element, fixe
+    ? {
+      zoomControl: false, attributionControl: true, dragging: false, touchZoom: false, doubleClickZoom: false,
+      scrollWheelZoom: false, boxZoom: false, keyboard: false, tap: false,
+    }
+    : {
+      zoomControl: true,
+      attributionControl: true,
+      // ENF-17 : sur téléphone, un doigt fait défiler la page ; on zoome à deux doigts ou avec les boutons.
+      dragging: !L.Browser.mobile,
+      scrollWheelZoom: false,
+    });
   L.tileLayer(TUILES, {
     maxZoom: 19,
     attribution: ATTRIBUTION,

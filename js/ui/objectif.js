@@ -13,7 +13,7 @@ import {
 import { genererPlanBlocs, grilleDuBloc, blocsVides, migrerAncienFormat } from '../logique/blocs.js';
 import { jourISO, ajouterJours } from '../logique/dates.js';
 import { sport } from '../logique/sports.js';
-import { echapperHtml, formaterDureeLongue, formaterDuree, formaterVitesse, decouperUnite } from '../logique/format.js';
+import { echapperHtml, formaterDureeLongue, formaterDuree, formaterDistance, formaterVitesse, decouperUnite } from '../logique/format.js';
 import {
   FORMATS_COURSE, segmentsDeLaCourse, lireObjectifsSaisis, tempsTotal, tempsDepuisAllure, lireTempsCourse,
 } from '../logique/objectifs-course.js';
@@ -22,7 +22,7 @@ import {
   boutonCrayon, boutonAnnuler, brancherEdition,
 } from './composants.js';
 import { icone, iconeSport } from './icones.js';
-import { sectionMesSeances, sectionBlocs, brancherGrille, brancherBlocs } from './blocs.js';
+import { sectionBlocs, brancherGrille, brancherBlocs } from './blocs.js';
 
 const jjmm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 const libelleSport = (code) => (code === 'ENCHAINEMENT' ? 'Triathlon' : sport(code).libelle);
@@ -44,11 +44,19 @@ const allureSaisie = (seg, m, s) => decouperUnite(formaterVitesse(seg, m, s))?.v
 const UNITES = { NATATION: 'min/100 m', VELO: 'km/h', CAP: 'min/km' };
 
 // Tableau des objectifs enregistrés et temps total visé (conception 5.6).
+// F-89, D-29 : récapitulatif par discipline et transitions, avec le total visé. Il remplace les champs en lecture
+// (ils montraient la même chose) ; les champs de saisie n'apparaissent qu'avec le crayon.
 function tableauObjectifs(o) {
-  // D-28 : seul le total visé est affiché ; le détail par discipline est déjà dans les champs dessous.
   if (!o?.objectifs) return '';
   const total = tempsTotal(o.objectifs, o.sport);
-  return total !== null ? `<p class="total-vise">Total visé : <strong>${echapperHtml(formaterDuree(total))}</strong></p>` : '';
+  const lignes = segmentsDeLaCourse(o.sport).map((seg) => {
+    const x = o.objectifs.segments[seg];
+    if (!x) return '';
+    return `<tr><th scope="row">${echapperHtml(LIBELLES_SEGMENT[seg])}</th><td>${x.distance_m ? echapperHtml(formaterDistance(x.distance_m, seg)) : ''}</td>
+      <td>${echapperHtml(formaterDuree(x.temps_s))}</td><td>${estTransition(seg) ? '' : echapperHtml(formaterVitesse(seg, x.distance_m, x.temps_s) ?? '')}</td></tr>`;
+  }).join('');
+  return `<div class="objectifs-course">${total !== null ? `<p class="total-vise">Total visé : <strong>${echapperHtml(formaterDuree(total))}</strong></p>` : ''}
+    <div class="tableau-defilant"><table class="intervalles"><tbody>${lignes}</tbody></table></div></div>`;
 }
 
 // Champs de saisie : format (triathlon), puis distance, temps et allure par discipline ; temps seul pour T1 et T2.
@@ -114,8 +122,8 @@ function sectionObjectif(o) {
       <input id="nom-objectif" maxlength="80" value="${echapperHtml(v.nom)}" placeholder="Ex. Triathlon d'Annecy"></div>
     <div class="champ"><label for="date-objectif">Date</label><input type="date" id="date-objectif" value="${echapperHtml(v.date)}"></div>
     ${groupeChoix('sport-objectif', 'Sport', options, v.sport)}
-    <h3 class="sous-titre">Mes objectifs pour la course</h3>
-    <div id="champs-objectifs">${champsObjectifs(v.sport, v.objectifs)}</div>
+    <div class="${o?.objectifs ? 'seulement-edition' : ''}"><h3 class="sous-titre">Mes objectifs pour la course</h3>
+    <div id="champs-objectifs">${champsObjectifs(v.sport, v.objectifs)}</div></div>
     </fieldset>
     <div class="erreurs" id="erreurs-objectif" aria-live="polite"></div>
     <div class="pile"><button type="submit" class="bouton principal" data-enregistrer>${o ? 'Enregistrer les modifications' : "Définir l'objectif"}</button>
@@ -235,7 +243,7 @@ export async function afficherObjectif(conteneur, segments = [], params = {}) {
 
   const sectionsPreparation = preparation.illisible
     ? `<div class="carte"><h2>Blocs</h2>${message('erreur', "La préparation enregistrée est illisible. Rien n'a été modifié.")}</div>`
-    : `${sectionMesSeances(preparation.seances, allures)}${sectionBlocs({ ...preparation, blocs }, allures, indexBloc)}${sectionReglages(preparation.reglages, volumeBase)}`;
+    : `${sectionBlocs({ ...preparation, blocs }, allures, indexBloc)}${sectionReglages(preparation.reglages, volumeBase)}`;
   zone.innerHTML = `<div id="hors-ligne-objectif"></div>${messageEnAttente}${echecMigration}${sectionObjectif(objectif)}${sectionsPreparation}${apercu}`;
   messageEnAttente = '';
   zone.querySelectorAll('.barre-remplie').forEach((b) => { b.style.width = `${b.dataset.pct}%`; });

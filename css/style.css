@@ -836,8 +836,8 @@ a.aujourdhui:active { transform: scale(0.99); }
 }
 :root[data-theme="sombre"] .carte-leaflet .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.5); }
 .apercu-trace { display: block; height: 64px; margin-top: 12px; border-radius: var(--rayon); background: var(--carte-2); }
-.apercu-trace svg { display: block; width: 100%; height: 100%; }
-.apercu-trace path { fill: none; stroke: var(--couleur-sport); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.apercu-trace:not(.carte-mini) svg { display: block; width: 100%; height: 100%; }
+.apercu-trace:not(.carte-mini) path { fill: none; stroke: var(--couleur-sport); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ===== Objectif et plan (F-80 à F-87) ===== */
 .titre-icone { display: flex; align-items: center; gap: 8px; }
@@ -1041,3 +1041,6 @@ form.carte.en-lecture > h2, form.carte.en-lecture > .titre-icone { padding-right
 /* Jour touché dans la grille du mois, retrouvé dans la liste (D-28) */
 .jour-agenda.choisi .titre-jour { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; color: var(--texte); }
 .jour-agenda { scroll-margin-top: 12px; }
+/* Petite carte du parcours sur l'accueil (D-29) : le toucher traverse la carte et ouvre l'activité */
+.apercu-trace.carte-mini { height: 150px; overflow: hidden; pointer-events: none; }
+.apercu-trace.carte-mini .leaflet-control-attribution { font-size: 9px; }

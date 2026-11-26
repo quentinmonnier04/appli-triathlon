@@ -1,31 +1,18 @@
-// Écran E-09, sections "Mes séances" et "Blocs" (F-81, F-88) : bibliothèque de séances, onglets des blocs,
+// Écran E-09, section "Blocs" (F-81, F-88 ; Mes séances est dans le Profil, D-29) : onglets des blocs,
 // nom et durée du bloc, grille de la semaine du bloc (5 h à 23 h, positions calculées par logique/grille.js).
 // Une case vide ouvre #/placer, une séance placée ouvre #/emplacement. Écriture en ligne seulement (ENF-07).
 
 import { modifierPreparation } from '../api/preparation.js';
-import { volumeSeance_s, volumeSemaine_s } from '../logique/plan.js';
+import { volumeSemaine_s } from '../logique/plan.js';
 import {
   grilleDuBloc, ajouterBloc, dupliquerBloc, supprimerBloc, modifierBloc, validerBlocs, verifierPosition,
 } from '../logique/blocs.js';
 import { GRILLE, dispositionSemaine, heureDepuisPosition } from '../logique/grille.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
-import { message, pastilleSport, boutonCrayon, boutonAnnuler } from './composants.js';
+import { message, boutonCrayon, boutonAnnuler } from './composants.js';
 import { icone, iconeSport } from './icones.js';
 
 export const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-
-// F-81 : liste de la bibliothèque (titre et durée estimée).
-export function sectionMesSeances(toutes, allures) {
-  const seances = toutes.filter((s) => !s.retiree); // D-27 : séances retirées cachées (encore utilisées dans un bloc)
-  const lignes = seances.map((s) => {
-    return `<li><a class="ligne-seance" href="#/seance-type/${encodeURIComponent(s.id)}">${pastilleSport(s.sport)}
-      <span class="seance-type-titre">${echapperHtml(s.titre)}</span>
-      <span class="doux">${s.sport === 'REPOS' ? '' : echapperHtml(formaterDureeLongue(volumeSeance_s(s, allures)))}</span></a></li>`;
-  }).join('');
-  return `<div class="carte"><h2>Mes séances</h2>
-    ${seances.length ? `<ul class="liste-seances" id="mes-seances">${lignes}</ul>` : '<p class="doux">Aucune séance pour l\'instant.</p>'}
-    <a class="bouton" id="nouvelle-seance-bib" href="#/seance-type/nouvelle">${icone('plus', 18)} Nouvelle séance</a></div>`;
-}
 
 // Grille de la semaine d'un bloc : un lien par séance placée, un bouton + par jour (sans heure).
 function grilleBloc(grille, indexBloc, allures) {
