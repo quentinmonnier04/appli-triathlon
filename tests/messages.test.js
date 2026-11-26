@@ -9,8 +9,8 @@ test('M-01 avec le nom', () => {
 
 test('textes exacts de 9.5', () => {
   assert.equal(MESSAGES['M-02'], 'Identifiants refusés. Vérifie ton identifiant athlète et ta clé API.');
-  assert.equal(MESSAGES['M-06'], 'Se déconnecter ? Ta clé et le cache seront effacés de cet appareil. Tes données restent sur Intervals.icu.');
-  assert.equal(MESSAGES['M-07'], 'Intervals.icu ne répond pas. Réessaie dans un instant.');
+  assert.equal(MESSAGES['M-06'], 'Se déconnecter ? Ta clé et le cache seront effacés de cet appareil. Tes données restent enregistrées en ligne.');
+  assert.equal(MESSAGES['M-07'], 'Le serveur ne répond pas. Réessaie dans un instant.');
 });
 
 test('le nom est inséré tel quel (échappement fait à l\'affichage)', () => {

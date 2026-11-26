@@ -26,6 +26,7 @@ const TRACES = {
   fermer: '<path d="M6 6l12 12M18 6L6 18"></path>',
   rafraichir: '<path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"></path><path d="M4 3v5h5"></path><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"></path><path d="M20 21v-5h-5"></path>',
   reglages: '<circle cx="12" cy="12" r="3"></circle><path d="M10.3 2.5h3.4l.6 2.6 1.8.8 2.3-1.4 2.4 2.4-1.4 2.3.8 1.8 2.6.6v3.4l-2.6.6-.8 1.8 1.4 2.3-2.4 2.4-2.3-1.4-1.8.8-.6 2.6h-3.4l-.6-2.6-1.8-.8-2.3 1.4-2.4-2.4 1.4-2.3-.8-1.8-2.6-.6v-3.4l2.6-.6.8-1.8-1.4-2.3 2.4-2.4 2.3 1.4 1.8-.8z"></path>',
+  crayon: '<path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13.5 6.5l4 4"></path>',
   drapeau: '<path d="M5 21V4"></path><path d="M5 4h12l-2.5 4L17 12H5"></path>',
   montre: '<rect x="6" y="6" width="12" height="12" rx="3"></rect><path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 9.5V12l1.5 1.5"></path>',
   succes: '<circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.7 2.7L16 10"></path>',

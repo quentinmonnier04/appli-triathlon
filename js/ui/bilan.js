@@ -8,13 +8,18 @@ import { ECHELLES_BILAN, lireNombreSaisi, validerBilan } from '../logique/ressen
 import { echapperHtml, formaterDateHeure } from '../logique/format.js';
 import {
   bandeauHorsLigne, messageErreurApi, squelette, message, groupeChoix, brancherChoix, surveillerReseau, boutonIcone,
+  boutonCrayon, boutonAnnuler, brancherEdition,
 } from './composants.js';
+
+// Un bilan déjà rempli s'ouvre en lecture, avec le crayon (D-27).
+const estRempli = (b) => [b.fatigue, b.sommeil, b.douleur, b.poids_kg].some((v) => v !== null && v !== undefined) || Boolean(b.commentaire);
 
 // Poids affiché avec une virgule (ENF-20).
 const poidsTexte = (kg) => (kg === null || kg === undefined ? '' : String(kg).replace('.', ','));
 
 function rendreFormulaire(b) {
-  return `<form class="carte" id="form-bilan" novalidate>
+  return `<form class="carte" id="form-bilan" novalidate><h2>Ma journée</h2>${boutonCrayon('Modifier le bilan')}
+    <fieldset class="champs-formulaire">
     ${groupeChoix('fatigue', 'Fatigue', ECHELLES_BILAN.fatigue, b.fatigue)}
     ${groupeChoix('sommeil', 'Qualité du sommeil', ECHELLES_BILAN.sommeil, b.sommeil)}
     ${groupeChoix('douleur', 'Douleurs', ECHELLES_BILAN.douleur, b.douleur)}
@@ -22,9 +27,11 @@ function rendreFormulaire(b) {
       <input id="poids" inputmode="decimal" autocomplete="off" value="${echapperHtml(poidsTexte(b.poids_kg))}" placeholder="72,5"></div>
     <div class="champ"><label for="commentaire">Commentaire</label>
       <textarea id="commentaire" rows="3" maxlength="2000" placeholder="Une remarque sur ta journée ?">${echapperHtml(b.commentaire)}</textarea></div>
+    </fieldset>
     <div id="hors-ligne-bilan"></div>
     <div id="resultat-bilan" aria-live="polite"></div>
-    <button type="submit" class="bouton principal" id="enregistrer-bilan">Enregistrer dans Intervals.icu</button>
+    <div class="pile"><button type="submit" class="bouton principal" id="enregistrer-bilan" data-enregistrer>${estRempli(b) ? 'Enregistrer les modifications' : 'Enregistrer'}</button>
+      ${estRempli(b) ? boutonAnnuler() : ''}</div>
   </form>`;
 }
 
@@ -53,7 +60,11 @@ export async function afficherBilan(conteneur, segments, params = {}) {
     form.querySelector('#resultat-bilan').innerHTML = resultatHtml;
     brancherChoix(form, (champ, valeur) => { saisie[champ] = valeur; modifiee = true; });
     form.querySelectorAll('input, textarea').forEach((c) => c.addEventListener('input', () => { modifiee = true; }));
-    surveillerReseau(form, form.querySelector('#hors-ligne-bilan'), [bouton]); // ENF-07
+    // D-27 : bilan rempli en lecture (crayon) ; Annuler réaffiche le bilan enregistré.
+    const libelle = bouton.textContent;
+    const enregistre = { ...bilan };
+    brancherEdition(form, { lecture: estRempli(bilan), nouveau: !estRempli(bilan), surAnnuler: () => afficher(enregistre) });
+    surveillerReseau(form, form.querySelector('#hors-ligne-bilan'), []); // ENF-07
 
     form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
@@ -67,13 +78,12 @@ export async function afficherBilan(conteneur, segments, params = {}) {
       try {
         const enregistre = await enregistrerBilan(saisie);
         if (!form.isConnected) return;
-        afficher(enregistre, message('succes', 'Bilan enregistré dans Intervals.icu.')
-          + '<div class="pile"><a class="bouton" href="#/accueil">Retour à l\'accueil</a></div>');
+        afficher(enregistre, message('succes', 'Bilan enregistré.'));
       } catch (e) {
         if (!form.isConnected) return;
         resultat.innerHTML = messageErreurApi(e); // la saisie reste dans le formulaire (ENF-07)
         bouton.disabled = !navigator.onLine;
-        bouton.textContent = 'Enregistrer dans Intervals.icu';
+        bouton.textContent = libelle;
       }
     });
   }

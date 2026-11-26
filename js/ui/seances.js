@@ -47,7 +47,7 @@ export async function afficherSeances(conteneur, segments = [], params = {}) {
   }
   if (!zone.isConnected) return;
 
-  const seances = preparation.seances ?? [];
+  const seances = (preparation.seances ?? []).filter((s) => !s.retiree); // D-27 : séances retirées cachées
   const tous = rangerSeances(seances);
   // Filtre contrôlé (D-21) : seulement un sport présent dans la banque.
   const filtre = tous.some((g) => g.sport === params.sport) ? params.sport : null;

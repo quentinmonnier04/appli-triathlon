@@ -127,6 +127,34 @@ export function retirerSeanceDesBlocs(blocs, seanceId) {
   return copier(blocs).map((b) => ({ ...b, emplacements: b.emplacements.filter((e) => String(e.seanceId) !== String(seanceId)) }));
 }
 
+// --- Variantes et séances retirées (D-27) ---
+
+// Titre d'une variante : le titre tel quel s'il est libre, sinon "Titre (2)", "Titre (3)"... (premier numéro libre,
+// sans tenir compte des majuscules ; un numéro déjà présent à la fin est remplacé, "Seuil (2)" donne "Seuil (3)").
+export function titreVariante(titre, titresExistants) {
+  const pris = new Set(titresExistants.map((t) => String(t ?? '').trim().toLowerCase()));
+  const t = String(titre ?? '').trim();
+  if (!pris.has(t.toLowerCase())) return t;
+  const base = t.replace(/\s\(\d+\)$/, '');
+  let n = 2;
+  while (pris.has(`${base} (${n})`.toLowerCase())) n += 1;
+  return `${base} (${n})`;
+}
+
+// Remplace une séance par sa variante : seulement dans la case n du bloc (n donné), ou dans toutes les cases du bloc
+// qui l'utilisent (n = null). Les autres blocs ne changent pas.
+export function remplacerSeance(blocs, index, n, ancienId, nouvelId) {
+  const resultat = copier(blocs);
+  resultat[index].emplacements = resultat[index].emplacements.map((e, i) => (
+    String(e.seanceId) === String(ancienId) && (n === null || i === n) ? { ...e, seanceId: String(nouvelId) } : e));
+  return resultat;
+}
+
+// Séances retirées de Mes séances (gardées pour les blocs) qu'aucun bloc n'utilise plus : elles peuvent être effacées.
+export function retireesInutilisees(seances, blocs) {
+  return seances.filter((s) => s.retiree && utilisationsSeance(blocs ?? [], s.id) === 0);
+}
+
 // Nombre de blocs qui utilisent la séance (une séance placée deux fois dans un bloc compte une fois).
 export function utilisationsSeance(blocs, seanceId) {
   return blocs.filter((b) => (b.emplacements ?? []).some((e) => String(e.seanceId) === String(seanceId))).length;

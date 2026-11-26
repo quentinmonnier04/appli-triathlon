@@ -139,3 +139,13 @@ test("revue finale I-1 : pas d'écriture sur une préparation encore à l'ancien
   const corps = corpsDossier(relue, () => ({ reglages: REG, blocs: BLOCS }), { migration: true });
   assert.deepEqual(texteVersPreparation(corps.description).blocs, BLOCS);
 });
+
+test('séance retirée de Mes séances (D-27) : étiquette relue et gardée à la réécriture, plus proposée comme modèle', () => {
+  const brut = { id: 7, name: 'Seuil', type: 'Run', tags: ['semaine-type', 'retiree', 'type-seuil'], description: '' };
+  const s = convertirSeanceType(brut);
+  assert.equal(s.retiree, true);
+  assert.ok(versSeanceBibliotheque(s, 3).tags.includes('retiree'));
+  assert.equal(convertirSeanceType({ ...brut, tags: ['semaine-type'] }).retiree, undefined);
+  assert.ok(!versSeanceBibliotheque({ ...s, retiree: false }, 3).tags.includes('retiree'));
+  assert.equal(estModeleAffichable(brut), false);
+});

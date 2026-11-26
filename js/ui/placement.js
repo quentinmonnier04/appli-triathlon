@@ -8,7 +8,9 @@ import { lireAlluresSeuil } from '../api/profil.js';
 import { ajouterEmplacement, modifierEmplacement, retirerEmplacement, verifierPosition } from '../logique/blocs.js';
 import { volumeSeance_s } from '../logique/plan.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
-import { message, messageErreurApi, squelette, pastilleSport, surveillerReseau, boutonIcone, graphiqueSeance } from './composants.js';
+import {
+  message, messageErreurApi, squelette, pastilleSport, surveillerReseau, boutonIcone, graphiqueSeance, boutonCrayon, boutonAnnuler, brancherEdition,
+} from './composants.js';
 import { JOURS } from './blocs.js';
 
 const HEURE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -52,12 +54,13 @@ export async function afficherPlacer(conteneur, segments, params = {}) {
   const jour = entier(params.jour, 1, 7) ?? 1;
   const heure = HEURE.test(params.heure ?? '') ? params.heure : null;
   const quand = `${JOURS[jour - 1]}${heure ? ` à ${heure}` : ', sans heure'}`;
+  const choix = preparation.seances.filter((s) => !s.retiree); // D-27
   const nouvelle = `#/seance-type/nouvelle?bloc=${indexBloc}&jour=${jour}${heure ? `&heure=${heure}` : ''}`;
   zone.innerHTML = `<div id="hors-ligne-placement"></div>
     <div class="carte"><h2>${echapperHtml(bloc.nom)} · ${echapperHtml(quand)}</h2>
       <a class="bouton principal" id="nouvelle-seance" href="${nouvelle}">Nouvelle séance</a>
-      ${preparation.seances.length ? `<p class="doux">Ou choisis une séance de Mes séances :</p>
-      <ul class="liste-seances">${preparation.seances.map((s) => `<li><button type="button" class="ligne-seance choix-seance ecriture" data-id="${echapperHtml(s.id)}">
+      ${choix.length ? `<p class="doux">Ou choisis une séance de Mes séances :</p>
+      <ul class="liste-seances">${choix.map((s) => `<li><button type="button" class="ligne-seance choix-seance ecriture" data-id="${echapperHtml(s.id)}">
         ${pastilleSport(s.sport)}<span class="seance-type-titre">${echapperHtml(s.titre)}</span>
         <span class="doux">${s.sport === 'REPOS' ? '' : echapperHtml(formaterDureeLongue(volumeSeance_s(s, allures)))}</span>
         ${graphiqueSeance(s, allures, { compact: true })}</button></li>`).join('')}</ul>` : ''}
@@ -82,25 +85,30 @@ export async function afficherEmplacement(conteneur, segments, params = {}) {
   const e = bloc.emplacements[n];
   const seance = preparation.seances.find((s) => String(s.id) === String(e.seanceId));
   zone.innerHTML = `<div id="hors-ligne-placement"></div>
-    <div class="carte"><h2>${echapperHtml(bloc.nom)}</h2>
+    <form class="carte" id="form-emplacement" novalidate><h2>${echapperHtml(bloc.nom)}</h2>${boutonCrayon('Modifier dans ce bloc')}
       ${seance ? `<div class="carte-activite-tete">${pastilleSport(seance.sport)}<strong>${echapperHtml(seance.titre)}</strong></div>
         ${graphiqueSeance(seance, allures)}`
     : message('info', "Cette séance n'existe plus dans ta bibliothèque. Retire-la de ce bloc.")}
-      <form id="form-emplacement" novalidate>
-        <div class="deux-colonnes">
+        <fieldset class="champs-formulaire"><div class="deux-colonnes">
           <div class="champ"><label for="jour-emplacement">Jour</label><select id="jour-emplacement">
             ${JOURS.map((j, i) => `<option value="${i + 1}" ${e.jour === i + 1 ? 'selected' : ''}>${echapperHtml(j)}</option>`).join('')}</select></div>
           <div class="champ"><label for="heure-emplacement">Heure (facultatif)</label>
             <input type="time" id="heure-emplacement" value="${echapperHtml(e.heure ?? '')}"></div>
-        </div>
+        </div></fieldset>
         <div id="resultat" aria-live="polite"></div>
         <div class="pile">
-          <button type="submit" class="bouton principal ecriture" id="enregistrer-emplacement">Enregistrer dans ce bloc</button>
-          ${seance ? `<a class="bouton" id="modifier-seance" href="#/seance-type/${encodeURIComponent(seance.id)}">Modifier la séance</a>` : ''}
-          <button type="button" class="bouton danger ecriture" id="retirer-emplacement">Retirer de ce bloc</button>
+          <button type="submit" class="bouton principal" id="enregistrer-emplacement" data-enregistrer>Enregistrer dans ce bloc</button>
+          ${seance ? `<a class="bouton action-edition" id="modifier-seance" href="#/seance-type/${encodeURIComponent(seance.id)}?bloc=${indexBloc}&n=${n}">Modifier la séance</a>` : ''}
+          <button type="button" class="bouton danger ecriture action-edition" id="retirer-emplacement">Retirer de ce bloc</button>
+          ${boutonAnnuler()}
         </div>
-      </form></div>`;
+      </form>`;
   const $ = (sel) => zone.querySelector(sel);
+  // D-27 : en lecture avec le crayon ; Annuler remet le jour et l'heure enregistrés.
+  const edition = brancherEdition($('#form-emplacement'), {
+    lecture: Boolean(seance), // séance disparue : modification ouverte pour pouvoir la retirer
+    surAnnuler: () => { $('#jour-emplacement').value = String(e.jour); $('#heure-emplacement').value = e.heure ?? ''; edition.passer(true); },
+  });
   $('#form-emplacement').addEventListener('submit', (ev) => {
     ev.preventDefault();
     const jour = entier($('#jour-emplacement').value, 1, 7);

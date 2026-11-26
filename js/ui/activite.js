@@ -12,7 +12,11 @@ import { sport } from '../logique/sports.js';
 import { ECHELLE_RPE, RESSENTIS, libelleEchelle, validerRessenti } from '../logique/ressenti.js';
 import {
   bandeauHorsLigne, messageErreurApi, stat, squelette, message, groupeChoix, brancherChoix, surveillerReseau, boutonIcone,
+  boutonCrayon, boutonAnnuler, brancherEdition,
 } from './composants.js';
+
+// Un ressenti déjà noté s'ouvre en lecture, avec le crayon (D-27).
+const estNote = (s) => s.rpe !== null && s.rpe !== undefined || (s.ressenti !== null && s.ressenti !== undefined) || Boolean(s.commentaire);
 import { iconeSport } from './icones.js';
 import { afficherCarteParcours } from './carte.js';
 
@@ -83,14 +87,17 @@ function rendreBas({ activite: a, intervalles }) {
 
 // Formulaire de ressenti (F-60, F-61), prérempli avec les valeurs d'Intervals.icu.
 function rendreRessenti(saisie) {
-  return `<form class="carte" id="form-ressenti" novalidate><h2>Mon ressenti</h2>
+  return `<form class="carte" id="form-ressenti" novalidate><h2>Mon ressenti</h2>${boutonCrayon('Modifier le ressenti')}
+    <fieldset class="champs-formulaire">
     ${groupeChoix('rpe', 'Effort perçu (RPE)', ECHELLE_RPE, saisie.rpe, { court: true })}
     ${groupeChoix('ressenti', 'Ressenti', RESSENTIS, saisie.ressenti)}
     <div class="champ"><label for="commentaire">Commentaire</label>
       <textarea id="commentaire" rows="3" maxlength="2000" placeholder="Comment s'est passée la séance ?">${echapperHtml(saisie.commentaire)}</textarea></div>
+    </fieldset>
     <div id="hors-ligne-ressenti"></div>
     <div id="resultat-ressenti" aria-live="polite"></div>
-    <button type="submit" class="bouton principal" id="enregistrer-ressenti">Enregistrer dans Intervals.icu</button>
+    <div class="pile"><button type="submit" class="bouton principal" id="enregistrer-ressenti" data-enregistrer>${estNote(saisie) ? 'Enregistrer les modifications' : 'Enregistrer'}</button>
+      ${estNote(saisie) ? boutonAnnuler() : ''}</div>
   </form>`;
 }
 
@@ -124,7 +131,9 @@ export async function afficherActivite(conteneur, segments) {
     brancherChoix(form, (champ, valeur) => { saisie[champ] = valeur; modifiee = true; aideRpe(); });
     form.querySelector('#commentaire').addEventListener('input', () => { modifiee = true; });
     const bouton = form.querySelector('#enregistrer-ressenti');
-    surveillerReseau(form, form.querySelector('#hors-ligne-ressenti'), [bouton]); // ENF-07
+    const libelle = bouton.textContent;
+    brancherEdition(form, { lecture: estNote(saisie), nouveau: !estNote(saisie), surAnnuler: () => afficherRessenti(a) }); // D-27
+    surveillerReseau(form, form.querySelector('#hors-ligne-ressenti'), []); // ENF-07
 
     form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
@@ -137,12 +146,12 @@ export async function afficherActivite(conteneur, segments) {
       try {
         const a2 = await enregistrerRessenti(id, saisie);
         if (!form.isConnected) return;
-        afficherRessenti(a2, message('succes', 'Ressenti enregistré dans Intervals.icu.'));
+        afficherRessenti(a2, message('succes', 'Ressenti enregistré.'));
       } catch (e) {
         if (!form.isConnected) return;
         resultat.innerHTML = messageErreurApi(e); // la saisie reste dans le formulaire (ENF-07)
         bouton.disabled = !navigator.onLine;
-        bouton.textContent = 'Enregistrer dans Intervals.icu';
+        bouton.textContent = libelle;
       }
     });
   }

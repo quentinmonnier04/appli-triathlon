@@ -1,7 +1,7 @@
 {
   "name": "Triathlon",
   "short_name": "Triathlon",
-  "description": "Suivre, analyser et programmer mes entraînements de triathlon avec Intervals.icu",
+  "description": "Suivre, analyser et programmer mes entraînements de triathlon",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",

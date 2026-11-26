@@ -5,10 +5,10 @@ export const MESSAGES = {
   'M-02': 'Identifiants refusés. Vérifie ton identifiant athlète et ta clé API.',
   'M-03': 'Hors ligne. Données du {jj/mm} à {hh:mm}.',
   'M-04': 'Connexion nécessaire pour modifier tes séances.',
-  'M-05': 'Supprimer cette séance de ton calendrier Intervals.icu ?',
-  'M-06': 'Se déconnecter ? Ta clé et le cache seront effacés de cet appareil. Tes données restent sur Intervals.icu.',
-  'M-07': 'Intervals.icu ne répond pas. Réessaie dans un instant.',
-  'M-08': "Aucune activité pour l'instant. Vérifie que ta montre Suunto est connectée à Intervals.icu.",
+  'M-05': 'Supprimer cette séance de ton calendrier ?',
+  'M-06': 'Se déconnecter ? Ta clé et le cache seront effacés de cet appareil. Tes données restent enregistrées en ligne.',
+  'M-07': 'Le serveur ne répond pas. Réessaie dans un instant.',
+  'M-08': "Aucune activité pour l'instant. Vérifie que ta montre Suunto est bien synchronisée.",
 };
 
 // Texte d'un message avec ses paramètres, ex. formaterMessage('M-01', { nom: 'Alex' }).

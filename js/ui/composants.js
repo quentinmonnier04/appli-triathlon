@@ -180,3 +180,62 @@ export function graphiqueSeance(seance, allures = {}, { compact = false } = {}) 
     role="img" aria-label="Profil de la séance, ${formaterDuree(barres.total_s)}">
     ${rectangles.map((r) => `<rect x="${r.x}" y="${r.y}" width="${r.largeur}" height="${r.hauteur}" class="${r.classe}"></rect>`).join('')}</svg>`;
 }
+
+// --- Mode lecture et modification des formulaires (D-27) ---
+// Après un enregistrement, un formulaire passe en lecture : champs figés, boutons masqués, un petit crayon seul.
+// Le crayon ouvre la modification : Enregistrer les modifications (actif seulement après un changement et en ligne),
+// Supprimer et les autres actions, Annuler. Structure attendue dans le formulaire :
+//   <fieldset class="champs-formulaire"> : les champs ; [data-crayon] : le crayon (ou option crayon) ;
+//   [data-enregistrer] : le bouton d'enregistrement ; [data-annuler] : facultatif ; .action-edition : actions masquées en lecture.
+
+// Bouton crayon, à placer dans le formulaire (coin haut droit d'une carte) ou dans l'en-tête de l'écran.
+export function boutonCrayon(libelle = 'Modifier') {
+  return `<button type="button" class="icone-bouton bouton-crayon" data-crayon aria-label="${echapperHtml(libelle)}">${icone('crayon', 20)}</button>`;
+}
+
+// Bouton Annuler du mode modification (absent pour un nouvel élément : rien à retrouver).
+export function boutonAnnuler() {
+  return '<button type="button" class="bouton action-edition" data-annuler>Annuler</button>';
+}
+
+// lecture : état de départ (true pour un élément déjà enregistré) ; nouveau : élément pas encore enregistré
+// (Enregistrer actif sans changement) ; crayon : bouton hors du formulaire ; surAnnuler : réaffiche les valeurs enregistrées ;
+// reseau : false pour un réglage gardé sur l'appareil (enregistrable hors ligne).
+// Renvoie { passer(enLecture), estModifie() }.
+export function brancherEdition(form, { lecture = true, nouveau = false, crayon = null, surAnnuler = null, reseau = true } = {}) {
+  const champs = form.querySelector('fieldset.champs-formulaire');
+  const boutonModifier = crayon ?? form.querySelector('[data-crayon]');
+  const enregistrer = form.querySelector('[data-enregistrer]');
+  let modifie = false;
+  const enLecture = () => form.classList.contains('en-lecture');
+  function maj() {
+    if (!form.isConnected) {
+      window.removeEventListener('online', maj);
+      window.removeEventListener('offline', maj);
+      return;
+    }
+    if (enregistrer) enregistrer.disabled = (reseau && !navigator.onLine) || (!nouveau && !modifie); // ENF-07
+  }
+  function passer(versLecture) {
+    // En lecture, un champ vide (heure, description...) est masqué.
+    form.querySelectorAll('.champ').forEach((c) => {
+      const saisies = c.querySelectorAll('input, textarea, select');
+      c.classList.toggle('champ-vide', versLecture && saisies.length > 0 && [...saisies].every((x) => !x.value.trim()));
+    });
+    form.classList.toggle('en-lecture', versLecture);
+    if (champs) champs.disabled = versLecture;
+    if (boutonModifier) boutonModifier.hidden = !versLecture;
+    modifie = false;
+    maj();
+  }
+  const marquer = () => { if (!enLecture()) { modifie = true; maj(); } };
+  form.addEventListener('input', marquer);
+  form.addEventListener('change', marquer);
+  champs?.addEventListener('click', (ev) => { if (ev.target.closest('button')) marquer(); });
+  boutonModifier?.addEventListener('click', () => passer(false));
+  form.querySelector('[data-annuler]')?.addEventListener('click', () => (surAnnuler ? surAnnuler() : passer(true)));
+  window.addEventListener('online', maj);
+  window.addEventListener('offline', maj);
+  passer(lecture);
+  return { passer, estModifie: () => modifie };
+}

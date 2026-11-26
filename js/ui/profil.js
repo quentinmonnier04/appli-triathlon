@@ -65,7 +65,7 @@ function carteParSport(activites) {
 function carteSeuils(reglages) {
   const blocs = reglages.map((r) => ({ r, seuils: seuilsAffichables(r) })).filter((b) => b.seuils.length);
   if (!blocs.length) {
-    return '<div class="carte"><div class="etiquette-carte">Seuils</div><p class="doux">Aucun seuil renseigné sur Intervals.icu.</p></div>';
+    return '<div class="carte"><div class="etiquette-carte">Seuils</div><p class="doux">Aucun seuil renseigné.</p></div>';
   }
   return `<div class="carte"><div class="etiquette-carte">Seuils</div>
     ${blocs.map(({ r, seuils }) => `<div class="bloc-sport">

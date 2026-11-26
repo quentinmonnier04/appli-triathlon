@@ -94,7 +94,7 @@ function widgetDerniereActivite(derniere) {
 // Le widget ouvre l'historique de la forme (F-26), seul accès à cet écran.
 function widgetForme(forme, jour) {
   if (!forme) {
-    return '<div class="carte"><h2>Forme</h2><p class="doux">Pas encore de données de forme sur Intervals.icu.</p></div>';
+    return '<div class="carte"><h2>Forme</h2><p class="doux">Pas encore de données de forme.</p></div>';
   }
   const phrase = phraseForme(forme.tsb);
   const date = forme.date === jour ? '' : ` <span class="doux">au ${formaterJourMois(forme.date)}</span>`;

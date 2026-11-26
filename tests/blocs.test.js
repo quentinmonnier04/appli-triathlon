@@ -203,3 +203,36 @@ test('revue finale I-2 : une écriture par position vérifie que le bloc et la s
   change(() => verifierPosition(blocs, 1, 'Spécifique', 5, 'a'));
   change(() => verifierPosition(null, 0, 'Endurance'));
 });
+
+// --- Variantes et séances retirées (D-27) ---
+import { titreVariante, remplacerSeance, retireesInutilisees } from '../js/logique/blocs.js';
+
+test('titre de variante : libre tel quel, sinon premier numéro libre, sans tenir compte des majuscules', () => {
+  assert.equal(titreVariante('Seuil 3x10', ['Endurance']), 'Seuil 3x10');
+  assert.equal(titreVariante('Seuil', ['Seuil']), 'Seuil (2)');
+  assert.equal(titreVariante('seuil', ['Seuil', 'Seuil (2)']), 'seuil (3)');
+  assert.equal(titreVariante('Seuil (2)', ['Seuil', 'Seuil (2)']), 'Seuil (3)');
+  assert.equal(titreVariante('Fractionné 6 x 800', ['Fractionné 6 x 800']), 'Fractionné 6 x 800 (2)');
+});
+
+test('remplacer une séance par sa variante : une case ou tout le bloc, les autres blocs intacts', () => {
+  const blocs = [
+    { nom: 'B1', semaines: 3, emplacements: [{ seanceId: 'a', jour: 1, heure: null }, { seanceId: 'a', jour: 3, heure: '18:00' }, { seanceId: 'b', jour: 5, heure: null }] },
+    { nom: 'B2', semaines: 3, emplacements: [{ seanceId: 'a', jour: 1, heure: null }] },
+  ];
+  const caseSeule = remplacerSeance(blocs, 0, 1, 'a', 'v');
+  assert.deepEqual(caseSeule[0].emplacements.map((e) => e.seanceId), ['a', 'v', 'b']);
+  assert.equal(caseSeule[0].emplacements[1].heure, '18:00');
+  assert.deepEqual(caseSeule[1].emplacements.map((e) => e.seanceId), ['a']);
+  const toutLeBloc = remplacerSeance(blocs, 0, null, 'a', 'v');
+  assert.deepEqual(toutLeBloc[0].emplacements.map((e) => e.seanceId), ['v', 'v', 'b']);
+  assert.deepEqual(toutLeBloc[1].emplacements.map((e) => e.seanceId), ['a']);
+  assert.equal(blocs[0].emplacements[0].seanceId, 'a'); // entrée non modifiée
+});
+
+test('séances retirées inutilisées : seulement celles qu\'aucun bloc n\'utilise', () => {
+  const blocs = [{ nom: 'B1', semaines: 1, emplacements: [{ seanceId: 'r1', jour: 1, heure: null }] }];
+  const seances = [{ id: 'r1', retiree: true }, { id: 'r2', retiree: true }, { id: 'x' }];
+  assert.deepEqual(retireesInutilisees(seances, blocs).map((s) => s.id), ['r2']);
+  assert.deepEqual(retireesInutilisees(seances, null).map((s) => s.id), ['r1', 'r2']);
+});

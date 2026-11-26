@@ -871,6 +871,7 @@ a.aujourdhui:active { transform: scale(0.99); }
 /* Grille hebdomadaire du planificateur (F-81) */
 .grille { --colonne-heures: 34px; margin-top: 8px; }
 .grille-ligne { display: grid; grid-template-columns: var(--colonne-heures) repeat(7, minmax(0, 1fr)); gap: 2px; }
+.grille-entete { position: sticky; top: 0; z-index: 2; background: var(--carte); padding-top: 4px; }
 .grille-entete span { text-align: center; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texte-2); padding-bottom: 4px; }
 .grille-sans-heure { border-bottom: 1px solid var(--filet); padding-bottom: 6px; margin-bottom: 4px; }
 .grille-libelle { font-size: 10px; font-weight: 700; color: var(--texte-2); line-height: 1.1; align-self: center; }
@@ -886,7 +887,8 @@ a.aujourdhui:active { transform: scale(0.99); }
 }
 .grille-puce { background: var(--couleur-sport); color: var(--sur-sport); }
 .grille-ajout { color: var(--texte-2); border: 1px dashed var(--filet-fort); min-height: var(--tactile); }
-.grille-defilement { max-height: 480px; overflow-y: auto; overscroll-behavior: contain; }
+/* Pas d'ascenseur propre à la grille : la page défile d'un seul tenant, en haut comme en bas (D-27). */
+.grille-defilement { overflow: visible; }
 .grille-corps {
   position: relative;
   display: grid;
@@ -942,7 +944,7 @@ a.aujourdhui:active { transform: scale(0.99); }
   cursor: pointer;
 }
 .onglets-blocs button:disabled { opacity: 0.4; cursor: default; }
-.actions-bloc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.actions-bloc { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
 .actions-bloc .bouton { padding-left: 4px; padding-right: 4px; }
 .liste-seances { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; }
 .liste-seances li { border-top: 1px solid var(--filet); }
@@ -1008,3 +1010,31 @@ a.carte-forme .carte-ligne { padding-right: 28px; }
 .legende-bande-3::before { background: var(--jauge-3); }
 .legende-bande-4::before { background: var(--jauge-4); }
 .stats-forme { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* Mode lecture des formulaires (D-27) : champs figés et sans cadre, boutons masqués, crayon en haut à droite */
+.champs-formulaire { border: 0; margin: 0; padding: 0; min-width: 0; }
+form.carte { position: relative; }
+.bouton-crayon[hidden] { display: none; }
+form.carte > .bouton-crayon { position: absolute; top: 8px; right: 8px; }
+form.carte.en-lecture > h2, form.carte.en-lecture > .titre-icone { padding-right: 48px; }
+.en-lecture .action-edition, .en-lecture .seulement-edition, .en-lecture [data-enregistrer], .en-lecture [data-annuler] { display: none !important; }
+.en-lecture input, .en-lecture textarea, .en-lecture select {
+  border-color: transparent;
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  min-height: 0;
+  opacity: 1;
+  color: var(--texte);
+  -webkit-text-fill-color: var(--texte);
+  resize: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.en-lecture .champ-vide, .en-lecture .aide:not([id]) { display: none; }
+.en-lecture ::placeholder { color: transparent; -webkit-text-fill-color: transparent; }
+/* En lecture, seuls les choix retenus restent visibles */
+.en-lecture .filtre:not(.actif):not([aria-checked="true"]), .en-lecture .bascule button:not(.actif) { display: none; }
+.en-lecture .filtre, .en-lecture .bascule button { opacity: 1; cursor: default; }
+.ligne-crayon { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+.ligne-crayon .etiquette-champ { margin: 0; }

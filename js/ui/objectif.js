@@ -19,6 +19,7 @@ import {
 } from '../logique/objectifs-course.js';
 import {
   message, messageErreurApi, squelette, pastilleSport, groupeChoix, brancherChoix, surveillerReseau, graphiqueSeance, boutonIcone,
+  boutonCrayon, boutonAnnuler, brancherEdition,
 } from './composants.js';
 import { icone, iconeSport } from './icones.js';
 import { sectionMesSeances, sectionBlocs, brancherGrille, brancherBlocs } from './blocs.js';
@@ -112,17 +113,19 @@ function champsSaisis(zone) {
 function sectionObjectif(o) {
   const v = o ?? { nom: '', date: '', sport: 'ENCHAINEMENT' };
   const options = SPORTS_OBJECTIF.map((c) => ({ valeur: c, libelle: libelleSport(c), icone: iconeSport(c, 18) }));
-  return `<form class="carte" id="form-objectif" novalidate><h2 class="titre-icone">${icone('drapeau', 18)} Objectif</h2>
+  return `<form class="carte" id="form-objectif" novalidate><h2 class="titre-icone">${icone('drapeau', 18)} Objectif</h2>${o ? boutonCrayon("Modifier l'objectif") : ''}
     ${tableauObjectifs(o)}
+    <fieldset class="champs-formulaire">
     <div class="champ"><label for="nom-objectif">Course</label>
       <input id="nom-objectif" maxlength="80" value="${echapperHtml(v.nom)}" placeholder="Ex. Triathlon d'Annecy"></div>
     <div class="champ"><label for="date-objectif">Date</label><input type="date" id="date-objectif" value="${echapperHtml(v.date)}"></div>
     ${groupeChoix('sport-objectif', 'Sport', options, v.sport)}
     <h3 class="sous-titre">Mes objectifs pour la course</h3>
     <div id="champs-objectifs">${champsObjectifs(v.sport, v.objectifs)}</div>
+    </fieldset>
     <div class="erreurs" id="erreurs-objectif" aria-live="polite"></div>
-    <div class="pile"><button type="submit" class="bouton principal ecriture">${o ? "Enregistrer l'objectif" : "Définir l'objectif"}</button>
-      ${o ? '<button type="button" class="bouton danger ecriture" id="supprimer-objectif">Supprimer l\'objectif</button>' : ''}</div>
+    <div class="pile"><button type="submit" class="bouton principal" data-enregistrer>${o ? 'Enregistrer les modifications' : "Définir l'objectif"}</button>
+      ${o ? `<button type="button" class="bouton danger ecriture action-edition" id="supprimer-objectif">Supprimer l'objectif</button>${boutonAnnuler()}` : ''}</div>
   </form>`;
 }
 
@@ -131,15 +134,15 @@ function sectionObjectif(o) {
 function sectionReglages(r, volumeBase_s) {
   const champ = (id, libelle, valeur, aide = '', type = 'text') => `<div class="champ"><label for="${id}">${libelle}</label>
     <input id="${id}" type="${type}" inputmode="${type === 'date' ? '' : 'decimal'}" value="${echapperHtml(valeur)}">${aide ? `<div class="aide">${aide}</div>` : ''}</div>`;
-  return `<form class="carte" id="form-reglages" novalidate><h2>Progression</h2>
-    <div class="deux-colonnes">
+  return `<form class="carte" id="form-reglages" novalidate><h2>Progression</h2>${boutonCrayon('Modifier la progression')}
+    <fieldset class="champs-formulaire"><div class="deux-colonnes">
       ${champ('hausse', 'Hausse par semaine (points)', r.hausse)}
       ${champ('coupure', 'Semaine de coupure (%)', r.coupure, 'De la semaine précédente.')}
       ${champ('affutage', 'Affûtage (%)', r.affutage.join(', '), 'Une valeur par semaine, ex. 70, 50.')}
       ${champ('plafond', 'Plafond (h par semaine)', r.plafond_h ? String(r.plafond_h).replace('.', ',') : '', `Proposé : ${plafondParDefaut(volumeBase_s)} h. Vide = sans plafond.`)}
-    </div>
+    </div></fieldset>
     <div class="erreurs" id="erreurs-reglages" aria-live="polite"></div>
-    <button type="submit" class="bouton ecriture">Enregistrer les réglages</button></form>`;
+    <div class="pile"><button type="submit" class="bouton principal" data-enregistrer>Enregistrer les modifications</button>${boutonAnnuler()}</div></form>`;
 }
 
 function sectionApercu(plan, apartirDe, avertissements, allures) {
@@ -157,9 +160,9 @@ function sectionApercu(plan, apartirDe, avertissements, allures) {
         ${graphiqueSeance(x, allures, { compact: true })}</li>`).join('')
     : '<li class="doux">Aucune séance</li>'}</ul></details>`).join('')}</div>
     <div class="carte-interieure">
-      <p class="doux">Les séances du plan à partir du ${jjmm(apartirDe)} seront remplacées, y compris si tu les as modifiées sur Intervals.icu. Tes autres séances ne sont pas touchées.</p>
+      <p class="doux">Les séances du plan à partir du ${jjmm(apartirDe)} seront remplacées, y compris si tu les as modifiées à la main. Tes autres séances ne sont pas touchées.</p>
       <div id="progression-envoi" aria-live="polite"></div>
-      <div class="pile"><button type="button" class="bouton principal ecriture" id="envoyer" ${aEnvoyer ? '' : 'disabled'}>Envoyer ${aEnvoyer} séance${aEnvoyer > 1 ? 's' : ''} dans Intervals.icu</button>
+      <div class="pile"><button type="button" class="bouton principal ecriture" id="envoyer" ${aEnvoyer ? '' : 'disabled'}>Envoyer ${aEnvoyer} séance${aEnvoyer > 1 ? 's' : ''} dans mon calendrier</button>
         <button type="button" class="bouton danger ecriture" id="supprimer-plan">Supprimer le plan à venir</button></div>
     </div></div>`;
 }
@@ -222,7 +225,7 @@ export async function afficherObjectif(conteneur, segments = [], params = {}) {
   let bornes = bornesPlan(aujourdhui, lundiProchain);
   const vides = blocsVides(blocs, preparation.seances, allures);
   const infoApercu = (texte) => `<div class="carte"><h2>Aperçu du plan</h2>${message('info', texte)}</div>`;
-  if (preparation.illisible) apercu = infoApercu("La préparation enregistrée sur Intervals.icu est illisible. Rien n'a été modifié.");
+  if (preparation.illisible) apercu = infoApercu("La préparation enregistrée est illisible. Rien n'a été modifié.");
   else if (!objectif) apercu = infoApercu("Définis d'abord ton objectif.");
   else if (!blocs.length) apercu = infoApercu('Ajoute au moins un bloc à ta préparation.');
   else if (vides.length) apercu = infoApercu(vides.map((i) => `Le bloc ${blocs[i].nom} est vide.`).join(' ')); // texte, pas du HTML : message() échappe
@@ -237,7 +240,7 @@ export async function afficherObjectif(conteneur, segments = [], params = {}) {
   }
 
   const sectionsPreparation = preparation.illisible
-    ? `<div class="carte"><h2>Blocs</h2>${message('erreur', "La préparation enregistrée sur Intervals.icu est illisible. Rien n'a été modifié.")}</div>`
+    ? `<div class="carte"><h2>Blocs</h2>${message('erreur', "La préparation enregistrée est illisible. Rien n'a été modifié.")}</div>`
     : `${sectionMesSeances(preparation.seances, allures)}${sectionBlocs({ ...preparation, blocs }, allures, indexBloc)}${sectionReglages(preparation.reglages, volumeBase)}`;
   zone.innerHTML = `<div id="hors-ligne-objectif"></div>${messageEnAttente}${echecMigration}${sectionObjectif(objectif)}${sectionsPreparation}${apercu}`;
   messageEnAttente = '';
@@ -245,6 +248,11 @@ export async function afficherObjectif(conteneur, segments = [], params = {}) {
   brancherGrille(zone);
   const $ = (sel) => zone.querySelector(sel);
   surveillerReseau(zone, $('#hors-ligne-objectif'), [...zone.querySelectorAll('.ecriture')].filter((b) => !b.disabled)); // ENF-07
+  // D-27 : formulaires en lecture avec le crayon ; Annuler réaffiche l'écran avec les valeurs enregistrées.
+  const reafficher = () => afficherObjectif(conteneur, segments, { bloc: String(indexBloc) });
+  brancherEdition($('#form-objectif'), { lecture: Boolean(objectif), nouveau: !objectif, surAnnuler: reafficher });
+  if ($('#form-reglages')) brancherEdition($('#form-reglages'), { surAnnuler: reafficher });
+  if ($('#form-bloc')) brancherEdition($('#form-bloc'), { surAnnuler: reafficher });
 
   // Recharge l'écran après une écriture, avec un message de succès ; garde le bloc affiché.
   const recharger = (texte, bloc = indexBloc) => {
@@ -276,11 +284,11 @@ export async function afficherObjectif(conteneur, segments = [], params = {}) {
     if (Object.keys(erreurs).length) { $('#erreurs-objectif').innerHTML = message('erreur', Object.values(erreurs).join(' ')); return; }
     try {
       await enregistrerObjectif(o);
-      recharger('Objectif enregistré dans Intervals.icu.');
+      recharger('Objectif enregistré.');
     } catch (e) { echec('#erreurs-objectif', e); }
   });
   $('#supprimer-objectif')?.addEventListener('click', async () => {
-    if (!confirm("Supprimer l'objectif ? Les séances à venir du plan seront aussi supprimées de ton calendrier Intervals.icu.")) return;
+    if (!confirm("Supprimer l'objectif ? Les séances à venir du plan seront aussi supprimées de ton calendrier.")) return;
     try {
       await supprimerPlan(objectif.id, bornes.suppression);
       await supprimerObjectif(objectif.id);
@@ -312,10 +320,10 @@ export async function afficherObjectif(conteneur, segments = [], params = {}) {
       const n = await envoyerPlan(plan, objectif.id, bornes, (fait, total) => {
         zoneProgres.textContent = `Envoi en cours : ${fait} / ${total}...`; // ENF-10
       });
-      recharger(`${n} séance${n > 1 ? 's' : ''} envoyée${n > 1 ? 's' : ''} dans Intervals.icu. Elles partiront sur ta montre comme d'habitude.`);
+      recharger(`${n} séance${n > 1 ? 's' : ''} envoyée${n > 1 ? 's' : ''} dans ton calendrier. Elles partiront sur ta montre comme d'habitude.`);
     } catch (e) {
       zoneProgres.innerHTML = e.type === 'ETIQUETTE'
-        ? message('erreur', "Envoi arrêté : Intervals.icu n'a pas gardé l'étiquette des séances du plan, l'appli ne pourrait pas les remplacer ensuite. Une seule séance a été créée ; supprime-la sur le site.")
+        ? message('erreur', "Envoi arrêté : l'étiquette des séances du plan n'a pas été gardée, l'appli ne pourrait pas les remplacer ensuite. Une seule séance a été créée ; supprime-la depuis l'agenda.")
         : `${messageErreurApi(e)}<p class="doux">Renvoie le plan : les séances déjà créées seront remplacées.</p>`;
       bouton.disabled = !navigator.onLine;
     }

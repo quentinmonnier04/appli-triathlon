@@ -9,13 +9,14 @@ import {
 } from '../logique/blocs.js';
 import { GRILLE, dispositionSemaine, heureDepuisPosition } from '../logique/grille.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
-import { message, pastilleSport } from './composants.js';
+import { message, pastilleSport, boutonCrayon, boutonAnnuler } from './composants.js';
 import { icone, iconeSport } from './icones.js';
 
 export const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
 // F-81 : liste de la bibliothèque (titre et durée estimée).
-export function sectionMesSeances(seances, allures) {
+export function sectionMesSeances(toutes, allures) {
+  const seances = toutes.filter((s) => !s.retiree); // D-27 : séances retirées cachées (encore utilisées dans un bloc)
   const lignes = seances.map((s) => {
     return `<li><a class="ligne-seance" href="#/seance-type/${encodeURIComponent(s.id)}">${pastilleSport(s.sport)}
       <span class="seance-type-titre">${echapperHtml(s.titre)}</span>
@@ -62,15 +63,17 @@ export function sectionBlocs(preparation, allures, indexBloc) {
   const grille = grilleDuBloc(bloc, seances);
   return `<div class="carte"><h2>Blocs</h2>${onglets}
     <form id="form-bloc" novalidate>
-      <div class="deux-colonnes">
+      <div class="ligne-crayon"><span class="etiquette-champ">Ce bloc</span>${boutonCrayon('Modifier le bloc')}</div>
+      <fieldset class="champs-formulaire"><div class="deux-colonnes">
         <div class="champ"><label for="nom-bloc">Nom du bloc</label><input id="nom-bloc" maxlength="40" value="${echapperHtml(bloc.nom)}"></div>
         <div class="champ"><label for="semaines-bloc">Semaines</label><input id="semaines-bloc" inputmode="numeric" value="${echapperHtml(bloc.semaines)}"></div>
-      </div>
+      </div></fieldset>
       <div class="erreurs" id="erreurs-bloc" aria-live="polite"></div>
-      <div class="actions-bloc">
-        <button type="submit" class="bouton ecriture">Enregistrer</button>
+      <div class="actions-bloc action-edition">
+        <button type="submit" class="bouton principal" data-enregistrer>Enregistrer</button>
         <button type="button" class="bouton ecriture" id="dupliquer-bloc">Dupliquer</button>
         <button type="button" class="bouton danger ecriture" id="supprimer-bloc">Supprimer</button>
+        ${boutonAnnuler()}
       </div>
     </form>
     <p class="doux">Volume de la semaine : <strong>${echapperHtml(formaterDureeLongue(volumeSemaine_s(grille, allures)))}</strong>.
@@ -103,8 +106,6 @@ export function brancherGrille(zone) {
       location.hash = `#/placer?bloc=${corps.dataset.bloc}&jour=${colonne.dataset.jour}&heure=${heureDepuisPosition(y)}`;
     });
   });
-  // La journée commence affichée à 6 h.
-  zone.querySelector('.grille-defilement').scrollTop = (6 - GRILLE.heureDebut) * GRILLE.pxParHeure;
 }
 
 // Boutons de la section Blocs. recharger(texte, indexBloc) réaffiche l'écran ; echec(cible, e) affiche l'erreur.

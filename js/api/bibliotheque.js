@@ -25,9 +25,10 @@ export function convertirModele(brut) {
 }
 
 // Modèles proposés (F-47) : toutes les séances de la bibliothèque, y compris Mes séances (conception 2026-11-24,
-// section 6), sauf les repos.
+// section 6), sauf les repos et les séances retirées de Mes séances (D-27).
 export function estModeleAffichable(brut) {
-  return !(brut.tags ?? []).includes('repos');
+  const tags = brut.tags ?? [];
+  return !tags.includes('repos') && !tags.includes('retiree');
 }
 
 // Modèles de la bibliothèque, depuis le cache s'il a moins de 5 min (ENF-11).

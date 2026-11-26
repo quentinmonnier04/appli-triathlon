@@ -11,7 +11,7 @@ import { validerIdentifiants } from '../logique/connexion.js';
 import { MESSAGES, formaterMessage } from '../logique/messages.js';
 import { echapperHtml } from '../logique/format.js';
 import { VERSION_APP } from '../version.js';
-import { message, messageErreurApi, boutonIcone } from './composants.js';
+import { message, messageErreurApi, boutonIcone, boutonCrayon, boutonAnnuler, brancherEdition } from './composants.js';
 
 export async function afficherReglages(conteneur) {
   const { athleteId, cleEnregistree } = await lireIdentifiantsAffichables();
@@ -39,10 +39,10 @@ export async function afficherReglages(conteneur) {
       <button type="submit" class="bouton principal" id="tester">Tester la connexion</button>
       <div id="resultat" aria-live="polite"></div>
     </form>
-    ${connecte ? `<form class="carte" id="form-montre" novalidate><h2>Montre</h2>
-      <div class="champ"><label for="montre">Nom affiché sur le profil</label>
-        <input id="montre" maxlength="40" value="${echapperHtml(montre)}"></div>
-      <button type="submit" class="bouton">Enregistrer</button>
+    ${connecte ? `<form class="carte" id="form-montre" novalidate><h2>Montre</h2>${boutonCrayon('Modifier la montre')}
+      <fieldset class="champs-formulaire"><div class="champ"><label for="montre">Nom affiché sur le profil</label>
+        <input id="montre" maxlength="40" value="${echapperHtml(montre)}"></div></fieldset>
+      <div class="pile"><button type="submit" class="bouton principal" data-enregistrer>Enregistrer les modifications</button>${boutonAnnuler()}</div>
       <div id="resultat-montre" aria-live="polite"></div></form>` : ''}
     <div class="carte"><h2 id="titre-theme">Thème</h2>
       <div class="bascule large" role="group" aria-labelledby="titre-theme">
@@ -104,13 +104,21 @@ export async function afficherReglages(conteneur) {
     conteneur.querySelector('#resultat').innerHTML = resultatHtml;
   }
 
-  // F-50 : nom de la montre, enregistré sur l'appareil.
-  conteneur.querySelector('#form-montre')?.addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    await enregistrerMontre(ev.target.montre.value);
-    ev.target.montre.value = await lireMontre();
-    conteneur.querySelector('#resultat-montre').innerHTML = message('succes', 'Montre enregistrée.');
-  });
+  // F-50 : nom de la montre, enregistré sur l'appareil ; en lecture avec le crayon (D-27).
+  const formMontre = conteneur.querySelector('#form-montre');
+  if (formMontre) {
+    const edition = brancherEdition(formMontre, {
+      reseau: false, // réglage de l'appareil : pas besoin de réseau
+      surAnnuler: async () => { formMontre.montre.value = await lireMontre(); edition.passer(true); },
+    });
+    formMontre.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      await enregistrerMontre(formMontre.montre.value);
+      formMontre.montre.value = await lireMontre();
+      edition.passer(true);
+      conteneur.querySelector('#resultat-montre').innerHTML = message('succes', 'Montre enregistrée.');
+    });
+  }
 
   // ENF-16 : thème appliqué tout de suite et enregistré sur l'appareil.
   conteneur.querySelectorAll('[data-theme-choix]').forEach((b) => b.addEventListener('click', async () => {

@@ -16,13 +16,15 @@ import { sportDepuisType, sport } from '../logique/sports.js';
 import { blocsVersTexte, texteVersBlocs, sportVersType } from '../logique/seance.js';
 import { REGLAGES_ANCIENS_PAR_DEFAUT, REGLAGES_PAR_DEFAUT } from '../logique/plan.js';
 import { estPerime } from '../logique/activites.js';
-import { retirerSeanceDesBlocs } from '../logique/blocs.js';
+import { utilisationsSeance, retireesInutilisees, remplacerSeance, verifierPosition, titreVariante } from '../logique/blocs.js';
 import { typeVersEtiquette, typeDepuisEtiquettes } from '../logique/types-seance.js';
 
 export const NOM_DOSSIER = 'Mes séances (appli triathlon)';
 export const ANCIEN_NOM = 'Semaine type (appli triathlon)';
 export const ENTETE_PREPARATION = "Préparation gérée par l'appli triathlon (ne pas modifier) :";
 const ETIQUETTE = 'semaine-type';
+// D-27 : séance supprimée de Mes séances mais encore utilisée dans un bloc (cachée de la liste, gardée pour le plan).
+export const ETIQUETTE_RETIREE = 'retiree';
 
 const ou = (v) => (v === undefined ? null : v);
 
@@ -98,7 +100,7 @@ export function texteVersPreparation(texte) {
 // Erreur d'écriture : description du dossier illisible (revue 3), ou préparation encore à l'ancien format, pas
 // encore migrée (revue finale I-1 : une écriture ne doit pas effacer l'ancienne semaine type).
 const MESSAGES_PREPARATION = {
-  ILLISIBLE: "La préparation enregistrée sur Intervals.icu est illisible. Rien n'a été modifié.",
+  ILLISIBLE: "La préparation enregistrée est illisible. Rien n'a été modifié.",
   MIGRATION: "Ta semaine type n'a pas encore été convertie en blocs. Rouvre l'écran Objectif avec du réseau, puis recommence.",
 };
 export class ErreurPreparation extends Error {
@@ -123,7 +125,7 @@ export function corpsDossier(relue, transformer, { migration = false } = {}) {
 // Séance de la bibliothèque -> corps WorkoutEx ; le jour et l'heure sont ceux des emplacements dans les blocs,
 // plus dans les étiquettes (F-88).
 export function versSeanceBibliotheque(s, folderId) {
-  const tags = [ETIQUETTE];
+  const tags = s.retiree ? [ETIQUETTE, ETIQUETTE_RETIREE] : [ETIQUETTE];
   if (s.sport === 'REPOS') {
     return { name: s.titre || 'Repos', type: 'Other', folder_id: folderId, tags: [...tags, 'repos'], description: s.description ?? '' };
   }
@@ -142,13 +144,15 @@ export function convertirSeanceBibliotheque(brut) {
   const tags = brut.tags ?? [];
   const jour = Number(tags.find((t) => /^jour-[1-7]$/.test(t))?.slice(5) ?? 1);
   const heure = tags.find((t) => /^heure-([01]\d|2[0-3]):[0-5]\d$/.test(t))?.slice(6) ?? null;
+  const retiree = tags.includes(ETIQUETTE_RETIREE) ? { retiree: true } : {}; // D-27
   if (tags.includes('repos')) {
-    return { id: String(brut.id), jour, heure, sport: 'REPOS', titre: brut.name || 'Repos', duree_s: null, distance_m: null, description: brut.description ?? '', blocs: null };
+    return { ...retiree, id: String(brut.id), jour, heure, sport: 'REPOS', titre: brut.name || 'Repos', duree_s: null, distance_m: null, description: brut.description ?? '', blocs: null };
   }
   const code = sportDepuisType(brut.type);
   const blocs = texteVersBlocs(brut.description);
   const type = typeDepuisEtiquettes(tags); // D-25
   return {
+    ...retiree,
     ...(type ? { type_seance: type } : {}),
     id: String(brut.id),
     jour,
@@ -210,8 +214,19 @@ export async function modifierPreparation(transformer, options = {}) {
   const dossier = relue.dossierId
     ? await requeteAuthentifiee(`/athlete/0/folders/${encodeURIComponent(relue.dossierId)}`, null, { methode: 'PUT', corps })
     : await requeteAuthentifiee('/athlete/0/folders', null, { methode: 'POST', corps: { type: 'FOLDER', ...corps } });
+  await effacerRetireesInutilisees(relue.seances, texteVersPreparation(corps.description).blocs);
   await invaliderCaches();
   return dossier;
+}
+
+// D-27 : une séance retirée de Mes séances est effacée de la bibliothèque dès qu'aucun bloc ne l'utilise plus.
+// Un échec n'empêche pas l'écriture des blocs (elle sera réessayée à la prochaine modification).
+async function effacerRetireesInutilisees(seances, blocs) {
+  for (const s of retireesInutilisees(seances ?? [], blocs ?? [])) {
+    try {
+      await requeteAuthentifiee(`/athlete/0/workouts/${encodeURIComponent(s.id)}`, null, { methode: 'DELETE' });
+    } catch { /* réessayé plus tard */ }
+  }
 }
 
 // Identifiant du dossier, créé vide s'il n'existe pas encore (relecture forcée, revue I-5). Une séance existante ne
@@ -238,11 +253,35 @@ export async function enregistrerSeanceBibliotheque(s) {
   return convertirSeanceBibliotheque(brut);
 }
 
-// Suppression (conception 5.1) : la séance est d'abord retirée de tous les blocs, puis supprimée de la bibliothèque.
+// Suppression (D-27, remplace la conception 5.1) : une séance encore utilisée dans un bloc n'est pas effacée, elle est
+// seulement retirée de Mes séances (étiquette "retiree") et reste dans les blocs et le plan ; sinon elle est effacée.
 export async function supprimerSeanceBibliotheque(id) {
   const relue = await lirePreparation({ forcer: true });
   if (relue.illisible) throw new ErreurPreparation();
-  if (relue.blocs) await modifierPreparation((p) => ({ reglages: p.reglages, blocs: retirerSeanceDesBlocs(p.blocs, id) }));
-  await requeteAuthentifiee(`/athlete/0/workouts/${encodeURIComponent(id)}`, null, { methode: 'DELETE' });
+  if (relue.ancienFormat) throw new ErreurPreparation('MIGRATION');
+  if (utilisationsSeance(relue.blocs ?? [], id) > 0) {
+    const seance = relue.seances.find((s) => String(s.id) === String(id)) ?? await lireSeanceBibliotheque(id);
+    const corps = versSeanceBibliotheque({ ...seance, retiree: true }, relue.dossierId);
+    await requeteAuthentifiee(`/athlete/0/workouts/${encodeURIComponent(id)}`, null, { methode: 'PUT', corps });
+  } else {
+    await requeteAuthentifiee(`/athlete/0/workouts/${encodeURIComponent(id)}`, null, { methode: 'DELETE' });
+  }
   await invaliderCaches();
+}
+
+// D-27 : modification d'une séance pour une seule case (n) ou pour tout un bloc (n = null) : une variante est créée
+// dans Mes séances (titre numéroté si le nom existe déjà), puis elle remplace la séance d'origine à cet endroit.
+// Le bloc et la case doivent être toujours les mêmes dans la préparation relue (revue finale I-2).
+// Renvoie la variante enregistrée.
+export async function enregistrerVariante(seance, { idOrigine, indexBloc, nomBloc, n = null }) {
+  const relue = await lirePreparation({ forcer: true });
+  verifierPosition(relue.blocs, indexBloc, nomBloc, n, n === null ? null : idOrigine);
+  const { id, retiree, ...copie } = seance;
+  const titre = titreVariante(copie.titre, relue.seances.map((s) => s.titre));
+  const variante = await enregistrerSeanceBibliotheque({ ...copie, titre });
+  await modifierPreparation((p) => {
+    verifierPosition(p.blocs, indexBloc, nomBloc, n, n === null ? null : idOrigine);
+    return { reglages: p.reglages, blocs: remplacerSeance(p.blocs, indexBloc, n, idOrigine, variante.id) };
+  });
+  return variante;
 }

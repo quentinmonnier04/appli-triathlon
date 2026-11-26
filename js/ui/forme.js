@@ -74,7 +74,7 @@ function carteTsb(serie, periode) {
 function rendre(donnees, periode) {
   const serie = serieForme(donnees.formes, periode);
   const r = resumeForme(serie);
-  if (!r) return '<div class="carte"><p class="doux">Pas de données de forme sur cette période dans Intervals.icu.</p></div>';
+  if (!r) return '<div class="carte"><p class="doux">Pas de données de forme sur cette période.</p></div>';
   return `${carteResume(r, periode)}${carteCharge(serie, periode)}${carteTsb(serie, periode)}`;
 }
 

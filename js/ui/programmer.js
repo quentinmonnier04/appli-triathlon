@@ -9,6 +9,7 @@ import { lireSeance, creerSeance, modifierSeance, deplacerSeance, supprimerSeanc
 import { listerModeles } from '../api/bibliotheque.js';
 import {
   lirePreparation, modifierPreparation, lireSeanceBibliotheque, enregistrerSeanceBibliotheque, supprimerSeanceBibliotheque,
+  enregistrerVariante,
 } from '../api/preparation.js';
 import { ajouterEmplacement, utilisationsSeance } from '../logique/blocs.js';
 import {
@@ -19,12 +20,16 @@ import { SPORTS, sport } from '../logique/sports.js';
 import { jourISO, dateParametre } from '../logique/dates.js';
 import { MESSAGES } from '../logique/messages.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
-import { message, messageErreurApi, squelette, graphiqueSeance, boutonIcone } from './composants.js';
+import {
+  message, messageErreurApi, squelette, graphiqueSeance, boutonIcone, boutonCrayon, boutonAnnuler, brancherEdition,
+} from './composants.js';
 import { icone, iconeSport } from './icones.js';
 import { lireAlluresSeuil } from '../api/profil.js';
 import { typesProposes, libelleType } from '../logique/types-seance.js';
+import { JOURS } from './blocs.js';
 
-// Jours de la semaine type (1 = lundi, ENF-20).
+// Message affiché après un enregistrement, quand l'écran se réaffiche en lecture (D-27).
+let messageEnAttente = '';
 
 // Sports programmables (types reconnus par Intervals.icu) et repos (note du calendrier).
 const SPORTS_PROGRAMMABLES = ['NATATION', 'VELO', 'CAP', 'RENFO', 'AUTRE', 'REPOS'];
@@ -77,13 +82,13 @@ function rendreBloc(b, i) {
     corps = `<label class="repetitions">Nombre de répétitions<input inputmode="numeric" data-champ="blocs.${i}.repetitions" value="${b.repetitions ?? ''}"></label>
       ${champsEtape(b.effort, `blocs.${i}.effort`, 'Effort')}
       ${b.recup ? champsEtape(b.recup, `blocs.${i}.recup`, 'Récupération') : ''}
-      <button type="button" class="lien-action" data-recup="${i}">${b.recup ? 'Retirer la récupération' : '+ Ajouter une récupération'}</button>`;
+      <button type="button" class="lien-action seulement-edition" data-recup="${i}">${b.recup ? 'Retirer la récupération' : '+ Ajouter une récupération'}</button>`;
   } else {
     corps = champsEtape(b.etape, `blocs.${i}.etape`, titre);
   }
   return `<div class="carte bloc" data-bloc="${i}">
     <div class="bloc-tete"><strong>${titre}</strong>
-      <button type="button" class="icone-bouton petit" data-retirer="${i}" aria-label="Retirer ce bloc">${icone('fermer', 18)}</button></div>
+      <button type="button" class="icone-bouton petit seulement-edition" data-retirer="${i}" aria-label="Retirer ce bloc">${icone('fermer', 18)}</button></div>
     ${cible}${corps}<div class="erreur-bloc" data-erreur="blocs.${i}"></div></div>`;
 }
 
@@ -93,7 +98,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   // Mes séances ouvert depuis le Profil (D-24) : l'éditeur y revient ; valeur contrôlée (D-21).
   const ecranType = modeType && params.retour === 'seances' ? '#/seances' : '#/objectif';
   const retour = modeType ? ecranType : '#/agenda';
-  const titreEcran = modeType ? (id ? 'Mes séances' : 'Nouvelle séance') : (id ? 'Modifier la séance' : 'Programmer');
+  const titreEcran = modeType ? (id ? 'Mes séances' : 'Nouvelle séance') : (id ? 'Séance' : 'Programmer');
   conteneur.innerHTML = `<div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: retour })}
     <span class="titre-petit">${titreEcran}</span><span class="espace-bouton"></span></div>${squelette()}`;
   conteneur.querySelector('.entete a').addEventListener('click', (ev) => { if (history.length > 1) { ev.preventDefault(); history.back(); } });
@@ -111,14 +116,26 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   let utilisations = 0;
   let structuree = false;
   let banque = []; // Mes séances : types libres déjà utilisés, proposés dans l'éditeur (D-25)
+  // D-27 : séance ouverte depuis une case d'un bloc (#/seance-type/{id}?bloc=N&n=K, vérifié) : avant d'enregistrer,
+  // choix entre cette case, tout le bloc ou partout.
+  let caseBloc = null;
   try {
-    if (modeType) banque = (await lirePreparation()).seances ?? [];
+    const preparation = modeType ? await lirePreparation() : null;
+    if (modeType) banque = (preparation.seances ?? []).filter((x) => !x.retiree);
     const source = id ?? (modeType ? null : params.depuis);
     if (source) {
       const s = modeType ? await lireSeanceBibliotheque(source) : await lireSeance(source);
       if (modeType) {
-        utilisations = utilisationsSeance((await lirePreparation()).blocs ?? [], source);
+        utilisations = utilisationsSeance(preparation.blocs ?? [], source);
         banque = banque.filter((x) => x.id !== source);
+        const b = /^\d+$/.test(params.bloc ?? '') ? preparation.blocs?.[Number(params.bloc)] : null;
+        const n = /^\d+$/.test(params.n ?? '') ? Number(params.n) : null;
+        if (b && n !== null && String(b.emplacements[n]?.seanceId) === String(source)) {
+          caseBloc = {
+            index: Number(params.bloc), nom: b.nom, n, emplacement: b.emplacements[n],
+            dansLeBloc: b.emplacements.filter((x) => String(x.seanceId) === String(source)).length,
+          };
+        }
         delete s.jour;
         s.heure = null;
       }
@@ -132,18 +149,20 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
   }
   if (!conteneur.isConnected) return;
 
+  // D-27 : une séance déjà enregistrée s'ouvre en lecture ; le crayon (en-tête) ouvre la modification.
   conteneur.innerHTML = `
     <div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: retour })}
-      <span class="titre-petit">${titreEcran}</span><span class="espace-bouton"></span></div>
-    <div id="hors-ligne"></div>
+      <span class="titre-petit">${titreEcran}</span><span class="espace-bouton">${id ? boutonCrayon('Modifier la séance') : ''}</span></div>
+    <div id="hors-ligne"></div>${messageEnAttente}
     <form id="formulaire" novalidate>
+      <fieldset class="champs-formulaire">
       <div class="carte">
         <div class="champ"><span class="etiquette-champ">Sport</span>
           <div class="choix-sport" role="group" aria-label="Sport">
             ${SPORTS_PROGRAMMABLES.map((c) => `<button type="button" class="filtre filtre-sport sport-${c}" data-sport="${c}">${iconeSport(c, 18)} ${echapperHtml(sport(c).libelle)}</button>`).join('')}
           </div></div>
         ${modeType
-    ? (utilisations > 1 ? message('info', `Utilisée dans ${utilisations} blocs : la modification s'applique partout.`) : '')
+    ? (utilisations > 1 && !caseBloc ? message('info', `Utilisée dans ${utilisations} blocs : la modification s'applique partout.`) : '')
     : `<div class="champ"><label for="date">Date</label><input type="date" id="date" value="${echapperHtml(etat.date)}" required></div>
         <div class="champ"><label for="heure">Heure (facultatif)</label><input type="time" id="heure" value="${echapperHtml(etat.heure ?? '')}"></div>`}
         <div class="champ"><label for="titre">Titre</label><input id="titre" maxlength="80" value="${echapperHtml(etat.titre)}" placeholder="Ex. Fractionné 6 x 800 m"></div>
@@ -151,25 +170,29 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
         <div id="zone-bibliotheque"></div>
       </div>
       <div id="zone-contenu"></div>
+      </fieldset>
       <div id="resultat" aria-live="polite"></div>
       <div class="pile">
-        <button type="submit" class="bouton principal" id="enregistrer">${libelleEnregistrer()}</button>
-        ${modeType && id ? '<button type="button" class="bouton danger" id="supprimer">Supprimer de Mes séances</button>' : ''}
-        ${id && !modeType ? `<button type="button" class="bouton" id="deplacer">Déplacer vers...</button>
-          <div id="zone-deplacer" class="carte masque"><div class="champ"><label for="nouvelle-date">Nouvelle date</label>
+        <button type="submit" class="bouton principal" id="enregistrer" data-enregistrer>${libelleEnregistrer()}</button>
+        ${modeType && id && !etat.retiree ? '<button type="button" class="bouton danger action-edition" id="supprimer">Supprimer de Mes séances</button>' : ''}
+        ${id && !modeType ? `<button type="button" class="bouton action-edition" id="deplacer">Déplacer vers...</button>
+          <div id="zone-deplacer" class="carte masque action-edition"><div class="champ"><label for="nouvelle-date">Nouvelle date</label>
             <input type="date" id="nouvelle-date" value="${echapperHtml(etat.date)}"></div>
             <button type="button" class="bouton principal" id="valider-deplacement">Déplacer</button></div>
-          <a class="bouton" href="#/seance/nouvelle?depuis=${encodeURIComponent(id)}">Dupliquer</a>
-          <button type="button" class="bouton danger" id="supprimer">Supprimer</button>` : ''}
+          <a class="bouton action-edition" href="#/seance/nouvelle?depuis=${encodeURIComponent(id)}">Dupliquer</a>
+          <button type="button" class="bouton danger action-edition" id="supprimer">Supprimer</button>` : ''}
+        ${id ? boutonAnnuler() : ''}
       </div>
     </form>`;
+  messageEnAttente = '';
 
   const $ = (sel) => conteneur.querySelector(sel);
   const form = $('#formulaire');
   const allures = await lireAlluresSeuil(); // étapes en distance du graphique (F-41)
   function libelleEnregistrer() {
+    if (id) return 'Enregistrer les modifications';
     if (modeType) return placement ? 'Enregistrer et placer dans le bloc' : 'Enregistrer dans Mes séances';
-    return id ? 'Enregistrer les modifications' : 'Enregistrer dans Intervals.icu';
+    return 'Enregistrer';
   }
   conteneur.querySelector('.entete a').addEventListener('click', (ev) => { if (history.length > 1) { ev.preventDefault(); history.back(); } });
 
@@ -182,7 +205,8 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
     }
     const enLigne = navigator.onLine;
     $('#hors-ligne').innerHTML = enLigne ? '' : message('info', MESSAGES['M-04']);
-    form.querySelectorAll('#enregistrer, #deplacer, #valider-deplacement, #supprimer').forEach((b) => { b.disabled = !enLigne; });
+    // Le bouton Enregistrer est géré par le mode lecture et modification (brancherEdition, D-27).
+    form.querySelectorAll('#deplacer, #valider-deplacement, #supprimer').forEach((b) => { b.disabled = !enLigne; });
   }
   window.addEventListener('online', majReseau);
   window.addEventListener('offline', majReseau);
@@ -214,13 +238,13 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
     rendreType();
     const zone = $('#zone-contenu');
     $('#zone-bibliotheque').innerHTML = etat.sport === 'REPOS' ? ''
-      : '<button type="button" class="lien-action" id="ouvrir-bibliotheque">Choisir dans ma bibliothèque Intervals.icu</button><div id="bibliotheque"></div>';
+      : '<div class="seulement-edition"><button type="button" class="lien-action" id="ouvrir-bibliotheque">Partir d\'une séance enregistrée</button><div id="bibliotheque"></div></div>';
     if (etat.sport === 'REPOS') {
-      zone.innerHTML = `<div class="carte"><p class="doux">Une note "Repos" sera ajoutée à ton calendrier Intervals.icu.</p>
+      zone.innerHTML = `<div class="carte"><p class="doux">Une note "Repos" sera ajoutée à ton calendrier.</p>
         <div class="champ"><label for="description">Note (facultatif)</label><textarea id="description" rows="3">${echapperHtml(etat.description)}</textarea></div></div>`;
       return;
     }
-    const bascule = `<div class="bascule large" role="group" aria-label="Type de séance">
+    const bascule = `<div class="bascule large seulement-edition" role="group" aria-label="Type de séance">
       <button type="button" class="${structuree ? '' : 'actif'}" data-structure="non">Simple</button>
       <button type="button" class="${structuree ? 'actif' : ''}" data-structure="oui">Structurée</button></div>`;
     if (!structuree) {
@@ -231,14 +255,14 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
             <input id="distance" inputmode="decimal" value="${etat.distance_m ? (etat.sport === 'NATATION' ? etat.distance_m : String(etat.distance_m / 1000).replace('.', ',')) : ''}"></div>
         </div>
         <div class="champ"><label for="description">Description</label><textarea id="description" rows="5" placeholder="Contenu de la séance">${echapperHtml(etat.description)}</textarea>
-          <div class="aide">Un texte au format Intervals.icu (lignes du type "- 10m Z2") part aussi structuré sur la montre.</div></div>
+          <div class="aide">Un texte en lignes du type "- 10m Z2" part aussi structuré sur la montre.</div></div>
       </div>`;
       return;
     }
     zone.innerHTML = `${bascule}
       ${etat.blocs.map(rendreBloc).join('')}
-      <div class="ajout-blocs">${TYPES_BLOC.map((t) => `<button type="button" class="bouton" data-ajouter="${t.code}">${icone('plus', 18)} ${echapperHtml(t.libelle)}</button>`).join('')}</div>
-      <div class="carte"><div class="etiquette-carte">Aperçu envoyé à Intervals.icu</div>
+      <div class="ajout-blocs seulement-edition">${TYPES_BLOC.map((t) => `<button type="button" class="bouton" data-ajouter="${t.code}">${icone('plus', 18)} ${echapperHtml(t.libelle)}</button>`).join('')}</div>
+      <div class="carte"><div class="etiquette-carte">Aperçu envoyé à la montre</div>
         <div id="graphique"></div>
         <pre class="apercu" id="apercu"></pre><p class="doux" id="duree-estimee"></p></div>`;
     majApercu();
@@ -344,7 +368,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
       zone.innerHTML = modeles.length
         ? `<div class="liste-modeles">${[...liste, ...autres].map((m) => `<button type="button" class="modele" data-modele="${echapperHtml(m.id)}">
             <span class="sport-${sport(m.sport).code} modele-icone">${iconeSport(m.sport, 18)}</span><span>${echapperHtml(m.titre)}</span></button>`).join('')}</div>`
-        : '<p class="doux">Ta bibliothèque Intervals.icu est vide.</p>';
+        : '<p class="doux">Aucune séance enregistrée pour l\'instant.</p>';
     } catch (e) {
       zone.innerHTML = messageErreurApi(e);
     }
@@ -388,11 +412,48 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
     if (structuree && etat.sport !== 'REPOS' && !seance.blocs.length) erreurs.titre = erreurs.titre ?? 'Ajoute au moins un bloc.';
     afficherErreurs(erreurs);
     if (Object.keys(erreurs).length) { $('#resultat').innerHTML = message('erreur', 'Corrige les champs signalés.'); return; }
+    // D-27 : séance ouverte depuis une case d'un bloc : on demande d'abord où appliquer la modification.
+    if (caseBloc) { demanderPortee(seance); return; }
+    await enregistrer(seance, 'partout');
+  });
+
+  // Choix de la portée d'une modification faite depuis une case d'un bloc (D-27).
+  function demanderPortee(seance) {
+    const quand = JOURS[caseBloc.emplacement.jour - 1] + (caseBloc.emplacement.heure ? ' ' + caseBloc.emplacement.heure : ''); // échappé plus bas
+    $('#resultat').innerHTML = `<div class="carte choix-portee" role="group" aria-labelledby="titre-portee">
+      <h2 id="titre-portee">Appliquer la modification à...</h2>
+      <button type="button" class="bouton principal" data-portee="case">Juste cette case (${echapperHtml(quand)})</button>
+      ${caseBloc.dansLeBloc > 1 ? `<button type="button" class="bouton" data-portee="bloc">Tout le bloc ${echapperHtml(caseBloc.nom)}</button>` : ''}
+      <button type="button" class="bouton" data-portee="partout">Toute la préparation (Mes séances et tous les blocs)</button>
+      <button type="button" class="bouton" data-portee="annuler">Annuler</button>
+      <p class="doux">Pour une case ou un bloc, une variante est ajoutée à Mes séances ; la séance d'origine ne change pas.</p></div>`;
+    $('#resultat').querySelectorAll('[data-portee]').forEach((b) => b.addEventListener('click', () => {
+      const portee = b.dataset.portee;
+      $('#resultat').innerHTML = '';
+      if (portee !== 'annuler') enregistrer(seance, portee);
+    }));
+    $('#resultat').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // Envoi (F-40, F-43, F-88) ; en cas d'échec, le formulaire reste rempli (ENF-07 : rien n'est perdu en silence).
+  // Après l'enregistrement, l'écran se réaffiche en lecture avec le crayon (D-27), sauf une séance créée depuis une
+  // case de bloc, qui ramène à la grille du bloc.
+  async function enregistrer(seance, portee) {
     const bouton = $('#enregistrer');
     bouton.disabled = true;
-    bouton.textContent = 'Enregistrement...';
+    bouton.textContent = 'Enregistrement...'; // ENF-10
+    const suffixe = params.retour === 'seances' ? '?retour=seances' : '';
     try {
       if (modeType) {
+        if (portee === 'case' || portee === 'bloc') {
+          const variante = await enregistrerVariante({ ...seance, id }, {
+            idOrigine: id, indexBloc: caseBloc.index, nomBloc: caseBloc.nom, n: portee === 'case' ? caseBloc.n : null,
+          });
+          const ou = portee === 'case' ? 'dans cette case' : 'dans tout le bloc';
+          messageEnAttente = message('succes', 'Variante "' + variante.titre + '" enregistrée dans Mes séances et placée ' + ou + '.'); // message() échappe
+          location.replace(`#/seance-type/${encodeURIComponent(variante.id)}?bloc=${caseBloc.index}&n=${caseBloc.n}`);
+          return;
+        }
         const enregistree = await enregistrerSeanceBibliotheque({ ...seance, id });
         if (placement) {
           await modifierPreparation((p) => ({
@@ -401,23 +462,29 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
               ? ajouterEmplacement(p.blocs, placement.bloc, { seanceId: enregistree.id, jour: placement.jour, heure: placement.heure })
               : p.blocs ?? [],
           }));
+          location.hash = `#/objectif?bloc=${placement.bloc}`;
+          return;
         }
-        location.hash = placement ? `#/objectif?bloc=${placement.bloc}` : ecranType;
+        messageEnAttente = message('succes', 'Séance enregistrée dans Mes séances.');
+        if (id) afficherProgrammer(conteneur, segments, params);
+        else location.replace(`#/seance-type/${encodeURIComponent(enregistree.id)}${suffixe}`);
         return;
       }
       const enregistree = id ? await modifierSeance(id, seance) : await creerSeance(seance);
-      location.hash = `#/agenda?vue=semaine&date=${enregistree.date || seance.date}`;
+      messageEnAttente = message('succes', 'Séance enregistrée. Elle partira sur ta montre.');
+      if (id) afficherProgrammer(conteneur, segments, params);
+      else location.replace(`#/seance/${encodeURIComponent(enregistree.id)}`);
     } catch (e) {
       $('#resultat').innerHTML = messageErreurApi(e);
       bouton.disabled = !navigator.onLine;
       bouton.textContent = libelleEnregistrer();
     }
-  });
+  }
 
   if (id && modeType) {
-    // F-88 : supprimer une séance de Mes séances (elle est retirée de tous les blocs, conception 5.1).
-    $('#supprimer').addEventListener('click', async () => {
-      const blocs = utilisations ? ` Elle sera retirée de ${utilisations} bloc${utilisations > 1 ? 's' : ''}.` : '';
+    // F-88, D-27 : supprimer une séance de Mes séances ; si des blocs l'utilisent, elle y reste (et dans le plan).
+    $('#supprimer')?.addEventListener('click', async () => {
+      const blocs = utilisations ? ` Elle restera dans ${utilisations > 1 ? `les ${utilisations} blocs` : 'le bloc'} qui l'utilise${utilisations > 1 ? 'nt' : ''} et dans ton plan.` : '';
       if (!confirm(`Supprimer cette séance de Mes séances ?${blocs}`)) return;
       try {
         await supprimerSeanceBibliotheque(id);
@@ -453,4 +520,9 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
 
   rendreContenu();
   majReseau();
+  // D-27 : lecture pour une séance enregistrée ; Annuler recharge la séance telle qu'elle est enregistrée.
+  brancherEdition(form, {
+    lecture: Boolean(id), nouveau: !id, crayon: conteneur.querySelector('.entete [data-crayon]'),
+    surAnnuler: () => afficherProgrammer(conteneur, segments, params),
+  });
 }
