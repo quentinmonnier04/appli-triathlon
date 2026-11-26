@@ -60,3 +60,18 @@ export async function lireAlluresSeuil() {
   for (const r of profil?.reglages ?? []) if (r.allure_seuil_ms > 0) allures[r.sport] = r.allure_seuil_ms;
   return allures;
 }
+
+// Réglages d'un sport (seuils, bornes et noms des zones), pour les zones d'une activité (F-103, D-31) :
+// lus dans le profil en cache, sinon demandés à Intervals.icu (GET /athlete/{id}/sport-settings). null si absents.
+export async function lireReglagesSport(code) {
+  const profil = await lireProfilEnCache().catch(() => null);
+  let reglages = profil?.reglages;
+  if (!reglages) {
+    try {
+      reglages = ((await requeteAuthentifiee('/athlete/0/sport-settings')) ?? []).map(convertirReglagesSport);
+    } catch {
+      return null; // hors ligne : zones affichées sans noms
+    }
+  }
+  return reglages.find((r) => r.sport === code) ?? null;
+}

@@ -91,6 +91,7 @@ test('activité Intervals.icu -> objet interne Activite (9.2)', () => {
     id: 'i123', date: '2026-11-20', heure: '07:30', sport: 'VELO', titre: 'Sortie', duree_s: 6000, distance_m: 48380.5,
     denivele_m: 420.4, fc_moy: 142, fc_max: 171, puissance_moy_w: 188, charge: 95, rpe: 6, ressenti: 2, commentaire: null, a_gps: false,
     zones_fc: [600, 3000], zones_puissance: [{ id: 'Z1', secs: 100 }], zones_allure: null, nb_tours: 3,
+    intensite: null, np_w: null, variabilite: null, cadence_moy: null, travail_j: null, calories: null, flux: [],
   });
 });
 
@@ -106,7 +107,8 @@ test('activité incomplète : champs absents à null, durée de repli, titre par
 test('intervalle -> objet interne', () => {
   assert.deepEqual(
     convertirIntervalle({ id: 1, type: 'WORK', label: 'Rep 1', moving_time: 240, elapsed_time: 250, distance: 1000, average_heartrate: 165, max_heartrate: 172, average_watts: null }),
-    { libelle: 'Rep 1', type: 'WORK', duree_s: 240, distance_m: 1000, fc_moy: 165, fc_max: 172, puissance_moy_w: null },
+    { libelle: 'Rep 1', type: 'WORK', duree_s: 240, distance_m: 1000, fc_moy: 165, fc_max: 172, puissance_moy_w: null,
+      cadence_moy: null, vitesse_ms: null, pente_pct: null, intensite: null, zone: null, debut_i: null, fin_i: null },
   );
 });
 

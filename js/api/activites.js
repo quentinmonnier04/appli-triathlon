@@ -57,6 +57,14 @@ export function convertirActivite(brut) {
     zones_puissance: ou(brut.icu_zone_times),
     zones_allure: ou(brut.pace_zone_times),
     nb_tours: ou(brut.icu_lap_count),
+    // Lot LA (F-100, F-101, F-103, D-31) : champs vérifiés dans la spécification OpenAPI (schéma Activity).
+    intensite: ou(brut.icu_intensity),
+    np_w: ou(brut.icu_weighted_avg_watts),
+    variabilite: ou(brut.icu_variability_index),
+    cadence_moy: ou(brut.average_cadence),
+    travail_j: ou(brut.icu_joules),
+    calories: ou(brut.calories),
+    flux: Array.isArray(brut.stream_types) ? brut.stream_types : [],
   };
 }
 
@@ -70,6 +78,14 @@ export function convertirIntervalle(brut) {
     fc_moy: ou(brut.average_heartrate),
     fc_max: ou(brut.max_heartrate),
     puissance_moy_w: ou(brut.average_watts),
+    // Lot LA (F-102, D-31) : champs du schéma Interval de la spécification OpenAPI.
+    cadence_moy: ou(brut.average_cadence),
+    vitesse_ms: ou(brut.average_speed),
+    pente_pct: ou(brut.average_gradient),
+    intensite: ou(brut.intensity),
+    zone: ou(brut.zone),
+    debut_i: ou(brut.start_index),
+    fin_i: ou(brut.end_index),
   };
 }
 
@@ -183,4 +199,41 @@ export async function lireTrace(id) {
 export async function lireApercuTrace(id) {
   const { segments } = await lireTrace(id);
   return { segments: alleger(segments, POINTS_APERCU) };
+}
+
+// --- Flux d'une activité (lot LA, F-101, D-31) ---
+// GET /api/v1/activity/{id}/streams (spécification OpenAPI : paramètre "types", réponse ActivityStream[] avec "type"
+// et "data"). Seuls les flux annoncés par l'activité elle-même (stream_types) sont demandés, sauf la position (carte).
+// Unités relevées sur le forum officiel, à confirmer en recette réelle : time (s), distance (m), altitude (m),
+// velocity_smooth (m/s), watts (W), heartrate (bpm), cadence (/min).
+export const FLUX_GRAPHIQUES = ['time', 'distance', 'watts', 'heartrate', 'cadence', 'velocity_smooth', 'altitude'];
+
+// ActivityStream[] -> { nomDuFlux: [nombres] } ; les flux vides ou non numériques sont ignorés.
+export function convertirFlux(bruts) {
+  const flux = {};
+  for (const f of bruts ?? []) {
+    if (!f || !FLUX_GRAPHIQUES.includes(f.type) || !Array.isArray(f.data) || f.allNull) continue;
+    flux[f.type] = f.data.map((v) => (typeof v === 'number' && Number.isFinite(v) ? v : null));
+  }
+  return flux;
+}
+
+// Flux demandés à Intervals.icu pour une activité : ceux qu'elle annonce et que les graphiques savent lire.
+export function fluxADemander(streamTypes) {
+  return FLUX_GRAPHIQUES.filter((t) => (streamTypes ?? []).includes(t));
+}
+
+// Flux d'une activité, chargés seulement à l'ouverture de l'onglet Graphiques et gardés en cache (ENF-09, ENF-11).
+// Une activité terminée ne change pas : le cache n'expire pas (vidé à la déconnexion ou au changement de format).
+export async function lireFlux(id, streamTypes) {
+  const cle = `flux:${id}`;
+  const cache = await lireCache(cle);
+  if (cache) return cache.donnees;
+  const types = fluxADemander(streamTypes);
+  if (!types.length) return {};
+  // Extension ".json" : le forum officiel indique que {ext} doit contenir au moins un caractère pour ce chemin.
+  const bruts = await requeteAuthentifiee(`/activity/${encodeURIComponent(id)}/streams.json`, { types: types.join(',') });
+  const flux = convertirFlux(bruts);
+  await ecrireCache(cle, flux);
+  return flux;
 }

@@ -1,12 +1,14 @@
-// Écran E-03 "Détail d'une activité" (F-13) : résumé, FC moyenne et max, puissance moyenne si présente,
-// dénivelé, charge, zones de temps si présentes, tours ou intervalles si présents.
+// Écran E-03 "Détail d'une activité" (F-13), organisé en onglets (lot LA, D-31) : Résumé (F-100, avec la carte F-70
+// et le ressenti F-60, F-61), Graphiques (F-101), Zones (F-103), Intervalles (F-102). Onglet dans l'adresse
+// (#/activite/{id}?onglet=graphiques, valeur contrôlée). Les flux ne sont chargés qu'à l'ouverture de Graphiques.
 // L6 : saisie du RPE, du ressenti et d'un commentaire, enregistrés dans Intervals.icu (F-60, F-61, ENF-07).
 // L7 : carte du parcours pour une activité GPS (F-70).
 
-import { lireDetailEnCache, rafraichirDetail, enregistrerRessenti } from '../api/activites.js';
-import { estPerime, repartitionZones } from '../logique/activites.js';
+import { lireDetailEnCache, rafraichirDetail, enregistrerRessenti, lireFlux, fluxADemander } from '../api/activites.js';
+import { lireReglagesSport } from '../api/profil.js';
+import { estPerime } from '../logique/activites.js';
 import {
-  echapperHtml, formaterDuree, formaterDistance, formaterVitesse, formaterDateHeure, formaterEntier,
+  echapperHtml, formaterDuree, formaterDistance, formaterVitesse, formaterDateHeure,
 } from '../logique/format.js';
 import { sport } from '../logique/sports.js';
 import { ECHELLE_RPE, RESSENTIS, libelleEchelle, validerRessenti } from '../logique/ressenti.js';
@@ -19,39 +21,12 @@ import {
 const estNote = (s) => s.rpe !== null && s.rpe !== undefined || (s.ressenti !== null && s.ressenti !== undefined) || Boolean(s.commentaire);
 import { iconeSport } from './icones.js';
 import { afficherCarteParcours } from './carte.js';
+import {
+  ONGLETS, rendreOnglets, rendreResume, famillesZones, rendreZones, rendreIntervalles, afficherChronologie,
+} from './analyse.js';
 
 const enteteRetour = `<div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: '#/activites' })}
   <span class="titre-petit">Activité</span><span class="espace-bouton"></span></div>`;
-
-// Valeur suivie de son unité, ou null si absente.
-const avecUnite = (v, unite) => (v === null || v === undefined ? null : `${formaterEntier(v)} ${unite}`);
-
-// Barres de temps par zone (F-13) ; rien si les zones sont absentes.
-function blocZones(titre, temps) {
-  const lignes = repartitionZones(temps);
-  if (!lignes.length) return '';
-  return `<div class="carte"><h2>${titre}</h2>
-    ${lignes.map((l) => `<div class="zone"><span class="zone-nom">${echapperHtml(l.zone)}</span>
-      <span class="zone-barre"><span class="zone-remplie zone-${echapperHtml(l.zone)}" data-pct="${l.pct}"></span></span>
-      <span class="zone-temps">${formaterDuree(l.secs)}</span><span class="zone-pct doux">${l.pct} %</span></div>`).join('')}
-  </div>`;
-}
-
-// Tableau des tours ou intervalles (F-13) ; rien s'il n'y en a pas.
-function blocIntervalles(intervalles, sportCode) {
-  if (!intervalles.length) return '';
-  const avecPuissance = intervalles.some((i) => i.puissance_moy_w);
-  return `<div class="carte"><h2>Tours et intervalles</h2>
-    <div class="tableau-defilant"><table class="intervalles">
-      <thead><tr><th>#</th><th>Durée</th><th>Distance</th><th>${sportCode === 'VELO' ? 'Vitesse' : 'Allure'}</th><th>FC moy</th>${avecPuissance ? '<th>Puiss.</th>' : ''}</tr></thead>
-      <tbody>${intervalles.map((i, n) => `<tr class="${i.type === 'RECOVERY' ? 'recup' : ''}">
-        <td>${echapperHtml(i.libelle ?? String(n + 1))}</td>
-        <td>${formaterDuree(i.duree_s) ?? '-'}</td>
-        <td>${formaterDistance(i.distance_m, sportCode) ?? '-'}</td>
-        <td>${formaterVitesse(sportCode, i.distance_m, i.duree_s) ?? '-'}</td>
-        <td>${echapperHtml(i.fc_moy ?? '-')}</td>${avecPuissance ? `<td>${echapperHtml(i.puissance_moy_w ?? '-')}</td>` : ''}</tr>`).join('')}</tbody>
-    </table></div></div>`;
-}
 
 // Haut du détail : résumé (F-13).
 function rendreHaut({ activite: a }) {
@@ -67,22 +42,6 @@ function rendreHaut({ activite: a }) {
         ${stat(a.sport === 'VELO' ? 'Vitesse moy.' : 'Allure moy.', vitesse)}
       </div>
     </div>`;
-}
-
-// Bas du détail : FC, puissance, dénivelé, charge, zones, tours (F-13).
-function rendreBas({ activite: a, intervalles }) {
-  return `
-    <div class="carte"><div class="stats grille-stats">
-      ${stat('FC moyenne', avecUnite(a.fc_moy, 'bpm'))}
-      ${stat('FC max', avecUnite(a.fc_max, 'bpm'))}
-      ${stat('Puissance moy.', avecUnite(a.puissance_moy_w, 'W'))}
-      ${stat('Dénivelé +', avecUnite(a.denivele_m, 'm'))}
-      ${stat('Charge', formaterEntier(a.charge))}
-    </div></div>
-    ${blocZones('Temps par zone de FC', a.zones_fc)}
-    ${blocZones('Temps par zone de puissance', a.zones_puissance)}
-    ${blocZones("Temps par zone d'allure", a.zones_allure)}
-    ${blocIntervalles(intervalles, a.sport)}`;
 }
 
 // Formulaire de ressenti (F-60, F-61), prérempli avec les valeurs d'Intervals.icu.
@@ -106,10 +65,17 @@ function appliquerBarres(conteneur) {
   conteneur.querySelectorAll('.zone-remplie').forEach((b) => { b.style.width = `${b.dataset.pct}%`; });
 }
 
-export async function afficherActivite(conteneur, segments) {
+export async function afficherActivite(conteneur, segments, params = {}) {
   const id = decodeURIComponent(segments[1] ?? '');
   const zone = () => conteneur.querySelector('#detail');
-  conteneur.innerHTML = `${enteteRetour}<div id="etat"></div><div id="detail"></div><div id="parcours"></div><div id="ressenti"></div><div id="detail-bas"></div>`;
+  // Onglet de l'adresse, contrôlé (D-21) ; chaque onglet a son panneau, masqué ou affiché (la carte et le ressenti
+  // ne sont pas recréés en changeant d'onglet).
+  let onglet = ONGLETS.some((o) => o.code === params.onglet) ? params.onglet : 'resume';
+  conteneur.innerHTML = `${enteteRetour}<div id="etat"></div><div id="detail"></div><div id="onglets"></div>
+    <div class="panneau" data-panneau="resume"><div id="resume"></div><div id="parcours"></div><div id="ressenti"></div></div>
+    <div class="panneau" data-panneau="graphiques" hidden></div>
+    <div class="panneau" data-panneau="zones" hidden></div>
+    <div class="panneau" data-panneau="intervalles" hidden></div>`;
   // Retour à l'écran précédent (fil, agenda ou accueil) ; sans historique, retour au fil.
   conteneur.querySelector('.entete a').addEventListener('click', (ev) => {
     if (history.length > 1) { ev.preventDefault(); history.back(); }
@@ -172,12 +138,95 @@ export async function afficherActivite(conteneur, segments) {
       });
   }
 
+  // --- Onglets (lot LA) ---
+  let detail = null;
+  let filtre = 'travail'; // F-102 : intervalles de travail par défaut
+  let choisi = null; // intervalle mis en évidence sur la chronologie
+  let axe = 'temps';
+  let chronoAffichee = false;
+  let reglagesSport;
+  const panneau = (code) => conteneur.querySelector(`[data-panneau="${code}"]`);
+
+  function ongletsDisponibles(d) {
+    const a = d.activite;
+    const dispo = ['resume'];
+    if (fluxADemander(a.flux).some((f) => f !== 'time' && f !== 'distance')) dispo.push('graphiques');
+    if ([a.zones_fc, a.zones_puissance, a.zones_allure].some((z) => Array.isArray(z) && z.length)) dispo.push('zones');
+    if (d.intervalles.length) dispo.push('intervalles');
+    return dispo;
+  }
+
+  function changerOnglet(code) {
+    onglet = code;
+    history.replaceState(null, '', `#/activite/${encodeURIComponent(id)}${code === 'resume' ? '' : `?onglet=${code}`}`);
+    conteneur.querySelectorAll('.onglets-activite [data-onglet]').forEach((b) => {
+      const actif = b.dataset.onglet === code;
+      b.classList.toggle('actif', actif);
+      if (actif) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    conteneur.querySelectorAll('.panneau').forEach((p) => { p.hidden = p.dataset.panneau !== code; });
+    remplirOnglet();
+  }
+
+  // Remplit l'onglet affiché ; les flux (Graphiques) ne sont demandés qu'ici (ENF-09, ENF-11).
+  async function remplirOnglet() {
+    if (!detail) return;
+    const a = detail.activite;
+    if (onglet === 'zones') {
+      if (reglagesSport === undefined) {
+        panneau('zones').innerHTML = squelette();
+        reglagesSport = await lireReglagesSport(a.sport);
+        if (!conteneur.isConnected) return;
+      }
+      panneau('zones').innerHTML = rendreZones(famillesZones(a, reglagesSport));
+      panneau('zones').querySelectorAll('.zone-remplie').forEach((b) => { b.style.width = `${b.dataset.pct}%`; });
+    } else if (onglet === 'intervalles') {
+      afficherIntervalles();
+    } else if (onglet === 'graphiques' && !chronoAffichee) {
+      await afficherGraphiques();
+    }
+  }
+
+  function afficherIntervalles() {
+    const p = panneau('intervalles');
+    p.innerHTML = rendreIntervalles(detail.intervalles, detail.activite.sport, filtre, choisi);
+    p.querySelectorAll('[data-filtre]').forEach((b) => b.addEventListener('click', () => { filtre = b.dataset.filtre; afficherIntervalles(); }));
+    p.querySelectorAll('[data-intervalle]').forEach((ligne) => {
+      const ouvrir = () => { choisi = Number(ligne.dataset.intervalle); chronoAffichee = false; changerOnglet('graphiques'); };
+      ligne.addEventListener('click', ouvrir);
+      ligne.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ouvrir(); } });
+    });
+  }
+
+  async function afficherGraphiques() {
+    const p = panneau('graphiques');
+    const a = detail.activite;
+    p.innerHTML = `<div class="carte">${squelette()}</div>`;
+    try {
+      const flux = await lireFlux(id, a.flux);
+      if (!conteneur.isConnected || onglet !== 'graphiques') return;
+      chronoAffichee = true;
+      afficherChronologie(p, flux, { sportCode: a.sport, intervalles: detail.intervalles, choisi, axe, surAxe: (x) => { axe = x; } });
+    } catch (e) {
+      p.innerHTML = messageErreurApi(e); // hors ligne sans flux en cache
+    }
+  }
+
   function afficherDetail(d) {
+    detail = d;
     zone().innerHTML = rendreHaut(d);
+    conteneur.querySelector('#resume').innerHTML = rendreResume(d.activite);
     afficherParcours(d.activite);
-    conteneur.querySelector('#detail-bas').innerHTML = rendreBas(d);
-    appliquerBarres(conteneur);
     if (!modifiee) afficherRessenti(d.activite);
+    const dispo = ongletsDisponibles(d);
+    if (!dispo.includes(onglet)) onglet = 'resume';
+    conteneur.querySelector('#onglets').innerHTML = dispo.length > 1 ? rendreOnglets(dispo, onglet) : '';
+    conteneur.querySelectorAll('.onglets-activite [data-onglet]').forEach((b) => b.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      if (b.dataset.onglet === 'graphiques' && onglet !== 'graphiques') chronoAffichee = chronoAffichee && choisi === null;
+      changerOnglet(b.dataset.onglet);
+    }));
+    changerOnglet(onglet);
   }
 
   // 5.5 : cache d'abord, puis Intervals.icu si le cache a plus de 5 min.
