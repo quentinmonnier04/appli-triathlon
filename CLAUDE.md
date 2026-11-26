@@ -229,7 +229,7 @@ Détail d'une activité (E-03) organisé en onglets sur mobile : Résumé · Gra
 
 ### K. Performances (ajouté le 26/11/2026, D-31)
 
-Écran E-12 « Performances », ouvert depuis le Profil : un onglet par sport (Vélo · Course · Natation), sélecteur de période (42 jours, 90 jours, cette année, tout) et comparaison de deux périodes.
+Écran E-12 « Performances », ouvert depuis le Profil : un onglet par sport (Vélo · Course · Natation), records de tous les temps (D-35 : plus de choix de période ni de comparaison).
 
 | ID | Fonction | Prio | Lot |
 |---|---|---|---|
