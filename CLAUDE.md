@@ -663,7 +663,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 
 | LA | Codé (F-100 à F-106 ; histogramme d'allure exclu, D-37) ; recette PC faite le 27/11/2026 (Intervals.icu simulé) ; test réel à faire |
 | LC1 | Validé le 27/11/2026 |
-| LC2 | Codé (F-125 à F-128, D-43), vérifié sur PC avec Intervals.icu simulé ; test réel à faire |
+| LC2 | Validé le 27/11/2026 |
 | LC3 | Plan validé le 27/11/2026 (D-41) ; à faire après LC2 |
 | LP | Codé (F-110 à F-116 ; records de tous les temps en tableaux, sans graphiques des courbes ni comparaison de périodes, D-35, D-38) ; recette PC faite le 27/11/2026 (Intervals.icu simulé) ; test réel à faire |
 
