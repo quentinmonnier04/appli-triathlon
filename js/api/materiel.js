@@ -83,9 +83,11 @@ async function apresEcriture() {
 
 // Crée un matériel principal, ou une pièce rattachée à "parent" (ajoutée à ses component_ids). Avec "limite_m", un
 // rappel d'usure est créé (nom "Usure").
+// Sans date de pose, une pièce compte toutes les sorties du vélo (D-45) ; un matériel principal prend la date du jour.
 export async function creerMateriel({ type, nom, achat, parent = null, limite_m = null }) {
+  const date = achat || (parent ? null : jourISO());
   const cree = await requeteAuthentifiee('/athlete/0/gear', null, {
-    methode: 'POST', corps: { type, name: nom, purchased: achat || jourISO(), component: Boolean(parent) },
+    methode: 'POST', corps: { type, name: nom, ...(date ? { purchased: date } : {}), component: Boolean(parent) },
   });
   if (parent) {
     const brutParent = (await requeteAuthentifiee('/athlete/0/gear.json')).find((g) => String(g.id) === String(parent));
@@ -122,11 +124,15 @@ export async function remettreAZero(gearId, rappel) {
   await apresEcriture();
 }
 
-// Renomme ou retire un matériel (retired = date du jour). Le Gear complet est relu pour ne rien effacer.
-export async function modifierMateriel(gearId, { nom = null, retirer = false }) {
+// Renomme un matériel, change sa date d'achat ou de pose (achat : AAAA-MM-JJ, '' pour aucune) ou le retire (retired =
+// date du jour). Le Gear complet est relu pour ne rien effacer.
+export async function modifierMateriel(gearId, { nom = null, achat = undefined, retirer = false }) {
   const brut = ((await requeteAuthentifiee('/athlete/0/gear.json')) ?? []).find((g) => String(g.id) === String(gearId));
   if (!brut) throw new Error('Matériel introuvable');
-  const corps = { ...brut, ...(nom !== null ? { name: nom } : {}), ...(retirer ? { retired: jourISO() } : {}) };
+  const corps = {
+    ...brut, ...(nom !== null ? { name: nom } : {}), ...(achat !== undefined ? { purchased: achat || null } : {}),
+    ...(retirer ? { retired: jourISO() } : {}),
+  };
   await requeteAuthentifiee(`/athlete/0/gear/${encodeURIComponent(gearId)}`, null, { methode: 'PUT', corps });
   await apresEcriture();
 }

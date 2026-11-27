@@ -51,7 +51,8 @@ function carteMateriel(m) {
           <div class="champ"><label>Limite (km)<input name="limite" inputmode="numeric" value="${TYPES_PIECES[0].limite_km}"></label></div>
         </div>
         <div class="champ"><label>Nom (facultatif)<input name="nom" maxlength="60" placeholder="Ex. Chaîne 11 vitesses"></label></div>
-        <div class="champ"><label>Posée le<input type="date" name="achat" value="${jourISO()}"></label></div>
+        <div class="champ"><label>Posée le (facultatif)<input type="date" name="achat" value=""></label>
+          <div class="aide">Vide : la pièce compte toutes les sorties du vélo. Pour une pièce neuve, mets la date de pose.</div></div>
         <div class="erreurs" aria-live="polite"></div>
         <button type="submit" class="bouton principal ecriture">Ajouter la pièce</button>
       </form></details>` : ''}
@@ -172,6 +173,8 @@ async function afficherUnMateriel(conteneur, id) {
     <fieldset class="champs-formulaire">
       <div class="champ"><label for="nom-materiel">Nom</label><input id="nom-materiel" maxlength="60" value="${echapperHtml(m.nom)}"></div>
       <div class="champ"><label for="limite-materiel">Limite d'usure (km)</label><input id="limite-materiel" inputmode="numeric" value="${echapperHtml(limite)}"></div>
+      <div class="champ"><label for="achat-materiel">${m.est_piece ? 'Posée le' : 'Acheté le'}</label><input type="date" id="achat-materiel" value="${echapperHtml(m.achat ?? '')}">
+        ${m.est_piece ? '<div class="aide">Vide : la pièce compte toutes les sorties du vélo.</div>' : ''}</div>
     </fieldset>
     ${barreUsure(m.usure)}
     <div class="erreurs" aria-live="polite"></div>
@@ -191,7 +194,8 @@ async function afficherUnMateriel(conteneur, id) {
     if (!nom) { erreurs.innerHTML = message('erreur', 'Donne un nom à ce matériel.'); return; }
     if (l.erreur) { erreurs.innerHTML = message('erreur', l.erreur); return; }
     try {
-      if (nom !== m.nom) await modifierMateriel(m.id, { nom });
+      const achat = form.querySelector('#achat-materiel').value;
+      if (nom !== m.nom || achat !== (m.achat ?? '')) await modifierMateriel(m.id, { nom, achat });
       if (l.metres && l.metres !== m.usure.rappel?.distance_m) await definirLimite(m.id, m.usure.rappel?.id ?? null, l.metres);
       afficherUnMateriel(conteneur, id);
     } catch (e) { erreurs.innerHTML = messageErreurApi(e); }
