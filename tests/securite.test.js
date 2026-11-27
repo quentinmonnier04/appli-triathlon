@@ -58,7 +58,8 @@ test('liens externes : https uniquement, et noopener noreferrer pour un nouvel o
 test("affichage : toute donnée insérée dans le HTML passe par echapperHtml", () => {
   // Champs venant d'Intervals.icu ou de l'adresse ; une interpolation qui les cite doit être échappée,
   // encodée pour une URL ou formatée par une fonction de logique/format.js.
-  const champs = 'titre|nom|name|description|commentaire|libelle|texte|date|heure|zone|fc_moy|fc_max|puissance_moy_w|charge';
+  // D-50 : champs ajoutés depuis D-21 (matériel, records, intervalles, analyse).
+  const champs = 'titre|nom|name|description|commentaire|libelle|texte|date|heure|zone|fc_moy|fc_max|puissance_moy_w|charge|message|label|parent|activite_id|bornes|methode';
   const interpolation = new RegExp(`\\$\\{[^{}]*\\.(${champs})\\b[^{}]*\\}`, 'g');
   // stat() et enTete() échappent eux-mêmes ; une comparaison (===) ne produit pas de texte.
   const sur = /echapperHtml\(|encodeURIComponent\(|formater[A-Za-z]*\(|jjmm\(|Number\(|sport\(|stat\(|enTete\(|===/;

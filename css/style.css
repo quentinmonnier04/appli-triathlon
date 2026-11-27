@@ -1121,3 +1121,7 @@ form.carte.en-lecture > h2, form.carte.en-lecture > .titre-icone { padding-right
 .ajout-piece, .ajout-materiel { margin-top: 10px; }
 .ajout-piece summary, .ajout-materiel summary { cursor: pointer; font-weight: 800; min-height: 44px; display: flex; align-items: center; }
 .rappel-usure .message-icone { color: var(--danger); }
+
+/* Les couches de Leaflet ont des z-index élevés (jusqu'à 1000) : la carte est isolée dans son propre empilement pour
+   rester sous la barre de navigation (accueil et détail d'une activité). */
+.carte-mini.leaflet-container, .carte-leaflet.leaflet-container { position: relative; z-index: 0; isolation: isolate; }
