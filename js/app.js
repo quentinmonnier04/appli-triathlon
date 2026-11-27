@@ -79,8 +79,11 @@ function proposerMiseAJour(travailleur) {
 
 function enregistrerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.register('./sw.js').then((reg) => {
+  // updateViaCache "none" : sw.js est toujours redemandé au serveur pour savoir s'il y a une nouvelle version (D-36).
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
     if (reg.waiting && navigator.serviceWorker.controller) proposerMiseAJour(reg.waiting);
+    // L'appli installée revient souvent de l'arrière-plan sans être rouverte : on cherche alors une nouvelle version.
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
     reg.addEventListener('updatefound', () => {
       const nouveau = reg.installing;
       nouveau.addEventListener('statechange', () => {

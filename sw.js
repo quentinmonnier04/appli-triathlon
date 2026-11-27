@@ -1,7 +1,7 @@
 // Service worker : met les fichiers de l'application en cache (hors ligne, 5.7).
 // Changer VERSION à chaque modification (identique à VERSION_APP dans js/version.js).
 // Les appels à Intervals.icu ne passent jamais par ce cache (données dans IndexedDB via api/).
-const VERSION = 'v2.0.30';
+const VERSION = 'v2.0.31';
 const CACHE = `triathlon-${VERSION}`;
 
 const FICHIERS = [
@@ -76,8 +76,10 @@ const FICHIERS = [
   './lib/leaflet/leaflet.css',
 ];
 
+// Les fichiers sont redemandés au serveur ("reload") : sans cela, le cache HTTP de l'hébergement (10 min sur
+// GitHub Pages) pouvait donner d'anciens fichiers à une nouvelle version (D-36).
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FICHIERS)));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FICHIERS.map((f) => new Request(f, { cache: 'reload' })))));
 });
 
 // Suppression des caches des versions précédentes.
