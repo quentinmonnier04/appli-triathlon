@@ -33,6 +33,12 @@ function lienPerformances() {
     ${flecheLien()}<p class="doux">Tes records par sport : puissance, course et natation.</p></a>`;
 }
 
+// Lot LC2 : matériel et usure (E-13).
+function lienMateriel() {
+  return `<a class="carte carte-lien" href="#/materiel"><div class="etiquette-carte">Matériel</div>
+    ${flecheLien()}<p class="doux">Vélo, chaussures et pièces : kilomètres et usure.</p></a>`;
+}
+
 // F-88 : banque de séances (Mes séances), D-24.
 function lienMesSeances() {
   return `<a class="carte carte-lien" href="#/seances"><div class="etiquette-carte">Mes séances</div>
@@ -132,7 +138,7 @@ function cartesSeuils(reglages) {
 }
 
 function rendreProfil(p, montre) {
-  return `${enTete(p.nom, montre)}${lienObjectif()}${lienPerformances()}${lienMesSeances()}${carteTotaux(p)}${carteParSport(p.activites)}${cartesSeuils(p.reglages)}${carteZones(p.reglages)}`;
+  return `${enTete(p.nom, montre)}${lienObjectif()}${lienPerformances()}${lienMateriel()}${lienMesSeances()}${carteTotaux(p)}${carteParSport(p.activites)}${cartesSeuils(p.reglages)}${carteZones(p.reglages)}`;
 }
 
 // Largeur des barres (CSP : pas de style inline dans le HTML ; element.style est permis).

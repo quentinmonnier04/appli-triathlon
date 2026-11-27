@@ -28,6 +28,8 @@ import {
   lireSourceCalculs, lireChargesEnCache, chargesAJour, formeDesCharges, donneesBilanSemaine, bilanSemaineLu, marquerBilanSemaineLu,
 } from '../api/charge.js';
 import { bilanDeLaSemaine } from '../logique/charge.js';
+import { lireMateriel } from '../api/materiel.js';
+import { alertesUsure, libelleType } from '../logique/materiel.js';
 
 const LARGEUR_COURBE = 150;
 const HAUTEUR_COURBE = 34;
@@ -98,6 +100,15 @@ function widgetBilanSemaine(b) {
       <span class="barre-progression"><span class="barre-remplie" data-pct="${pct(l) ?? 100}"></span></span>
       <span class="ligne-semaine-texte">${formaterDureeSaisie(l.realise_s) || '0:00'}${l.prevu_s ? `<span class="doux"> / ${formaterDureeSaisie(l.prevu_s)}</span>` : ''}</span></div>`).join('')}</div>` : ''}
   </section>`;
+}
+
+// F-128 : rappel discret quand une pièce ou une paire de chaussures arrive à sa limite d'usure.
+function widgetUsure(arbre) {
+  const alertes = alertesUsure(arbre ?? []);
+  if (!alertes.length) return '';
+  return alertes.map((a) => `<a class="rappel rappel-usure" href="#/materiel">
+    <span class="message-icone">${icone('info')}</span><span>À changer : <strong>${echapperHtml(a.nom || libelleType(a.type))}</strong>${a.parent ? ` (${echapperHtml(a.parent)})` : ''}, ${echapperHtml(formaterEntier(a.pct))} %</span>
+    <span class="lien-fleche-ligne">${icone('fleche')}</span></a>`).join('');
 }
 
 // F-62 : accès au bilan du jour.
@@ -214,6 +225,7 @@ export async function afficherAccueil(conteneur) {
     <div id="etat"></div>
     <div id="objectif"></div>
     <div id="bilan-semaine"></div>
+    <div id="usure"></div>
     <div id="tableau"></div>`;
   const $ = (sel) => conteneur.querySelector(sel);
   const zone = $('#tableau');
@@ -271,6 +283,9 @@ export async function afficherAccueil(conteneur) {
       bilanDemande = false; // hors ligne : nouvel essai au prochain affichage
     }
   }
+
+  // F-128 : usure du matériel, relue au plus toutes les 6 h pour garder l'accueil léger ; rien sans matériel.
+  lireMateriel({ validiteMs: 6 * 3600 * 1000 }).then((m) => { if ($('#usure')) $('#usure').innerHTML = widgetUsure(m.arbre); }).catch(() => {});
 
   // F-122 : calcul au fil de l'eau (seules les nouvelles séances sont analysées), puis la forme de l'appli est mise à jour.
   if (source === 'appli') {

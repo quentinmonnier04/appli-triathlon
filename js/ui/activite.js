@@ -9,6 +9,8 @@ import {
   lireCourbePuissance, lireHistogramme, lireMemeParcours,
 } from '../api/activites.js';
 import { lireCourbe42Jours } from '../api/performances.js';
+import { lireMateriel, choisirMaterielSeance } from '../api/materiel.js';
+import { materielsPourSport } from '../logique/materiel.js';
 import { effortsAChercher, distancesAChercher } from '../logique/analyse.js';
 import { tempsAuxDistances, pointsCourbe } from '../logique/performances.js';
 import { lireReglagesSport } from '../api/profil.js';
@@ -80,7 +82,7 @@ export async function afficherActivite(conteneur, segments, params = {}) {
   const demande = params.onglet === 'top' ? 'courbe' : params.onglet; // ancienne adresse de l'onglet Top (D-37)
   let onglet = ONGLETS.some((o) => o.code === demande) ? demande : 'resume';
   conteneur.innerHTML = `${enteteRetour}<div id="etat"></div><div id="detail"></div><div id="onglets"></div>
-    <div class="panneau" data-panneau="resume"><div id="resume"></div><div id="parcours"></div><div id="ressenti"></div><div id="meme-parcours"></div></div>
+    <div class="panneau" data-panneau="resume"><div id="resume"></div><div id="parcours"></div><div id="ressenti"></div><div id="materiel-seance"></div><div id="meme-parcours"></div></div>
     <div class="panneau" data-panneau="graphiques" hidden></div>
     <div class="panneau" data-panneau="zones" hidden></div>
     <div class="panneau" data-panneau="intervalles" hidden></div>
@@ -245,6 +247,33 @@ export async function afficherActivite(conteneur, segments, params = {}) {
     zoneH.innerHTML = histogrammes.map(([s, b]) => rendreHistogramme(b, s, largeur)).join('');
   }
 
+  // F-127 : matériel de la séance (vélos pour le vélo, chaussures pour la course), enregistré dès qu'on le choisit.
+  let materielCharge = false;
+  async function afficherMaterielSeance(a) {
+    if (materielCharge || !['VELO', 'CAP'].includes(a.sport)) return;
+    materielCharge = true;
+    let choix;
+    try {
+      choix = materielsPourSport((await lireMateriel()).arbre, a.sport);
+    } catch { materielCharge = false; return; }
+    const z = conteneur.querySelector('#materiel-seance');
+    if (!z || !choix.length) return;
+    z.innerHTML = `<div class="carte"><div class="champ"><label for="choix-materiel">Matériel</label>
+      <select id="choix-materiel" class="ecriture"><option value="">Aucun</option>${choix.map((m) => `<option value="${echapperHtml(m.id)}"${m.id === a.materiel_id ? ' selected' : ''}>${echapperHtml(m.nom)}</option>`).join('')}</select></div>
+      <div id="resultat-materiel" aria-live="polite"></div></div>`;
+    const select = z.querySelector('#choix-materiel');
+    surveillerReseau(z, z.querySelector('#resultat-materiel'), [select]); // ENF-07
+    select.addEventListener('change', async () => {
+      select.disabled = true;
+      try {
+        await choisirMaterielSeance(id, select.value || null);
+        z.querySelector('#resultat-materiel').innerHTML = message('succes', 'Matériel enregistré.');
+      } catch (e) {
+        z.querySelector('#resultat-materiel').innerHTML = messageErreurApi(e);
+      } finally { select.disabled = !navigator.onLine; }
+    });
+  }
+
   // F-106 : activités sur le même parcours, sous le résumé (si Intervals.icu a reconnu un parcours).
   let parcoursCharge = false;
   async function afficherMemeParcours(a) {
@@ -322,6 +351,7 @@ export async function afficherActivite(conteneur, segments, params = {}) {
     conteneur.querySelector('#resume').innerHTML = rendreResume(d.activite);
     afficherParcours(d.activite);
     afficherMemeParcours(d.activite);
+    afficherMaterielSeance(d.activite);
     if (!modifiee) afficherRessenti(d.activite);
     const dispo = ongletsDisponibles(d);
     if (!dispo.includes(onglet)) onglet = 'resume';

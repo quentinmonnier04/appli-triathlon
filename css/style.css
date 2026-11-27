@@ -1105,3 +1105,19 @@ form.carte.en-lecture > h2, form.carte.en-lecture > .titre-icone { padding-right
 .bilan-semaine .phrase-bilan { font-size: 18px; font-weight: 800; margin: 4px 0 10px; }
 .bilan-semaine .semaine-sports { margin-top: 10px; }
 .cellule-sport { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Matériel (lot LC2, D-43) */
+.materiel-titre { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; min-height: 44px; }
+.materiel-titre svg { color: var(--couleur-sport); }
+.liste-pieces { list-style: none; margin: 8px 0 0; padding: 0; }
+.ligne-piece { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--filet); }
+.ligne-piece .usure { grid-column: 1 / 2; }
+.ligne-piece .bouton { grid-column: 2; grid-row: 1 / 3; min-height: 44px; padding: 0 12px; }
+.piece-nom { display: flex; flex-direction: column; color: inherit; text-decoration: none; min-width: 0; }
+.usure { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; font-variant-numeric: tabular-nums; font-size: 13px; }
+.usure .barre-remplie { background: var(--texte-2); }
+.usure.usee .barre-remplie { background: var(--danger); }
+.usure.usee .usure-texte strong { color: var(--danger); }
+.ajout-piece, .ajout-materiel { margin-top: 10px; }
+.ajout-piece summary, .ajout-materiel summary { cursor: pointer; font-weight: 800; min-height: 44px; display: flex; align-items: center; }
+.rappel-usure .message-icone { color: var(--danger); }
