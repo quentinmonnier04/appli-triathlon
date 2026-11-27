@@ -20,8 +20,8 @@ test('distance d\'un matériel, depuis une date incluse', () => {
   assert.equal(distanceDepuis(seances, 'zz'), 0);
 });
 
-test('usure d\'une pièce : séances du vélo depuis la pose ou le dernier remplacement', () => {
-  const chaine = { id: 'c1', achat: '2026-01-01', rappels: [{ id: 7, distance_m: 200000, dernier_remplacement: '2026-05-15' }] };
+test('usure d\'une pièce : séances du vélo depuis sa pose seulement (D-47 : last_reset ignoré)', () => {
+  const chaine = { id: 'c1', achat: '2026-05-15', rappels: [{ id: 7, distance_m: 200000, dernier_remplacement: '2026-11-27' }] };
   const u = usure(chaine, seances, 'b1');
   assert.deepEqual([u.km, u.limite_km, u.pct, u.depuis], [180, 200, 90, '2026-05-15']);
   const sansRappel = usure({ id: 'b1', achat: null, rappels: [] }, seances);

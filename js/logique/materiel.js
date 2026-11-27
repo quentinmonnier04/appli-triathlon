@@ -32,14 +32,14 @@ export function distanceDepuis(seances, gearId, depuis = null) {
     .reduce((t, s) => t + (s.distance_m ?? 0), 0);
 }
 
-// Usure d'un matériel ou d'une pièce. Une pièce compte les séances du matériel qui la porte (parentId), depuis sa pose
-// (date d'achat) ou son dernier remplacement (last_reset du rappel). Un matériel principal (vélo, chaussures) compte
-// toutes ses séances depuis son dernier remplacement : elles sont à lui, même avant la date saisie (D-44).
-// Renvoie { km, limite_km, pct, depuis } ; limite et pourcentage null sans rappel de distance.
+// Usure d'un matériel ou d'une pièce (D-47). Une pièce compte les séances du matériel qui la porte (parentId) depuis sa
+// date de pose seulement : « Remplacé » change cette date. La date de remise à zéro du rappel d'Intervals.icu
+// (last_reset) n'est pas utilisée : Intervals.icu la met au jour de création du rappel, ce qui remettait le compteur
+// à zéro. Un matériel principal (vélo, chaussures) compte toutes ses séances (D-44).
+// Renvoie { km, limite_km, pct, depuis, rappel } ; limite et pourcentage null sans rappel de distance.
 export function usure(materiel, seances, parentId = null) {
   const rappel = (materiel.rappels ?? []).find((r) => r.distance_m > 0) ?? null;
-  const dates = [parentId ? materiel.achat : null, rappel?.dernier_remplacement].filter(Boolean).sort();
-  const depuis = dates.at(-1) ?? null;
+  const depuis = parentId ? materiel.achat ?? null : null;
   const metres = distanceDepuis(seances, parentId ?? materiel.id, depuis);
   const km = Math.round(metres / 1000);
   const limite_km = rappel ? Math.round(rappel.distance_m / 1000) : null;

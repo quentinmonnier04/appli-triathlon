@@ -32,7 +32,7 @@ function lignePiece(p) {
     <a class="piece-nom" href="#/materiel/${encodeURIComponent(p.id)}"><strong>${echapperHtml(p.nom || libelleType(p.type))}</strong>
       <span class="doux">${echapperHtml([p.nom && p.nom !== libelleType(p.type) ? libelleType(p.type) : '', p.usure.depuis ? `depuis le ${formaterDate(p.usure.depuis)}` : ''].filter(Boolean).join(' · '))}</span></a>
     ${barreUsure(p.usure)}
-    ${p.usure.rappel ? `<button type="button" class="bouton ecriture" data-remplace="${echapperHtml(p.id)}">Remplacé</button>` : ''}
+    <button type="button" class="bouton ecriture" data-remplace="${echapperHtml(p.id)}">Remplacé</button>
   </li>`;
 }
 
@@ -42,7 +42,7 @@ function carteMateriel(m) {
   return `<section class="carte sport-${sportCode}" aria-label="${echapperHtml(m.nom || libelleType(m.type))}">
     <div class="carte-ligne"><a class="materiel-titre" href="#/materiel/${encodeURIComponent(m.id)}">${iconeSport(sportCode, 20)}<strong>${echapperHtml(m.nom || libelleType(m.type))}</strong></a>
       <span class="info-droite">${echapperHtml(formaterEntier(m.total_km))} km</span></div>
-    ${m.usure.rappel ? `${barreUsure(m.usure)}<button type="button" class="bouton ecriture" data-remplace="${echapperHtml(m.id)}">Remplacé</button>` : ''}
+    ${m.usure.rappel ? barreUsure(m.usure) : ''}
     ${m.pieces.length ? `<ul class="liste-pieces">${m.pieces.map(lignePiece).join('')}</ul>` : ''}
     ${m.type === 'Bike' ? `<details class="ajout-piece"><summary>Ajouter une pièce</summary>
       <form class="form-piece" data-parent="${echapperHtml(m.id)}" novalidate>
@@ -116,8 +116,9 @@ export async function afficherMateriel(conteneur, segments = []) {
       if (!m || !confirm(`${m.nom || libelleType(m.type)} remplacé aujourd'hui ? Le compteur repart de zéro.`)) return; // texte, pas du HTML
       b.disabled = true;
       try {
-        await remettreAZero(m.id, m.usure.rappel);
-        await charger(true, message('succes', 'Compteur remis à zéro.'));
+        const { dateGardee } = await remettreAZero(m.id, m.usure.rappel);
+        await charger(true, dateGardee ? message('succes', 'Compteur remis à zéro.')
+          : message('erreur', "La date de remplacement n'a pas été enregistrée. Envoie-moi une capture de cet écran."));
       } catch (e) { b.disabled = false; zone.insertAdjacentHTML('afterbegin', messageErreurApi(e)); }
     }));
     const lire = (form) => Object.fromEntries(new FormData(form).entries());

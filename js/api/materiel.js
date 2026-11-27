@@ -131,13 +131,18 @@ export async function definirLimite(gearId, rappelId, limite_m) {
   await apresEcriture();
 }
 
-// F-126 : « Remplacé » : le rappel est remis à zéro (last_reset = maintenant), le compteur de l'appli repart de ce jour.
+// F-126 : « Remplacé » sur une pièce : sa date de pose devient aujourd'hui (le compteur de l'appli repart de zéro, D-47),
+// et son rappel est aussi remis à zéro chez Intervals.icu pour rester cohérent. Renvoie { dateGardee }.
 export async function remettreAZero(gearId, rappel) {
-  await requeteAuthentifiee(`/athlete/0/gear/${encodeURIComponent(gearId)}/reminder/${encodeURIComponent(rappel.id)}`,
-    { reset: 'true', snoozeDays: '0' }, {
-      methode: 'PUT', corps: { id: rappel.id, gear_id: gearId, name: 'Usure', distance: rappel.distance_m },
-    });
+  const resultat = await modifierMateriel(gearId, { achat: jourISO() });
+  if (rappel?.id !== undefined && rappel?.id !== null) {
+    await requeteAuthentifiee(`/athlete/0/gear/${encodeURIComponent(gearId)}/reminder/${encodeURIComponent(rappel.id)}`,
+      { reset: 'true', snoozeDays: '0' }, {
+        methode: 'PUT', corps: { id: rappel.id, gear_id: gearId, name: 'Usure', distance: rappel.distance_m },
+      }).catch(() => {}); // le compteur de l'appli dépend de la date de pose, pas de ce rappel
+  }
   await apresEcriture();
+  return resultat;
 }
 
 // Renomme un matériel, change sa date d'achat ou de pose (achat : AAAA-MM-JJ, '' pour aucune) ou le retire (retired =
