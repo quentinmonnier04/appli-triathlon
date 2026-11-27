@@ -242,3 +242,19 @@ export function couperAuxPauses(ys, indices) {
   for (const i of indices) copie[i] = null;
   return copie;
 }
+
+// --- Histogramme (F-104, D-37) ---
+// Buckets d'Intervals.icu (power-histogram : "start" en W, tranches de "bucketSize" W ; hr-histogram : en bpm) ->
+// barres [{ debut, fin, secs, pct }] ; tranches vides du début et de la fin retirées. Temps en mouvement s'il existe.
+export function barresHistogramme(buckets, largeurTranche) {
+  if (!Array.isArray(buckets)) return [];
+  const lignes = buckets
+    .map((b) => ({ debut: b.start, secs: Number.isFinite(b.movingSecs) ? b.movingSecs : (b.secs ?? 0) }))
+    .filter((b) => Number.isFinite(b.debut))
+    .sort((x, y) => x.debut - y.debut);
+  while (lignes.length && !lignes[0].secs) lignes.shift();
+  while (lignes.length && !lignes[lignes.length - 1].secs) lignes.pop();
+  const total = lignes.reduce((s, l) => s + l.secs, 0);
+  if (!total) return [];
+  return lignes.map((l) => ({ ...l, fin: l.debut + largeurTranche, pct: (l.secs / total) * 100 }));
+}

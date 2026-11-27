@@ -1090,3 +1090,12 @@ form.carte.en-lecture > h2, form.carte.en-lecture > .titre-icone { padding-right
 .chrono-plein-ecran { position: fixed; inset: 0; z-index: 100; background: var(--fond); overflow-y: auto; padding: 8px 12px; }
 .chrono-plein-ecran > .carte { border: 0; background: transparent; padding: 0; margin: 0; }
 .chrono-plein-ecran .chrono-tete { flex-direction: row; align-items: center; }
+
+/* F-104, F-105, F-106 (D-37) */
+.graphique-courbe, .graphique-histogramme { display: block; max-width: 100%; overflow: visible; margin-top: 6px; }
+.trace-seance { stroke-width: 2; }
+.trace-periode { fill: none; stroke: var(--texte-2); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.grille-courbe { stroke: var(--filet); stroke-width: 1; }
+.barre-histogramme { fill: var(--texte-2); }
+.liste-parcours { list-style: none; margin: 0; padding: 0; }
+.ligne-parcours { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; min-height: 44px; border-top: 1px solid var(--filet); color: inherit; text-decoration: none; font-variant-numeric: tabular-nums; }

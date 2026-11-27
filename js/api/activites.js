@@ -11,8 +11,9 @@
 import { requeteAuthentifiee } from './client.js';
 import { lireCache, ecrireCache, supprimerCachePrefixe } from '../cache/stockage.js';
 import { sportDepuisType, sport } from '../logique/sports.js';
-import { fusionnerActivites } from '../logique/activites.js';
-import { effortsAChercher } from '../logique/analyse.js';
+import { fusionnerActivites, estPerime as estPerimeLocal } from '../logique/activites.js';
+import { effortsAChercher, barresHistogramme } from '../logique/analyse.js';
+import { courbeDeLActivite } from '../logique/performances.js';
 import { decouperSegments, alleger } from '../logique/carte.js';
 
 // Nombre d'activités par page du fil (F-10).
@@ -66,6 +67,7 @@ export function convertirActivite(brut) {
     travail_j: ou(brut.icu_joules),
     calories: ou(brut.calories),
     poids_kg: ou(brut.icu_weight), // poids du jour de l'activité, pour les W/kg (F-105)
+    parcours_id: ou(brut.route_id), // parcours reconnu par Intervals.icu (F-106)
     flux: Array.isArray(brut.stream_types) ? brut.stream_types : [],
   };
 }
@@ -298,4 +300,55 @@ export async function lireCourbeAllure(id) {
   };
   if (courbe.distance.length) await ecrireCache(cle, courbe);
   return courbe;
+}
+
+// --- Courbe, histogrammes et même parcours (lot LA, F-104 à F-106, D-37) ---
+// Endpoints et champs vérifiés dans la spécification OpenAPI :
+//   GET /athlete/{id}/activity-power-curves{ext} (oldest, newest obligatoires, type) -> { secs, curves: [{ id, watts }] }
+//   GET /activity/{id}/power-histogram (bucketSize "Watts per bucket", 25 par défaut) -> Bucket[] (start, secs, movingSecs)
+//   GET /activity/{id}/hr-histogram (bucketSize "Beats per bucket", 5 par défaut) -> Bucket[]
+//   GET /athlete/{id}/activities-around (activity_id obligatoire, route_id, limit) -> Activity[]
+// (pace-histogram n'a pas d'unité documentée pour "start" : non utilisé.)
+
+const TYPES_COURBE = { VELO: 'Ride', CAP: 'Run' };
+
+// Courbe de puissance de la séance : la réponse du jour de l'activité, dans laquelle on prend la courbe de cette activité.
+export async function lireCourbePuissance(activite) {
+  const cle = `cp:${activite.id}`;
+  const cache = await lireCache(cle);
+  if (cache) return cache.donnees;
+  const brut = await requeteAuthentifiee('/athlete/0/activity-power-curves.json', {
+    oldest: activite.date, newest: activite.date, type: TYPES_COURBE[activite.sport] ?? 'Ride',
+  });
+  const courbe = courbeDeLActivite(brut, activite.id);
+  if (courbe.length) await ecrireCache(cle, courbe);
+  return courbe;
+}
+
+// Histogramme de puissance ("puissance", tranches de 25 W) ou de FC ("fc", tranches de 5 bpm).
+export const TRANCHES_HISTOGRAMME = { puissance: 25, fc: 5 };
+export async function lireHistogramme(id, sorte) {
+  const cle = `histo-${sorte}:${id}`;
+  const cache = await lireCache(cle);
+  if (cache) return cache.donnees;
+  const chemin = sorte === 'puissance' ? 'power-histogram' : 'hr-histogram';
+  const buckets = await requeteAuthentifiee(`/activity/${encodeURIComponent(id)}/${chemin}`, { bucketSize: String(TRANCHES_HISTOGRAMME[sorte]) });
+  const barres = barresHistogramme(buckets, TRANCHES_HISTOGRAMME[sorte]);
+  if (barres.length) await ecrireCache(cle, barres);
+  return barres;
+}
+
+// Activités sur le même parcours (F-106), les plus proches dans le temps d'abord ; [] sans parcours reconnu.
+export async function lireMemeParcours(activite, limite = 10) {
+  if (!activite.parcours_id) return [];
+  const cle = `parcours:${activite.id}`;
+  const cache = await lireCache(cle);
+  if (cache && !estPerimeLocal(cache.charge_le)) return cache.donnees;
+  const bruts = await requeteAuthentifiee('/athlete/0/activities-around', {
+    activity_id: String(activite.id), route_id: String(activite.parcours_id), limit: String(limite),
+  });
+  // Les activités venant de Strava arrivent vides (description de l'endpoint) : ignorées.
+  const activites = (bruts ?? []).filter((b) => b?.start_date_local).map(convertirActivite);
+  await ecrireCache(cle, activites);
+  return activites;
 }

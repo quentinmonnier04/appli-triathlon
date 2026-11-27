@@ -93,3 +93,38 @@ export function debutPeriode(code, jour) {
   if (code === 'annee') return `${jour.slice(0, 4)}-01-01`;
   return null;
 }
+
+// --- Courbe de la séance comparée aux 42 derniers jours (F-105, D-37) ---
+
+// Courbe de puissance d'une activité dans la réponse de activity-power-curves (secs commun, une courbe par
+// activité : id, watts alignés sur secs). Renvoie [{ x: durée s, y: W }] (valeurs nulles retirées) ou [].
+export function courbeDeLActivite(reponse, id) {
+  const secs = reponse?.secs ?? [];
+  const courbe = (reponse?.curves ?? []).find((c) => String(c.id) === String(id));
+  if (!courbe) return [];
+  return secs.map((s, i) => ({ x: s, y: courbe.watts?.[i] })).filter((p) => Number.isFinite(p.y) && p.y > 0);
+}
+
+// Courbe d'une période (DataCurve) : puissance [{ x: s, y: W }] ou allure [{ x: m, y: vitesse m/s }].
+export function pointsCourbe(courbe, mesure) {
+  if (!courbe) return [];
+  const valeurs = courbe.values ?? [];
+  if (mesure === 'allure') {
+    return (courbe.distance ?? []).map((m, i) => ({ x: m, y: valeurs[i] > 0 ? m / valeurs[i] : null }))
+      .filter((p) => Number.isFinite(p.y) && p.y > 0);
+  }
+  return (courbe.secs ?? []).map((s, i) => ({ x: s, y: valeurs[i] })).filter((p) => Number.isFinite(p.y) && p.y > 0);
+}
+
+// Échelle logarithmique de l'axe x (durées ou distances) : position en pixels entre gauche et droite.
+export function echelleLog(min, max, gauche, droite) {
+  const a = Math.log(Math.max(min, 1e-9));
+  const b = Math.log(Math.max(max, min * 1.0001));
+  return (x) => gauche + ((Math.log(Math.max(x, 1e-9)) - a) / (b - a)) * (droite - gauche);
+}
+
+// Repères de l'axe x : durées (1 s à 2 h) ou distances (100 m au semi) comprises dans l'étendue.
+export function reperesCourbe(min, max, mesure) {
+  const reperes = mesure === 'allure' ? [100, 400, 1000, 5000, 10000, 21097] : [1, 5, 15, 60, 300, 1200, 3600, 7200];
+  return reperes.filter((r) => r >= min && r <= max);
+}

@@ -52,3 +52,31 @@ test('distances cherchées dans une séance, limitées à la distance parcourue'
   assert.deepEqual(distancesAChercher({ sport: 'VELO', distance_m: 40000 }), []);
   assert.deepEqual(distancesAChercher({ sport: 'CAP', distance_m: null }), []);
 });
+
+import { courbeDeLActivite, pointsCourbe, echelleLog, reperesCourbe } from '../js/logique/performances.js';
+import { barresHistogramme } from '../js/logique/analyse.js';
+
+test('courbe de la séance (activity-power-curves) et de la période', () => {
+  const rep = { secs: [1, 5, 60], curves: [{ id: 'i1', watts: [700, 500, 300] }, { id: 'i2', watts: [900, 0, 350] }] };
+  assert.deepEqual(courbeDeLActivite(rep, 'i2'), [{ x: 1, y: 900 }, { x: 60, y: 350 }]);
+  assert.deepEqual(courbeDeLActivite(rep, 'i9'), []);
+  assert.deepEqual(pointsCourbe({ secs: [1, 5], values: [800, 0] }, 'puissance'), [{ x: 1, y: 800 }]);
+  // allure : temps (s) -> vitesse (m/s) pour dessiner
+  assert.deepEqual(pointsCourbe({ distance: [400, 1000], values: [80, 250] }, 'allure'), [{ x: 400, y: 5 }, { x: 1000, y: 4 }]);
+});
+
+test('échelle logarithmique et repères', () => {
+  const x = echelleLog(1, 100, 0, 200);
+  assert.equal(x(1), 0);
+  assert.equal(Math.round(x(10)), 100);
+  assert.equal(x(100), 200);
+  assert.deepEqual(reperesCourbe(1, 4000, 'puissance'), [1, 5, 15, 60, 300, 1200, 3600]);
+  assert.deepEqual(reperesCourbe(200, 12000, 'allure'), [400, 1000, 5000, 10000]);
+});
+
+test('histogramme : tranches triées, vides des bords retirées, pourcentages', () => {
+  const b = barresHistogramme([{ start: 50, secs: 0 }, { start: 100, secs: 300, movingSecs: 240 }, { start: 75, secs: 60 }, { start: 125, secs: 0 }], 25);
+  assert.deepEqual(b.map((x) => [x.debut, x.fin, x.secs]), [[75, 100, 60], [100, 125, 240]]);
+  assert.equal(Math.round(b[1].pct), 80);
+  assert.deepEqual(barresHistogramme(null, 25), []);
+});

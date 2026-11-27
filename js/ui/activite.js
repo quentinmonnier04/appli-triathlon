@@ -6,9 +6,11 @@
 
 import {
   lireDetailEnCache, rafraichirDetail, enregistrerRessenti, lireFlux, fluxADemander, lireMeilleursEfforts, lireCourbeAllure,
+  lireCourbePuissance, lireHistogramme, lireMemeParcours,
 } from '../api/activites.js';
+import { lireCourbe42Jours } from '../api/performances.js';
 import { effortsAChercher, distancesAChercher } from '../logique/analyse.js';
-import { tempsAuxDistances } from '../logique/performances.js';
+import { tempsAuxDistances, pointsCourbe } from '../logique/performances.js';
 import { lireReglagesSport } from '../api/profil.js';
 import { estPerime } from '../logique/activites.js';
 import {
@@ -27,6 +29,7 @@ import { iconeSport } from './icones.js';
 import { afficherCarteParcours } from './carte.js';
 import {
   ONGLETS, rendreOnglets, rendreResume, famillesZones, rendreZones, rendreIntervalles, rendreTop, afficherChronologie,
+  rendreCourbe, rendreHistogramme, rendreMemeParcours,
 } from './analyse.js';
 
 const enteteRetour = `<div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: '#/activites' })}
@@ -74,13 +77,14 @@ export async function afficherActivite(conteneur, segments, params = {}) {
   const zone = () => conteneur.querySelector('#detail');
   // Onglet de l'adresse, contrôlé (D-21) ; chaque onglet a son panneau, masqué ou affiché (la carte et le ressenti
   // ne sont pas recréés en changeant d'onglet).
-  let onglet = ONGLETS.some((o) => o.code === params.onglet) ? params.onglet : 'resume';
+  const demande = params.onglet === 'top' ? 'courbe' : params.onglet; // ancienne adresse de l'onglet Top (D-37)
+  let onglet = ONGLETS.some((o) => o.code === demande) ? demande : 'resume';
   conteneur.innerHTML = `${enteteRetour}<div id="etat"></div><div id="detail"></div><div id="onglets"></div>
-    <div class="panneau" data-panneau="resume"><div id="resume"></div><div id="parcours"></div><div id="ressenti"></div></div>
+    <div class="panneau" data-panneau="resume"><div id="resume"></div><div id="parcours"></div><div id="ressenti"></div><div id="meme-parcours"></div></div>
     <div class="panneau" data-panneau="graphiques" hidden></div>
     <div class="panneau" data-panneau="zones" hidden></div>
     <div class="panneau" data-panneau="intervalles" hidden></div>
-    <div class="panneau" data-panneau="top" hidden></div>`;
+    <div class="panneau" data-panneau="courbe" hidden></div>`;
   // Retour à l'écran précédent (fil, agenda ou accueil) ; sans historique, retour au fil.
   conteneur.querySelector('.entete a').addEventListener('click', (ev) => {
     if (history.length > 1) { ev.preventDefault(); history.back(); }
@@ -160,9 +164,11 @@ export async function afficherActivite(conteneur, segments, params = {}) {
     const a = d.activite;
     const dispo = ['resume'];
     if (fluxADemander(a.flux).some((f) => f !== 'time' && f !== 'distance')) dispo.push('graphiques');
-    if ([a.zones_fc, a.zones_puissance, a.zones_allure].some((z) => Array.isArray(z) && z.length)) dispo.push('zones');
+    // Zones : temps par zone, ou histogramme de puissance ou de FC (F-104).
+    if ([a.zones_fc, a.zones_puissance, a.zones_allure].some((z) => Array.isArray(z) && z.length)
+      || a.flux.includes('watts') || a.flux.includes('heartrate')) dispo.push('zones');
     if (d.intervalles.length) dispo.push('intervalles');
-    if (effortsAChercher(a).length || distancesAChercher(a).length) dispo.push('top'); // F-105 : puissance, ou temps en course et natation
+    if (effortsAChercher(a).length || distancesAChercher(a).length) dispo.push('courbe'); // F-105 : courbe et meilleurs efforts
     return dispo;
   }
 
@@ -188,11 +194,13 @@ export async function afficherActivite(conteneur, segments, params = {}) {
         reglagesSport = await lireReglagesSport(a.sport);
         if (!conteneur.isConnected) return;
       }
-      panneau('zones').innerHTML = rendreZones(famillesZones(a, reglagesSport));
+      const familles = famillesZones(a, reglagesSport);
+      panneau('zones').innerHTML = `${familles.length ? rendreZones(familles) : ''}<div id="histogrammes"></div>`;
       panneau('zones').querySelectorAll('.zone-remplie').forEach((b) => { b.style.width = `${b.dataset.pct}%`; });
+      afficherHistogrammes();
     } else if (onglet === 'intervalles') {
       afficherIntervalles();
-    } else if (onglet === 'top') {
+    } else if (onglet === 'courbe') {
       await afficherTop();
     } else if (onglet === 'graphiques' && !chronoAffichee) {
       await afficherGraphiques();
@@ -221,9 +229,38 @@ export async function afficherActivite(conteneur, segments, params = {}) {
     if (conteneur.querySelector('.onglets-activite [data-onglet="graphiques"]')) changerOnglet('graphiques');
   }
 
-  // F-105 : meilleurs efforts, demandés à l'ouverture de l'onglet puis gardés en cache.
+  // F-104 : histogrammes de puissance et de FC, demandés à l'ouverture de l'onglet Zones (une fois).
+  let histogrammes = null;
+  async function afficherHistogrammes() {
+    const a = detail.activite;
+    if (!histogrammes) {
+      const sortes = [a.flux.includes('watts') && 'puissance', a.flux.includes('heartrate') && 'fc'].filter(Boolean);
+      const resultats = await Promise.all(sortes.map((s) => lireHistogramme(id, s).then((b) => [s, b]).catch(() => [s, []])));
+      histogrammes = resultats;
+      if (!conteneur.isConnected) return;
+    }
+    const zoneH = conteneur.querySelector('#histogrammes');
+    if (!zoneH) return;
+    const largeur = (zoneH.clientWidth || 340) - 32;
+    zoneH.innerHTML = histogrammes.map(([s, b]) => rendreHistogramme(b, s, largeur)).join('');
+  }
+
+  // F-106 : activités sur le même parcours, sous le résumé (si Intervals.icu a reconnu un parcours).
+  let parcoursCharge = false;
+  async function afficherMemeParcours(a) {
+    if (parcoursCharge || !a.parcours_id) return;
+    parcoursCharge = true;
+    try {
+      const autres = await lireMemeParcours(a);
+      const z = conteneur.querySelector('#meme-parcours');
+      if (z) z.innerHTML = rendreMemeParcours(autres);
+    } catch { parcoursCharge = false; }
+  }
+
+  // F-105 : courbe de la séance comparée aux 42 derniers jours et meilleurs efforts, demandés à l'ouverture de l'onglet.
+  let courbeHtml = '';
   async function afficherTop() {
-    const p = panneau('top');
+    const p = panneau('courbe');
     const a = detail.activite;
     if (!efforts) {
       p.innerHTML = `<div class="carte">${squelette()}</div>`;
@@ -236,15 +273,23 @@ export async function afficherActivite(conteneur, segments, params = {}) {
         ]);
         efforts = e;
         temps = courbe ? tempsAuxDistances(courbe, distances) : [];
+        // Courbe : puissance si la séance en a, sinon allure ; comparée à la courbe des 42 derniers jours du sport.
+        const largeur = (p.clientWidth || 340) - 32;
+        const puissance = a.flux.includes('watts');
+        const [seance, periode] = await Promise.all([
+          puissance ? lireCourbePuissance(a).catch(() => []) : Promise.resolve(courbe ? pointsCourbe(courbe, 'allure') : []),
+          lireCourbe42Jours(a.sport, puissance ? 'puissance' : 'allure').catch(() => []),
+        ]);
+        courbeHtml = rendreCourbe(seance, periode, puissance ? 'puissance' : 'allure', a.sport, largeur);
         if (courbe && !temps.length) diagnostic = `courbe d'allure reçue avec ${courbe.distance.length} points, aucun sur ${distances.join(', ')} m`;
         if (!diagnostic && !efforts.length && !temps.length) diagnostic = `flux de la séance : ${(a.flux ?? []).join(', ') || 'aucun'}`;
       } catch (err) {
         p.innerHTML = messageErreurApi(err);
         return;
       }
-      if (!conteneur.isConnected || onglet !== 'top') return;
+      if (!conteneur.isConnected || onglet !== 'courbe') return;
     }
-    p.innerHTML = rendreTop(efforts, temps, a, diagnostic);
+    p.innerHTML = courbeHtml + rendreTop(efforts, temps, a, diagnostic);
     p.querySelectorAll('[data-effort]').forEach((ligne) => {
       const ouvrir = () => {
         const e = [...efforts, ...temps.map((t) => ({ ...t, cle: `d${t.distance}` }))].find((x) => x.cle === ligne.dataset.effort);
@@ -276,6 +321,7 @@ export async function afficherActivite(conteneur, segments, params = {}) {
     zone().innerHTML = rendreHaut(d);
     conteneur.querySelector('#resume').innerHTML = rendreResume(d.activite);
     afficherParcours(d.activite);
+    afficherMemeParcours(d.activite);
     if (!modifiee) afficherRessenti(d.activite);
     const dispo = ongletsDisponibles(d);
     if (!dispo.includes(onglet)) onglet = 'resume';

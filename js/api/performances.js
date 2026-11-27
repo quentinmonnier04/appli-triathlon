@@ -11,7 +11,7 @@ import { lireCache, ecrireCache } from '../cache/stockage.js';
 import { estPerime } from '../logique/activites.js';
 import { jourISO } from '../logique/dates.js';
 import {
-  SPORTS_PERF, DUREES_RECORDS, DISTANCES_RECORDS, codeCourbe, pointsAuxDurees, tempsAuxDistances, activiteDuRecord,
+  SPORTS_PERF, DUREES_RECORDS, DISTANCES_RECORDS, codeCourbe, pointsAuxDurees, tempsAuxDistances, activiteDuRecord, pointsCourbe,
 } from '../logique/performances.js';
 
 // Réponse d'une courbe -> records datés : [{ duree | distance, valeur | temps_s, activite_id, date, titre }].
@@ -47,6 +47,25 @@ export async function lirePerformances(sportCode, periode, { forcer = false } = 
     return { ...donnees, charge_le: (await lireCache(cle)).charge_le };
   } catch (e) {
     if (cache && e.type !== 'IDENTIFIANTS') return { ...cache.donnees, charge_le: cache.charge_le, horsLigne: true };
+    throw e;
+  }
+}
+
+// Courbe des 42 derniers jours (F-105, comparaison avec la séance) : puissance (power-curves) ou allure (pace-curves).
+// Points prêts à dessiner (logique/performances.js) ; cache de 5 min par sport et par mesure.
+export async function lireCourbe42Jours(sportCode, mesure) {
+  const sport = SPORTS_PERF.find((s) => s.code === sportCode);
+  if (!sport) return [];
+  const cle = `c42:${sportCode}:${mesure}`;
+  const cache = await lireCache(cle);
+  if (cache && !estPerime(cache.charge_le)) return cache.donnees;
+  try {
+    const reponse = await chargerCourbe(mesure === 'allure' ? 'pace-curves' : 'power-curves', sport.type, '42j');
+    const points = pointsCourbe(reponse?.list?.[0], mesure);
+    await ecrireCache(cle, points);
+    return points;
+  } catch (e) {
+    if (cache && e.type !== 'IDENTIFIANTS') return cache.donnees;
     throw e;
   }
 }

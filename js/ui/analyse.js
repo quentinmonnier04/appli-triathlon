@@ -7,10 +7,11 @@ import {
   FILTRES_INTERVALLES, filtrerIntervalles, moyenneIntervalles, zonesDetaillees, classeZone, libelleEffort,
   indicesApresPause, couperAuxPauses,
 } from '../logique/analyse.js';
+import { echelleLog, reperesCourbe } from '../logique/performances.js';
 import { zonesDuSport } from '../logique/profil.js';
 import { RESSENTIS, libelleEchelle } from '../logique/ressenti.js';
 import {
-  echapperHtml, formaterDuree, formaterDistance, formaterVitesse, formaterEntier,
+  echapperHtml, formaterDuree, formaterDistance, formaterVitesse, formaterEntier, formaterDate,
 } from '../logique/format.js';
 import { stat } from './composants.js';
 
@@ -21,7 +22,7 @@ export const ONGLETS = [
   { code: 'graphiques', libelle: 'Graphiques' },
   { code: 'zones', libelle: 'Zones' },
   { code: 'intervalles', libelle: 'Intervalles' },
-  { code: 'top', libelle: 'Top' },
+  { code: 'courbe', libelle: 'Courbe' },
 ];
 
 export function rendreOnglets(disponibles, actif) {
@@ -141,6 +142,84 @@ export function rendreTop(efforts, temps, a, diagnostic = '') {
     <tbody>${temps.map((t) => ligne(`d${t.distance}`, libelleEffort(t), [formaterDuree(t.temps_s) ?? '', formaterVitesse(a.sport, t.distance, t.temps_s) ?? ''])).join('')}</tbody></table></div></div>` : '';
   return `${blocPuissance}${blocAllure}
   <p class="doux petit-texte">Meilleurs efforts calculés par Intervals.icu sur cette séance. Touche une ligne pour la voir sur les graphiques.</p>`;
+}
+
+// --- F-105 : courbe de la séance comparée aux 42 derniers jours (D-37) ---
+
+// Courbe en SVG : durée (puissance) ou distance (allure) en échelle logarithmique ; séance en trait plein à la couleur
+// du sport, 42 derniers jours en pointillés gris. Allure : la vitesse est dessinée, l'axe affiche l'allure.
+export function rendreCourbe(seance, periode, mesure, sportCode, largeurDispo) {
+  if (!seance.length) return '';
+  const largeur = Math.max(260, Math.round(largeurDispo));
+  const hauteur = 170;
+  const gauche = 44;
+  const bas = hauteur - 18;
+  const tous = [...seance, ...periode];
+  const xmin = Math.min(...tous.map((p) => p.x));
+  const xmax = Math.max(...tous.map((p) => p.x));
+  const ymax = Math.max(...tous.map((p) => p.y));
+  const g = graduations(0, ymax, 3);
+  const versX = echelleLog(xmin, xmax, gauche, largeur - 4);
+  const versY = (y) => bas - (y / (g.max || 1)) * (bas - 6);
+  const chemin = (points) => points.map((p, i) => `${i ? 'L' : 'M'}${Math.round(versX(p.x) * 10) / 10},${Math.round(versY(p.y) * 10) / 10}`).join('');
+  const texteY = (v) => (mesure === 'allure' ? (v > 0 ? formaterVitesse(sportCode, v * 1000, 1000) ?? '' : '') : `${formaterEntier(v)} W`);
+  const texteX = (x) => (mesure === 'allure' ? libelleEffort({ distance: x }) : libelleEffort({ duree: x }));
+  const reperes = reperesCourbe(xmin, xmax, mesure);
+  const lignesY = g.valeurs.filter((v) => v > 0 && v <= g.max);
+  const titre = mesure === 'allure' ? 'Allure selon la distance' : 'Puissance selon la durée';
+  const resume = mesure === 'allure' ? 'meilleure allure de la séance pour chaque distance' : 'meilleure puissance de la séance pour chaque durée';
+  return `<div class="carte courbe-seance sport-${echapperHtml(sportCode)}"><h2>${titre}</h2>
+    <div class="legende-forme"><span class="legende-ctl">Cette séance</span>${periode.length ? '<span class="legende-atl">42 derniers jours</span>' : ''}</div>
+    <svg class="graphique-courbe" width="${largeur}" height="${hauteur}" viewBox="0 0 ${largeur} ${hauteur}" role="img"
+      aria-label="${echapperHtml(`Courbe : ${resume}${periode.length ? ', comparée aux 42 derniers jours' : ''}`)}">
+      ${lignesY.map((v) => `<line class="grille-courbe" x1="${gauche}" x2="${largeur}" y1="${versY(v)}" y2="${versY(v)}"></line>
+        <text class="axe-texte" x="0" y="${versY(v) + 3}">${echapperHtml(texteY(v))}</text>`).join('')}
+      ${reperes.map((r) => `<text class="axe-texte" x="${versX(r)}" y="${hauteur - 4}" text-anchor="middle">${echapperHtml(texteX(r))}</text>`).join('')}
+      ${periode.length ? `<path class="trace-periode" d="${chemin(periode)}"></path>` : ''}
+      <path class="trace-ligne trace-seance" d="${chemin(seance)}"></path>
+    </svg></div>`;
+}
+
+// --- F-104 : histogramme (D-37) ---
+
+// Barres verticales : temps passé par tranche de puissance (W) ou de FC (bpm). Couleur neutre (ce n'est pas un sport).
+export function rendreHistogramme(barres, sorte, largeurDispo) {
+  if (!barres.length) return '';
+  const largeur = Math.max(260, Math.round(largeurDispo));
+  const hauteur = 120;
+  const bas = hauteur - 16;
+  // Axe en W ou en bpm : chaque barre est placée à sa valeur (un sprint isolé reste à sa place, avec un vide avant).
+  const min = barres[0].debut;
+  const max = barres[barres.length - 1].fin;
+  const versX = (v) => ((v - min) / ((max - min) || 1)) * largeur;
+  const maxPct = Math.max(...barres.map((b) => b.pct));
+  const unite = sorte === 'puissance' ? 'W' : 'bpm';
+  const titre = sorte === 'puissance' ? 'Répartition de la puissance' : 'Répartition de la FC';
+  const principale = barres.reduce((m, b) => (b.pct > m.pct ? b : m), barres[0]);
+  const g = graduations(min, max, 3);
+  const reperes = g.valeurs.filter((v) => v >= min && v <= max);
+  return `<div class="carte"><h2>${titre}</h2>
+    <svg class="graphique-histogramme" width="${largeur}" height="${hauteur}" viewBox="0 0 ${largeur} ${hauteur}" role="img"
+      aria-label="${echapperHtml(`${titre} : le plus de temps entre ${principale.debut} et ${principale.fin} ${unite} (${Math.round(principale.pct)} %)`)}">
+      ${barres.map((b) => {
+    const h = Math.max(1, (b.pct / (maxPct || 1)) * (bas - 4));
+    const x = versX(b.debut);
+    return `<rect class="barre-histogramme" x="${x + 0.5}" y="${bas - h}" width="${Math.max(1, versX(b.fin) - x - 1)}" height="${h}"></rect>`;
+  }).join('')}
+      ${reperes.map((v) => `<text class="axe-texte" x="${versX(v)}" y="${hauteur - 2}" text-anchor="${versX(v) < 20 ? 'start' : versX(v) > largeur - 20 ? 'end' : 'middle'}">${echapperHtml(`${formaterEntier(v)} ${unite}`)}</text>`).join('')}
+    </svg>
+    <p class="doux petit-texte">Le plus de temps entre ${echapperHtml(`${principale.debut} et ${principale.fin} ${unite}`)} : ${echapperHtml(formaterDuree(principale.secs) ?? '')} (${Math.round(principale.pct)} %).</p></div>`;
+}
+
+// --- F-106 : même parcours (D-37) ---
+
+export function rendreMemeParcours(activites) {
+  if (!activites.length) return '';
+  return `<div class="carte"><h2>Même parcours</h2>
+    <ul class="liste-parcours">${activites.map((x) => `<li><a class="ligne-parcours" href="#/activite/${encodeURIComponent(x.id)}">
+      <span>${echapperHtml(formaterDate(x.date))}</span>
+      <span><strong>${echapperHtml(formaterDuree(x.duree_s) ?? '')}</strong></span>
+      <span class="doux">${echapperHtml(formaterVitesse(x.sport, x.distance_m, x.duree_s) ?? '')}</span></a></li>`).join('')}</ul></div>`;
 }
 
 // --- F-101 : chronologie ---
