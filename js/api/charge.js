@@ -11,6 +11,9 @@ import { convertirFlux } from './activites.js';
 import { chargerSeancesPrevues } from './evenements.js';
 import { sportDepuisType } from '../logique/sports.js';
 import { VERSION_CALCUL, chargeSeance, fluxPourCharge, formeQuotidienne } from '../logique/charge.js';
+import {
+  VERSION_EFFORTS, resumeEfforts, DUREES_RESUME, DUREES_FC_RESUME, DISTANCES_RESUME,
+} from '../logique/efforts.js';
 import { estPerime } from '../logique/activites.js';
 import { jourISO, ajouterJours } from '../logique/dates.js';
 
@@ -84,13 +87,21 @@ export async function calculerCharges({ surProgres = null } = {}) {
       const cle = `charge:${s.id}`;
       const deja = await lireCache(cle);
       if (deja?.donnees?.cle === cleCalcul(s)) return deja.donnees;
-      const flux = await fluxDuCalcul(s.id, fluxPourCharge(s, s.flux)).catch((e) => {
+      // Un seul téléchargement par séance (D-48) : si le résumé des meilleurs efforts (LC3) manque, les flux qu'il
+      // demande sont pris en même temps et le résumé est gardé.
+      const besoins = fluxPourCharge(s, s.flux);
+      const resumeManquant = (await lireCache(`resume:${s.id}`))?.donnees?.version !== VERSION_EFFORTS;
+      const types = resumeManquant ? [...new Set([...besoins, ...['time', 'watts', 'heartrate', 'distance'].filter((t) => s.flux.includes(t))])] : besoins;
+      const flux = await fluxDuCalcul(s.id, types.length > 1 || besoins.length ? types : []).catch((e) => {
         if (e.type === 'IDENTIFIANTS' || e.type === 'RESEAU') throw e;
         return {}; // flux indisponible : la méthode suivante (FC, RPE) est essayée
       });
       const { charge, methode } = chargeSeance(s, flux);
       const ligne = { cle: cleCalcul(s), charge, methode };
       await ecrireCache(cle, ligne);
+      if (resumeManquant && Object.keys(flux).length) {
+        await ecrireCache(`resume:${s.id}`, { version: VERSION_EFFORTS, resume: resumeEfforts(flux, { durees: DUREES_RESUME, dureesFc: DUREES_FC_RESUME, distances: DISTANCES_RESUME }) });
+      }
       return ligne;
     }));
     lot.forEach((s, k) => resultats.push({

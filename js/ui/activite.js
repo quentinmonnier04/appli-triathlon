@@ -10,6 +10,11 @@ import {
 } from '../api/activites.js';
 import { lireCourbe42Jours } from '../api/performances.js';
 import { lireMateriel, choisirMaterielSeance } from '../api/materiel.js';
+import { lireSourceCalculs } from '../api/charge.js';
+import { lireResumesEnCache } from '../api/efforts.js';
+import { analyseSeance, meilleursTemps, courbePeriode } from '../logique/efforts.js';
+import { barresHistogramme } from '../logique/analyse.js';
+import { ajouterJours, jourISO } from '../logique/dates.js';
 import { materielsPourSport } from '../logique/materiel.js';
 import { effortsAChercher, distancesAChercher } from '../logique/analyse.js';
 import { tempsAuxDistances, pointsCourbe } from '../logique/performances.js';
@@ -150,6 +155,18 @@ export async function afficherActivite(conteneur, segments, params = {}) {
   }
 
   // --- Onglets (lot LA) ---
+  // LC3 (F-129) : avec « Appli » (Réglages, Calculs de l'appli), zones, histogrammes, meilleurs efforts et courbe sont
+  // calculés par l'appli à partir des flux de la séance.
+  const source = await lireSourceCalculs();
+  let analyse = null;
+  async function analyseAppli() {
+    if (analyse) return analyse;
+    const a = detail.activite;
+    const flux = await lireFlux(id, a.flux);
+    if (reglagesSport === undefined) reglagesSport = await lireReglagesSport(a.sport);
+    analyse = { ...analyseSeance(a, flux, reglagesSport), flux };
+    return analyse;
+  }
   let detail = null;
   let filtre = 'travail'; // F-102 : intervalles de travail par défaut
   let choisi = null; // numéro de l'intervalle choisi (ligne du tableau)
@@ -196,7 +213,15 @@ export async function afficherActivite(conteneur, segments, params = {}) {
         reglagesSport = await lireReglagesSport(a.sport);
         if (!conteneur.isConnected) return;
       }
-      const familles = famillesZones(a, reglagesSport);
+      let zonesDe = a;
+      if (source === 'appli') {
+        try {
+          const r = await analyseAppli();
+          zonesDe = { ...a, zones_puissance: r.zones_puissance, zones_fc: r.zones_fc, zones_allure: r.zones_allure };
+        } catch { /* hors ligne sans flux : zones d'Intervals.icu */ }
+        if (!conteneur.isConnected) return;
+      }
+      const familles = famillesZones(zonesDe, reglagesSport);
       panneau('zones').innerHTML = `${familles.length ? rendreZones(familles) : ''}<div id="histogrammes"></div>`;
       panneau('zones').querySelectorAll('.zone-remplie').forEach((b) => { b.style.width = `${b.dataset.pct}%`; });
       afficherHistogrammes();
@@ -237,8 +262,12 @@ export async function afficherActivite(conteneur, segments, params = {}) {
     const a = detail.activite;
     if (!histogrammes) {
       const sortes = [a.flux.includes('watts') && 'puissance', a.flux.includes('heartrate') && 'fc'].filter(Boolean);
-      const resultats = await Promise.all(sortes.map((s) => lireHistogramme(id, s).then((b) => [s, b]).catch(() => [s, []])));
-      histogrammes = resultats;
+      if (source === 'appli') {
+        const r = await analyseAppli().catch(() => null);
+        histogrammes = r ? [['puissance', barresHistogramme(r.histo_puissance, 25)], ['fc', barresHistogramme(r.histo_fc, 5)]] : [];
+      } else {
+        histogrammes = await Promise.all(sortes.map((s) => lireHistogramme(id, s).then((b) => [s, b]).catch(() => [s, []])));
+      }
       if (!conteneur.isConnected) return;
     }
     const zoneH = conteneur.querySelector('#histogrammes');
@@ -294,7 +323,24 @@ export async function afficherActivite(conteneur, segments, params = {}) {
     if (!efforts) {
       p.innerHTML = `<div class="carte">${squelette()}</div>`;
       const distances = distancesAChercher(a);
-      try {
+      if (source === 'appli') {
+        // LC3 : meilleurs efforts, temps par distance et courbe calculés par l'appli ; 42 jours tirés des résumés
+        // des séances (calculés depuis Performances ou Calculs de l'appli).
+        try {
+          const r = await analyseAppli();
+          efforts = r.puissance.map((e) => ({ cle: `w${e.duree}`, duree: e.duree, moyenne: e.valeur, debut_i: e.debut_i, fin_i: e.fin_i }));
+          temps = r.flux.distance && r.flux.time ? meilleursTemps(r.flux.distance, r.flux.time, distances) : [];
+          const puissance = r.courbe_puissance.length > 0;
+          const depuis = ajouterJours(jourISO(), -41);
+          const resumes = (await lireResumesEnCache()).filter((x) => x.sport === a.sport && x.date >= depuis);
+          courbeHtml = rendreCourbe(puissance ? r.courbe_puissance : r.courbe_allure, courbePeriode(resumes, puissance ? 'puissance' : 'allure'),
+            puissance ? 'puissance' : 'allure', a.sport, (p.clientWidth || 340) - 32);
+          if (!efforts.length && !temps.length) diagnostic = `flux de la séance : ${Object.keys(r.flux).join(', ') || 'aucun'}`;
+        } catch (err) {
+          p.innerHTML = messageErreurApi(err);
+          return;
+        }
+      } else try {
         // Puissance par best-efforts ; temps par distance lus dans la courbe d'allure de la séance (une requête).
         const [e, courbe] = await Promise.all([
           lireMeilleursEfforts(id, a),

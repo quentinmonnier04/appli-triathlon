@@ -6,6 +6,7 @@ import {
   chargesAJour, lireChargesEnCache, formeDesCharges, lireSourceCalculs, enregistrerSourceCalculs,
 } from '../api/charge.js';
 import { chargerFormes } from '../api/wellness.js';
+import { resumesAJour } from '../api/efforts.js';
 import { ecartsCharges, LIBELLES_METHODE } from '../logique/charge.js';
 import { derniereForme } from '../logique/forme.js';
 import { sport } from '../logique/sports.js';
@@ -38,7 +39,7 @@ export async function afficherControle(conteneur) {
   conteneur.innerHTML = `
     <div class="entete entete-retour">${boutonIcone('retour', 'Retour', { href: '#/reglages' })}
       <span class="titre-petit">Calculs de l'appli</span><span class="espace-bouton"></span></div>
-    <p class="doux">L'appli calcule elle-même la charge de chaque séance et ta forme, à partir des données brutes. Compare avec Intervals.icu, puis choisis les chiffres affichés.</p>
+    <p class="doux">L'appli calcule elle-même la charge de chaque séance, ta forme, tes zones et tes records, à partir des données brutes. Compare avec Intervals.icu, puis choisis les chiffres affichés.</p>
     <div class="carte"><h2 id="titre-source">Chiffres affichés</h2>
       <div class="bascule large" role="group" aria-labelledby="titre-source">
         <button type="button" data-source="intervals">Intervals.icu</button><button type="button" data-source="appli">Appli</button></div>
@@ -55,7 +56,7 @@ export async function afficherControle(conteneur) {
       b.setAttribute('aria-pressed', String(actif));
     });
     $('#aide-source').textContent = source === 'appli'
-      ? "La forme de l'accueil, son historique et le bilan de la semaine utilisent les calculs de l'appli."
+      ? "Forme, bilan de la semaine, zones, meilleurs efforts et records utilisent les calculs de l'appli (records : 12 derniers mois)."
       : "L'appli affiche encore les chiffres d'Intervals.icu. Passe sur « Appli » quand les écarts te conviennent.";
   }
   conteneur.querySelectorAll('[data-source]').forEach((b) => b.addEventListener('click', async () => {
@@ -83,7 +84,13 @@ export async function afficherControle(conteneur) {
         surProgres: (fait, total) => { $('#progression').textContent = `Calcul : ${fait} / ${total} séances`; },
       });
       if (!conteneur.isConnected) return;
-      $('#progression').innerHTML = message('succes', `${donnees.charges.length} séances calculées.`);
+      // LC3 : résumés des 12 derniers mois (records) ; les séances déjà téléchargées ne le sont pas une deuxième fois.
+      const resumes = await resumesAJour({
+        forcer: true,
+        surProgres: (fait, total) => { $('#progression').textContent = `Records : ${fait} / ${total} séances`; },
+      });
+      if (!conteneur.isConnected) return;
+      $('#progression').innerHTML = message('succes', `${donnees.charges.length} séances calculées, records sur ${resumes.resumes.length} séances.`);
       await afficherResultats(donnees);
     } catch (e) {
       $('#progression').innerHTML = messageErreurApi(e);

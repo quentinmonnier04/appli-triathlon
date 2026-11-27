@@ -69,6 +69,9 @@ export function convertirActivite(brut) {
     poids_kg: ou(brut.icu_weight), // poids du jour de l'activité, pour les W/kg (F-105)
     parcours_id: ou(brut.route_id), // parcours reconnu par Intervals.icu (F-106)
     materiel_id: brut.gear?.id ? String(brut.gear.id) : null, // matériel de la séance (F-127)
+    // Lot LC3 (F-129) : seuils et bornes des zones de la séance (schéma Activity), pour l'analyse calculée par l'appli.
+    seuils: { ftp: ou(brut.icu_ftp), fc_seuil: ou(brut.lthr), vitesse_seuil: ou(brut.threshold_pace) },
+    bornes_zones: { puissance: ou(brut.icu_power_zones), fc: ou(brut.icu_hr_zones), allure: ou(brut.pace_zones) },
     flux: Array.isArray(brut.stream_types) ? brut.stream_types : [],
   };
 }

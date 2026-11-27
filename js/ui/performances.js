@@ -4,6 +4,10 @@
 // Adresse : #/performances?sport=VELO (valeur contrôlée, D-21).
 
 import { lirePerformances, lireEftp } from '../api/performances.js';
+import { lireSourceCalculs } from '../api/charge.js';
+import { resumesAJour } from '../api/efforts.js';
+import { agregerRecords } from '../logique/efforts.js';
+import { SPORTS_PERF as SPORTS_P, DUREES_RECORDS, DISTANCES_RECORDS, DUREES_FC } from '../logique/performances.js';
 import { SPORTS_PERF, formaterWkg, resumeEftp } from '../logique/performances.js';
 import { graduations } from '../logique/analyse.js';
 import { joursEntre } from '../logique/dates.js';
@@ -19,10 +23,10 @@ const lien = (s) => `#/performances?sport=${s}`;
 
 function tableauPuissance(records, poids) {
   if (!records.length) return '';
-  const wkg = (w) => formaterWkg(w, poids) ?? '';
+  const wkg = (w, p = poids) => formaterWkg(w, p) ?? '';
   return `<div class="carte"><h2>Puissance</h2>
     <div class="tableau-defilant"><table class="intervalles tableau-analyse"><thead><tr><th scope="col">Durée</th><th scope="col">W</th>${poids ? '<th scope="col">W/kg</th>' : ''}</tr></thead>
-    <tbody>${records.map((r) => `<tr><th scope="row">${echapperHtml(libelleEffort(r))}</th><td>${echapperHtml(formaterEntier(r.valeur))}</td>${poids ? `<td>${echapperHtml(wkg(r.valeur))}</td>` : ''}</tr>`).join('')}</tbody></table></div></div>`;
+    <tbody>${records.map((r) => `<tr><th scope="row">${echapperHtml(libelleEffort(r))}</th><td>${echapperHtml(formaterEntier(r.valeur))}</td>${poids ? `<td>${echapperHtml(wkg(r.valeur, r.poids_kg ?? poids))}</td>` : ''}</tr>`).join('')}</tbody></table></div></div>`;
 }
 
 function tableauAllure(records, sportCode) {
@@ -71,7 +75,7 @@ export async function afficherPerformances(conteneur, segments, params = {}) {
     <nav class="onglets-vue" aria-label="Sport">
       ${SPORTS_PERF.map((s) => `<a href="${lien(s.code)}" class="sport-${s.code}${s.code === sportCode ? ' actif' : ''}"${s.code === sportCode ? ' aria-current="page"' : ''}>${iconeSport(s.code, 16)} ${echapperHtml(sport(s.code).libelle)}</a>`).join('')}
     </nav>
-    <p class="doux">Tes records de tous les temps.</p>
+    <p class="doux" id="intro-records">Tes records de tous les temps.</p>
     <div id="etat"></div>
     <div id="records">${squelette()}${squelette()}</div>`;
   const $ = (sel) => conteneur.querySelector(sel);
@@ -79,8 +83,25 @@ export async function afficherPerformances(conteneur, segments, params = {}) {
   let donnees = null;
   let eftp = [];
 
+  // LC3 (F-130) : records des 12 derniers mois calculés par l'appli à partir du résumé de chaque séance.
+  async function recordsAppli(forcer) {
+    const sport = SPORTS_P.find((s) => s.code === sportCode);
+    const r = await resumesAJour({
+      forcer,
+      surProgres: (fait, total) => { zone.innerHTML = `<div class="carte"><p class="doux">Calcul de tes records : ${fait} / ${total} séances...</p></div>`; },
+    });
+    const resumes = r.resumes.filter((x) => x.sport === sportCode);
+    const records = agregerRecords(resumes, { durees: DUREES_RECORDS, dureesFc: DUREES_FC, distances: DISTANCES_RECORDS[sportCode] ?? [] });
+    const poids = records.puissance.find((x) => x.poids_kg > 0)?.poids_kg ?? null;
+    return {
+      puissance: sport?.puissance ? records.puissance : [], allure: sport?.allure ? records.allure : [], fc: records.fc,
+      poids_kg: poids, charge_le: r.charge_le, horsLigne: r.horsLigne, appli: true,
+    };
+  }
+
   function afficher() {
     const largeur = (zone.clientWidth || 340) - 32;
+    $('#intro-records').textContent = donnees.appli ? 'Tes records des 12 derniers mois, calculés par l\'appli.' : 'Tes records de tous les temps.';
     const html = carteEftp(eftp, sportCode, largeur) + tableauPuissance(donnees.puissance, donnees.poids_kg)
       + tableauAllure(donnees.allure, sportCode) + tableauFc(donnees.fc);
     zone.innerHTML = html || '<div class="carte"><p class="doux">Aucun record pour ce sport.</p></div>';
@@ -92,8 +113,9 @@ export async function afficherPerformances(conteneur, segments, params = {}) {
     bouton?.classList.add('tourne');
     try {
       const typeEftp = { VELO: 'Ride', CAP: 'Run' }[sportCode];
+      const source = await lireSourceCalculs();
       [donnees, eftp] = await Promise.all([
-        lirePerformances(sportCode, PERIODE, { forcer }),
+        source === 'appli' ? recordsAppli(forcer) : lirePerformances(sportCode, PERIODE, { forcer }),
         typeEftp ? lireEftp(typeEftp).catch(() => []) : [],
       ]);
       if (!conteneur.contains(zone)) return;
