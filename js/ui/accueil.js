@@ -12,7 +12,7 @@ import { phraseForme, positionJauge } from '../logique/forme.js';
 import { activitesSansRpe } from '../logique/ressenti.js';
 import { cheminCourbe, progression } from '../logique/graphique.js';
 import {
-  grilleMois, libelleMois, lundiDe, memeJourMoisPrecedent, joursEntre, jourISO, numeroSemaine, libelleJourCourt,
+  grilleMois, libelleMois, lundiDe, memeJourMoisPrecedent, joursEntre, jourISO, numeroSemaine, libelleJourCourt, ajouterJours,
 } from '../logique/dates.js';
 import { sport } from '../logique/sports.js';
 import { formaterDureeSaisie } from '../logique/seance.js';
@@ -24,6 +24,10 @@ import {
 } from './composants.js';
 import { icone, iconeSport } from './icones.js';
 import { afficherCarteParcours } from './carte.js';
+import {
+  lireSourceCalculs, lireChargesEnCache, chargesAJour, formeDesCharges, donneesBilanSemaine, bilanSemaineLu, marquerBilanSemaineLu,
+} from '../api/charge.js';
+import { bilanDeLaSemaine } from '../logique/charge.js';
 
 const LARGEUR_COURBE = 150;
 const HAUTEUR_COURBE = 34;
@@ -76,6 +80,24 @@ function rappelRpe(activites, jour) {
   return activitesSansRpe(activites, jour).map((a) => `<a class="rappel" href="#/activite/${encodeURIComponent(a.id)}">
     ${pastilleSport(a.sport)}<span>Note ton ressenti sur <strong>${echapperHtml(a.titre)}</strong></span>
     <span class="lien-fleche-ligne">${icone('fleche')}</span></a>`).join('');
+}
+
+// F-131 : bilan de la semaine passée, du lundi jusqu'à ce qu'il soit fermé.
+function widgetBilanSemaine(b) {
+  const pct = (l) => progression(l.realise_s, l.prevu_s);
+  const comparaison = b.moyenne4 ? ` · ${formaterEntier(b.moyenne4)} en moyenne avant` : '';
+  return `<section class="carte bilan-semaine" aria-label="Bilan de la semaine passée">
+    <div class="carte-ligne"><div class="etiquette-carte">Semaine du ${echapperHtml(formaterJourMois(b.lundi))} au ${echapperHtml(formaterJourMois(b.dimanche))}</div>
+      <button type="button" class="icone-bouton petit" id="fermer-bilan" aria-label="Fermer le bilan de la semaine">${icone('fermer', 18)}</button></div>
+    <p class="phrase-bilan">${echapperHtml(b.phrase)}</p>
+    <div class="stats colonnes-2 stats-forme">
+      <div class="stat"><span class="stat-valeur">${echapperHtml(formaterDureeSaisie(b.realise_s) || '0:00')}</span><span class="stat-etiquette">${b.prevu_s ? `sur ${echapperHtml(formaterDureeSaisie(b.prevu_s))} prévues` : 'réalisées'}</span></div>
+      <div class="stat"><span class="stat-valeur">${echapperHtml(formaterEntier(b.charge))}</span><span class="stat-etiquette">de charge${echapperHtml(comparaison)}</span></div>
+    </div>
+    ${b.lignes.length ? `<div class="semaine-sports">${b.lignes.map((l) => `<div class="ligne-semaine sport-${l.sport}">${pastilleSport(l.sport)}
+      <span class="barre-progression"><span class="barre-remplie" data-pct="${pct(l) ?? 100}"></span></span>
+      <span class="ligne-semaine-texte">${formaterDureeSaisie(l.realise_s) || '0:00'}${l.prevu_s ? `<span class="doux"> / ${formaterDureeSaisie(l.prevu_s)}</span>` : ''}</span></div>`).join('')}</div>` : ''}
+  </section>`;
 }
 
 // F-62 : accès au bilan du jour.
@@ -191,12 +213,20 @@ export async function afficherAccueil(conteneur) {
         ${boutonIcone('reglages', 'Réglages', { href: '#/reglages' })}</span></div>
     <div id="etat"></div>
     <div id="objectif"></div>
+    <div id="bilan-semaine"></div>
     <div id="tableau"></div>`;
   const $ = (sel) => conteneur.querySelector(sel);
   const zone = $('#tableau');
   let tableau = null;
   // Allures seuil du profil en cache : graphique de la Séance du jour (revue I-2, F-20).
   const allures = await lireAlluresSeuil();
+  // F-121, F-123 : forme calculée par l'appli si je l'ai choisie (Réglages, Calculs de l'appli).
+  const source = await lireSourceCalculs();
+  let formeAppli = null;
+  if (source === 'appli') {
+    const charges = await lireChargesEnCache();
+    if (charges) formeAppli = formeDesCharges(charges, jour).at(-1);
+  }
 
   // Objectif (F-80), sans bloquer l'affichage ; rien en cas d'erreur (le tableau affiche déjà l'état réseau).
   lireObjectif().then((o) => { if ($('#objectif')) $('#objectif').innerHTML = widgetObjectif(o); }).catch(() => {});
@@ -205,7 +235,9 @@ export async function afficherAccueil(conteneur) {
   lireAthlete().then((a) => { if ($('#bonjour')) $('#bonjour').textContent = `Bonjour ${a.nom}`; }).catch(() => {});
 
   function afficher(t) {
+    if (formeAppli) t = { ...t, forme: { ...formeAppli } };
     zone.innerHTML = rendreTableau(t, allures);
+    afficherBilanSemaine(t);
     appliquerBarres(zone);
     // F-71, D-29 : vraie carte (fond de carte) du parcours de la dernière activité, sans interaction.
     zone.querySelectorAll('.apercu-trace[data-apercu]').forEach((el) => {
@@ -214,6 +246,38 @@ export async function afficherAccueil(conteneur) {
         .then((affichee) => { if (!affichee) el.remove(); })
         .catch(() => el.remove()); // hors ligne sans tracé en cache : pas de carte
     });
+  }
+
+  // F-131 : bilan de la semaine passée (volumes du tableau de bord, charges de la source choisie), une fois par semaine.
+  let bilanDemande = false;
+  async function afficherBilanSemaine(t) {
+    if (bilanDemande) return;
+    const lundi = lundiDe(jour);
+    if (await bilanSemaineLu(lundi)) return;
+    bilanDemande = true;
+    const lundiPasse = ajouterJours(lundi, -7);
+    try {
+      const d = await donneesBilanSemaine(lundiPasse, source);
+      const b = bilanDeLaSemaine({ charges: d.charges, activites: t.activites, prevues: d.prevues, lundi: lundiPasse, tsb: t.forme?.tsb ?? null });
+      const zoneBilan = $('#bilan-semaine');
+      if (!zoneBilan) return;
+      zoneBilan.innerHTML = widgetBilanSemaine(b);
+      appliquerBarres(zoneBilan);
+      zoneBilan.querySelector('#fermer-bilan').addEventListener('click', async () => {
+        zoneBilan.innerHTML = '';
+        await marquerBilanSemaineLu(lundi);
+      });
+    } catch {
+      bilanDemande = false; // hors ligne : nouvel essai au prochain affichage
+    }
+  }
+
+  // F-122 : calcul au fil de l'eau (seules les nouvelles séances sont analysées), puis la forme de l'appli est mise à jour.
+  if (source === 'appli') {
+    chargesAJour().then((charges) => {
+      formeAppli = formeDesCharges(charges, jour).at(-1);
+      if (tableau && conteneur.contains(zone)) afficher(tableau);
+    }).catch(() => {});
   }
 
   async function rafraichir() {

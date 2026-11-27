@@ -92,3 +92,19 @@ test('zones d\'un sport : seules les familles renseignées', () => {
   const f = zonesDuSport({ sport: 'CAP', ftp_w: null, zones_puissance: [55], zones_fc: [150, 170], allure_seuil_ms: 4, zones_allure: [90, 999] });
   assert.deepEqual(f.map((x) => x.titre), ['Fréquence cardiaque', 'Allure']);
 });
+
+// F-124 : modifier ses seuils et ses zones.
+import { allureSaisieDepuisVitesse, champsSeuils, lireSeuilsSaisis } from '../js/logique/profil.js';
+test('seuils : préremplissage et lecture de la saisie', () => {
+  assert.equal(allureSaisieDepuisVitesse(1000 / 270, 'CAP'), '4:30');
+  assert.equal(allureSaisieDepuisVitesse(100 / 105, 'NATATION'), '1:45');
+  assert.equal(allureSaisieDepuisVitesse(null, 'CAP'), '');
+  const c = champsSeuils({ sport: 'VELO', ftp_w: 250, fc_seuil: 165, fc_max: 185, allure_seuil_ms: null, zones_puissance: [55, 75, 90], zones_fc: null, zones_allure: null });
+  assert.deepEqual(c, { ftp: '250', fc_seuil: '165', fc_max: '185', allure: '', zones_puissance: '55, 75, 90', zones_fc: '', zones_allure: '' });
+  const ok = lireSeuilsSaisis({ ftp: '260', fc_seuil: '', allure: '4:30', zones_puissance: '55, 75, 90, 105' }, 'CAP');
+  assert.deepEqual(ok.erreurs, {});
+  assert.deepEqual(ok.corps, { ftp: 260, threshold_pace: 3.7037, power_zones: [55, 75, 90, 105] });
+  assert.equal(lireSeuilsSaisis({ allure: '1:45' }, 'NATATION').corps.threshold_pace, 0.9524);
+  const ko = lireSeuilsSaisis({ ftp: '12', fc_seuil: '190', fc_max: '180', allure: '4h', zones_fc: '150, 140' }, 'CAP');
+  assert.deepEqual(Object.keys(ko.erreurs).sort(), ['allure', 'fc_seuil', 'ftp', 'zones_fc']);
+});

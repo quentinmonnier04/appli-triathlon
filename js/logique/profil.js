@@ -107,3 +107,64 @@ export function zonesDuSport(r) {
     { titre: 'Allure', zones: zonesAllure(r.allure_seuil_ms, r.zones_allure, r.noms_allure, r.sport) },
   ].filter((f) => f.zones.length);
 }
+
+// --- F-124 : modifier ses seuils et ses zones (D-42) ---
+
+const deuxChiffres = (n) => String(n).padStart(2, '0');
+
+// Vitesse seuil (m/s) -> allure saisie "m:ss" (par km, ou par 100 m en natation) ; '' sans valeur.
+export function allureSaisieDepuisVitesse(vitesse_ms, sportCode) {
+  if (!(vitesse_ms > 0)) return '';
+  const secondes = Math.round((sportCode === 'NATATION' ? 100 : 1000) / vitesse_ms);
+  return `${Math.floor(secondes / 60)}:${deuxChiffres(secondes % 60)}`;
+}
+
+// Valeurs des champs du formulaire d'un sport (pour le préremplir).
+export function champsSeuils(r) {
+  const liste = (v) => (Array.isArray(v) ? v.join(', ') : '');
+  return {
+    ftp: r.ftp_w > 0 ? String(r.ftp_w) : '',
+    fc_seuil: r.fc_seuil > 0 ? String(r.fc_seuil) : '',
+    fc_max: r.fc_max > 0 ? String(r.fc_max) : '',
+    allure: allureSaisieDepuisVitesse(r.allure_seuil_ms, r.sport),
+    zones_puissance: liste(r.zones_puissance),
+    zones_fc: liste(r.zones_fc),
+    zones_allure: liste(r.zones_allure),
+  };
+}
+
+// Champs saisis -> { corps (champs SportSettings modifiés), erreurs }. Un champ vide n'est pas envoyé (valeur gardée).
+// Allure "m:ss" par km (par 100 m en natation) -> threshold_pace en m/s. Zones : nombres croissants séparés par des virgules.
+export function lireSeuilsSaisis(champs, sportCode) {
+  const corps = {};
+  const erreurs = {};
+  const entier = (cle, nom, min, max, libelle) => {
+    const t = String(champs[cle] ?? '').trim();
+    if (!t) return;
+    if (!/^\d+$/.test(t) || Number(t) < min || Number(t) > max) { erreurs[cle] = `${libelle} : entre ${min} et ${max}.`; return; }
+    corps[nom] = Number(t);
+  };
+  entier('ftp', 'ftp', 50, 600, 'FTP');
+  entier('fc_seuil', 'lthr', 80, 220, 'FC seuil');
+  entier('fc_max', 'max_hr', 100, 230, 'FC max');
+  const allure = String(champs.allure ?? '').trim();
+  if (allure) {
+    const m = allure.match(/^(\d{1,2}):([0-5]\d)$/);
+    const secondes = m ? Number(m[1]) * 60 + Number(m[2]) : 0;
+    if (!secondes) erreurs.allure = 'Allure attendue en m:ss, par exemple 4:30.';
+    else corps.threshold_pace = Math.round(((sportCode === 'NATATION' ? 100 : 1000) / secondes) * 10000) / 10000;
+  }
+  const zones = (cle, nom) => {
+    const t = String(champs[cle] ?? '').trim();
+    if (!t) return;
+    const valeurs = t.split(/[,;\s]+/).filter(Boolean).map((v) => Number(v.replace(',', '.')));
+    const croissantes = valeurs.every((v, i) => Number.isFinite(v) && v > 0 && (i === 0 || v > valeurs[i - 1]));
+    if (!croissantes || valeurs.length < 2 || valeurs.length > 10) { erreurs[cle] = 'Zones : 2 à 10 nombres croissants, séparés par des virgules.'; return; }
+    corps[nom] = valeurs;
+  };
+  zones('zones_puissance', 'power_zones');
+  zones('zones_fc', 'hr_zones');
+  zones('zones_allure', 'pace_zones');
+  if (corps.lthr && corps.max_hr && corps.lthr >= corps.max_hr) erreurs.fc_seuil = 'La FC seuil doit être inférieure à la FC max.';
+  return { corps, erreurs };
+}

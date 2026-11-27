@@ -1100,3 +1100,8 @@ form.carte.en-lecture > h2, form.carte.en-lecture > .titre-icone { padding-right
 .liste-parcours { list-style: none; margin: 0; padding: 0; }
 .ligne-parcours { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; min-height: 44px; border-top: 1px solid var(--filet); color: inherit; text-decoration: none; font-variant-numeric: tabular-nums; }
 
+
+/* F-131 : bilan de la semaine (D-42) */
+.bilan-semaine .phrase-bilan { font-size: 18px; font-weight: 800; margin: 4px 0 10px; }
+.bilan-semaine .semaine-sports { margin-top: 10px; }
+.cellule-sport { display: inline-flex; align-items: center; gap: 6px; }

@@ -3,6 +3,7 @@
 // Intervals.icu si le cache a plus de 5 min ou ne couvre pas la période du jour (5.5, ENF-11).
 
 import { lireHistoriqueEnCache, rafraichirHistorique } from '../api/wellness.js';
+import { lireSourceCalculs, chargesAJour, formeDesCharges } from '../api/charge.js';
 import { estPerime } from '../logique/activites.js';
 import { jourISO } from '../logique/dates.js';
 import {
@@ -117,6 +118,22 @@ export async function afficherForme(conteneur, segments, params = {}) {
   }
 
   $('#rafraichir').addEventListener('click', rafraichir);
+
+  // F-121 : forme calculée par l'appli si je l'ai choisie (150 derniers jours au plus : historique de l'appli).
+  if (await lireSourceCalculs() === 'appli') {
+    $('#rafraichir').hidden = true;
+    zone.innerHTML = squelette();
+    try {
+      const charges = await chargesAJour();
+      if (!conteneur.contains(zone)) return;
+      const formes = formeDesCharges(charges, jourISO()).filter((f) => f.date >= periode.debut);
+      zone.innerHTML = rendre({ formes }, periode)
+        + (charges.debut > periode.debut ? `<p class="doux petit-texte">Calculs de l'appli disponibles depuis le ${echapperHtml(formaterJourMois(charges.debut))}.</p>` : '');
+    } catch (e) {
+      zone.innerHTML = messageErreurApi(e);
+    }
+    return;
+  }
 
   // 5.5 : cache affiché immédiatement (s'il couvre la période du jour), puis mise à jour si besoin.
   const cache = await lireHistoriqueEnCache(periode.code);

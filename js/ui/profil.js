@@ -1,13 +1,16 @@
 // Écran E-06 "Profil" (F-50 à F-54) : en-tête, totaux de l'année, totaux par sport, seuils et zones.
 // Affiché depuis le cache, puis mis à jour depuis Intervals.icu si le cache a plus de 5 min (5.5, ENF-11).
 
-import { lireProfilEnCache, rafraichirProfil } from '../api/profil.js';
+import { lireProfilEnCache, rafraichirProfil, enregistrerReglagesSport } from '../api/profil.js';
 import { lireMontre } from '../api/session.js';
 import { estPerime } from '../logique/activites.js';
-import { totauxAnnee, totauxParSport, seuilsAffichables, zonesDuSport } from '../logique/profil.js';
+import { totauxAnnee, totauxParSport, seuilsAffichables, zonesDuSport, champsSeuils, lireSeuilsSaisis } from '../logique/profil.js';
 import { sport } from '../logique/sports.js';
 import { echapperHtml, formaterDistance, formaterDureeLongue, formaterEntier, formaterKm } from '../logique/format.js';
-import { bandeauHorsLigne, messageErreurApi, pastilleSport, squelette, stat, boutonIcone, flecheLien } from './composants.js';
+import {
+  bandeauHorsLigne, messageErreurApi, pastilleSport, squelette, stat, boutonIcone, flecheLien, message,
+  boutonCrayon, boutonAnnuler, brancherEdition, surveillerReseau,
+} from './composants.js';
 import { icone } from './icones.js';
 
 // F-50 : nom et montre.
@@ -90,8 +93,46 @@ function carteZones(reglages) {
     </details>`).join('')).join('')}</div>`;
 }
 
+// F-124 : seuils et zones d'un sport, modifiables avec le crayon et enregistrés dans Intervals.icu (D-42).
+// Champs proposés selon le sport ; les zones (listes de nombres) restent dans la modification.
+const CHAMPS_PAR_SPORT = {
+  VELO: ['ftp', 'fc_seuil', 'fc_max', 'zones_puissance', 'zones_fc'],
+  CAP: ['allure', 'fc_seuil', 'fc_max', 'ftp', 'zones_allure', 'zones_fc', 'zones_puissance'],
+  NATATION: ['allure', 'fc_seuil', 'fc_max', 'zones_allure'],
+};
+function libellesChamps(code) {
+  return {
+    ftp: 'FTP (W)', fc_seuil: 'FC seuil (bpm)', fc_max: 'FC max (bpm)',
+    allure: code === 'NATATION' ? 'CSS (min/100 m)' : 'Allure seuil (min/km)',
+    zones_puissance: 'Zones de puissance (% de la FTP)', zones_fc: 'Zones de FC (bpm, borne haute)',
+    zones_allure: "Zones d'allure (% de l'allure seuil)",
+  };
+}
+function formulaireSeuils(r) {
+  if (r.id === null || r.id === undefined) return '';
+  const champs = champsSeuils(r);
+  const libelles = libellesChamps(r.sport);
+  const liste = CHAMPS_PAR_SPORT[r.sport] ?? ['fc_seuil', 'fc_max', 'zones_fc'];
+  return `<form class="carte" data-reglage="${echapperHtml(r.id)}" data-sport="${echapperHtml(r.sport)}" novalidate>
+    <h2 class="titre-icone">${pastilleSport(r.sport)} Seuils · ${echapperHtml(sport(r.sport).libelle)}</h2>${boutonCrayon('Modifier les seuils')}
+    <fieldset class="champs-formulaire"><div class="deux-colonnes">
+      ${liste.filter((c) => !c.startsWith('zones')).map((c) => `<div class="champ"><label for="${c}-${echapperHtml(r.sport)}">${libelles[c]}</label>
+        <input id="${c}-${echapperHtml(r.sport)}" data-champ-seuil="${c}" inputmode="${c === 'allure' ? 'text' : 'numeric'}" value="${echapperHtml(champs[c])}"></div>`).join('')}
+    </div>
+    <div class="seulement-edition">${liste.filter((c) => c.startsWith('zones')).map((c) => `<div class="champ"><label for="${c}-${echapperHtml(r.sport)}">${libelles[c]}</label>
+      <input id="${c}-${echapperHtml(r.sport)}" data-champ-seuil="${c}" inputmode="decimal" value="${echapperHtml(champs[c])}"></div>`).join('')}</div>
+    </fieldset>
+    <div class="erreurs" aria-live="polite"></div>
+    <div class="pile action-edition"><button type="submit" class="bouton principal" data-enregistrer>Enregistrer les modifications</button>${boutonAnnuler()}</div>
+  </form>`;
+}
+function cartesSeuils(reglages) {
+  const formulaires = reglages.map(formulaireSeuils).join('');
+  return formulaires || carteSeuils(reglages);
+}
+
 function rendreProfil(p, montre) {
-  return `${enTete(p.nom, montre)}${lienObjectif()}${lienPerformances()}${lienMesSeances()}${carteTotaux(p)}${carteParSport(p.activites)}${carteSeuils(p.reglages)}${carteZones(p.reglages)}`;
+  return `${enTete(p.nom, montre)}${lienObjectif()}${lienPerformances()}${lienMesSeances()}${carteTotaux(p)}${carteParSport(p.activites)}${cartesSeuils(p.reglages)}${carteZones(p.reglages)}`;
 }
 
 // Largeur des barres (CSP : pas de style inline dans le HTML ; element.style est permis).
@@ -115,6 +156,33 @@ export async function afficherProfil(conteneur) {
   function afficher(p) {
     zone.innerHTML = rendreProfil(p, montre);
     appliquerBarres(zone);
+    brancherSeuils();
+  }
+
+  // F-124 : chaque formulaire de seuils en lecture avec le crayon ; Annuler réaffiche le profil (D-27).
+  function brancherSeuils() {
+    zone.querySelectorAll('form[data-reglage]').forEach((form) => {
+      brancherEdition(form, { surAnnuler: () => afficher(profil) });
+      surveillerReseau(form, form.querySelector('.erreurs'), []); // ENF-07
+      form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const champs = Object.fromEntries([...form.querySelectorAll('[data-champ-seuil]')].map((i) => [i.dataset.champSeuil, i.value]));
+        const { corps, erreurs } = lireSeuilsSaisis(champs, form.dataset.sport);
+        const zoneErreurs = form.querySelector('.erreurs');
+        if (Object.keys(erreurs).length) { zoneErreurs.innerHTML = message('erreur', Object.values(erreurs).join(' ')); return; }
+        const bouton = form.querySelector('[data-enregistrer]');
+        bouton.disabled = true;
+        bouton.textContent = 'Enregistrement...'; // ENF-10
+        try {
+          await enregistrerReglagesSport(form.dataset.reglage, corps);
+          await rafraichir();
+        } catch (e) {
+          zoneErreurs.innerHTML = messageErreurApi(e);
+          bouton.disabled = false;
+          bouton.textContent = 'Enregistrer les modifications';
+        }
+      });
+    });
   }
 
   async function rafraichir() {

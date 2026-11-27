@@ -11,7 +11,7 @@ import { validerIdentifiants } from '../logique/connexion.js';
 import { MESSAGES, formaterMessage } from '../logique/messages.js';
 import { echapperHtml } from '../logique/format.js';
 import { VERSION_APP } from '../version.js';
-import { message, messageErreurApi, boutonIcone, boutonCrayon, boutonAnnuler, brancherEdition } from './composants.js';
+import { message, messageErreurApi, boutonIcone, boutonCrayon, boutonAnnuler, brancherEdition, flecheLien } from './composants.js';
 
 export async function afficherReglages(conteneur) {
   const { athleteId, cleEnregistree } = await lireIdentifiantsAffichables();
@@ -44,6 +44,8 @@ export async function afficherReglages(conteneur) {
         <input id="montre" maxlength="40" value="${echapperHtml(montre)}"></div></fieldset>
       <div class="pile"><button type="submit" class="bouton principal" data-enregistrer>Enregistrer les modifications</button>${boutonAnnuler()}</div>
       <div id="resultat-montre" aria-live="polite"></div></form>` : ''}
+    ${connecte ? `<a class="carte carte-lien" href="#/controle"><div class="etiquette-carte">Calculs de l'appli</div>${flecheLien()}
+      <p class="doux">Charge et forme calculées par l'appli, comparées à Intervals.icu.</p></a>` : ''}
     <div class="carte"><h2 id="titre-theme">Thème</h2>
       <div class="bascule large" role="group" aria-labelledby="titre-theme">
         ${THEMES.map((t) => `<button type="button" data-theme-choix="${echapperHtml(t.valeur)}"${t.valeur === theme ? ' class="actif" aria-pressed="true"' : ' aria-pressed="false"'}>${echapperHtml(t.libelle)}</button>`).join('')}

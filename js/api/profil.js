@@ -6,7 +6,7 @@
 // Activités de l'année : voir api/activites.js (champs limités, ENF-11).
 
 import { requeteAuthentifiee } from './client.js';
-import { lireCache, ecrireCache } from '../cache/stockage.js';
+import { lireCache, ecrireCache, supprimerCachePrefixe } from '../cache/stockage.js';
 import { chargerActivitesEntre } from './activites.js';
 import { lireAthlete } from './athlete.js';
 import { sportDepuisType } from '../logique/sports.js';
@@ -18,6 +18,7 @@ const ou = (v) => (v === undefined ? null : v);
 // SportSettings (Intervals.icu) -> réglages internes d'un sport (seuils et zones de l'objet Athlete, 9.2).
 export function convertirReglagesSport(brut) {
   return {
+    id: brut.id ?? null, // pour modifier les réglages du sport (F-124)
     sport: sportDepuisType((brut.types ?? [])[0]),
     ftp_w: ou(brut.ftp),
     fc_seuil: ou(brut.lthr),
@@ -74,4 +75,15 @@ export async function lireReglagesSport(code) {
     }
   }
   return reglages.find((r) => r.sport === code) ?? null;
+}
+
+// F-124 : enregistre des seuils ou des zones modifiés dans l'appli. Les réglages complets du sport sont relus puis
+// renvoyés avec les seuls champs modifiés (PUT /api/v1/athlete/{id}/sport-settings/{id}, corps SportSettings), pour ne
+// rien effacer d'autre. Le profil en cache est vidé (rechargé ensuite).
+export async function enregistrerReglagesSport(id, modifications) {
+  const chemin = `/athlete/0/sport-settings/${encodeURIComponent(id)}`;
+  const actuels = await requeteAuthentifiee(chemin);
+  const brut = await requeteAuthentifiee(chemin, null, { methode: 'PUT', corps: { ...actuels, ...modifications } });
+  await supprimerCachePrefixe('profil');
+  return convertirReglagesSport(brut ?? { ...actuels, ...modifications });
 }
