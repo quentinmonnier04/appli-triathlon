@@ -98,7 +98,7 @@ flowchart LR
 | Lecture des activités, de la forme et du profil depuis Intervals.icu | Suivi médical et diagnostic |
 | Création, modification et suppression de séances prévues dans Intervals.icu | Réseau social, abonnés, classements, likes |
 | Ressenti et bien-être enregistrés dans Intervals.icu | Paiement et abonnement |
-| Cartes de parcours (dernier lot) | Calculs d'analyse refaits dans l'appli (Intervals.icu les fournit) |
+| Cartes de parcours (dernier lot) | ~~Calculs d'analyse refaits dans l'appli~~ : inclus à partir des lots LC (D-41) |
 
 ### 1.8 Prérequis (à faire par moi, hors code)
 - Compte Intervals.icu avec **Suunto connecté directement** (pas seulement via Strava : les données venant de Strava ne sont pas transmises par l'API d'Intervals.icu).
@@ -240,6 +240,27 @@ Détail d'une activité (E-03) organisé en onglets sur mobile : Résumé · Gra
 | F-114 | Tableau des meilleurs efforts par durée ou distance, avec la date et un lien vers l'activité | M | LP |
 | F-115 | Évolution de l'eFTP dans le temps (l'API ne donne pas d'historique de l'allure seuil ni de la CSS) | C | LP |
 | F-116 | ~~Widget « Records récents » sur le tableau de bord~~ : abandonné le 27/11/2026 à ma demande (D-39) | C | LP |
+
+### L. Calculs faits par l'appli (ajouté le 27/11/2026, D-41)
+
+But : le jour où Intervals.icu serait remplacé, seule la récupération des séances et l'envoi sur la montre seraient à refaire.
+Intervals.icu garde les données brutes (séances, flux), tes réglages (seuils, zones, matériel, matériel de chaque séance) et parle à la
+montre ; l'appli fait les calculs. Chaque séance garde les seuils de son époque (`icu_ftp`, `lthr`, `threshold_pace` de l'activité).
+
+| ID | Fonction | Prio | Lot |
+|---|---|---|---|
+| F-120 | Charge de chaque séance calculée par l'appli (fonction pure testée) : puissance (vélo, course avec capteur), allure (course), vitesse par rapport à la CSS (natation), FC seule, RPE à défaut ; avec les seuils de la séance | M | LC1 |
+| F-121 | Forme (CTL 42 j, ATL 7 j, TSB) calculée à partir de ces charges ; widget Forme (F-23) et historique (F-26) basés dessus | M | LC1 |
+| F-122 | Calcul au fil de l'eau : détail d'une séance téléchargé une fois, résultat léger gardé (charge, seuils utilisés), recalcul si les seuils changent ; premier calcul des derniers mois avec une barre de progression | M | LC1 |
+| F-123 | Contrôle pendant la transition : écran qui compare charge et forme de l'appli à celles d'Intervals.icu, avant de basculer | S | LC1 |
+| F-124 | Modifier ses seuils et ses zones dans l'appli (Profil), enregistrés dans Intervals.icu | S | LC1 |
+| F-131 | Bilan de la semaine, chaque lundi sur l'accueil : volume réalisé et prévu par sport, charge de la semaine comparée aux 4 précédentes, une phrase simple ; se ferme une fois lu | S | LC1 |
+| F-125 | Écran Matériel (depuis le Profil) : vélos, chaussures et leurs pièces (chaîne, pneus, plaquettes, cassette, cales...), rangés dans Intervals.icu | M | LC2 |
+| F-126 | Kilomètres et usure calculés par l'appli (somme des séances de chaque matériel), limite d'usure par pièce, bouton « Remplacé » qui remet le compteur à zéro | M | LC2 |
+| F-127 | Choisir le matériel d'une séance (détail d'une activité) | S | LC2 |
+| F-128 | Alerte discrète sur l'accueil quand une pièce atteint sa limite d'usure | S | LC2 |
+| F-129 | Zones, histogrammes, meilleurs efforts et courbe d'une séance calculés par l'appli à partir des flux (remplacent les endpoints d'analyse de LA) | S | LC3 |
+| F-130 | Records et courbes de l'écran Performances agrégés par l'appli à partir des résultats de chaque séance | S | LC3 |
 
 ---
 
@@ -424,6 +445,9 @@ flowchart LR
     L7 --> L8["L8 Objectif et plan"]
     L8 --> LA["LA Analyse d'une activite"]
     LA --> LP["LP Performances"]
+    LP --> LC1["LC1 Charge et forme calculees"]
+    LC1 --> LC2["LC2 Materiel"]
+    LC2 --> LC3["LC3 Analyse recalculee"]
 ```
 
 | Lot | But | Fonctions | Exigences clés |
@@ -439,6 +463,9 @@ flowchart LR
 | **L8 Objectif et plan** | Préparer une course par blocs de séances et une surcharge progressive | F-80 à F-89 | ENF-05, 07, 11 |
 | **LA Analyse d'une activité** | Comprendre une séance en détail (graphiques, zones, intervalles, courbe) | F-100 à F-106 | ENF-02, 09, 11, 19, 25 |
 | **LP Performances** | Suivre mes meilleures performances par sport et leur évolution | F-110 à F-116 | ENF-09, 11, 19 |
+| **LC1 Charge et forme calculées** | L'appli calcule la charge de chaque séance et la forme, bilan de la semaine | F-120 à F-124, F-131 | ENF-09, 11, 24 |
+| **LC2 Matériel** | Suivre l'usure du vélo et des chaussures | F-125 à F-128 | ENF-07, 11, 24 |
+| **LC3 Analyse recalculée** | L'analyse d'une séance et les records calculés par l'appli | F-129, F-130 | ENF-09, 11, 24 |
 
 **Mise en ligne (GitHub Pages)** : quand je le décide, après L2 au plus tôt. Nécessaire pour installer l'appli sur mon téléphone.
 
@@ -489,6 +516,8 @@ flowchart LR
 | E-07 | Réglages | `#/reglages` (icône engrenage sur Profil, ou directe avant L5) | L0 |
 | E-08 | Bilan du jour | `#/bilan?date=…` | L6 |
 | E-09 | Objectif et plan | `#/objectif?bloc=N` ; Mes séances : `#/seance-type/nouvelle` (`?bloc=N&jour=J&heure=hh:mm` pour la placer), `#/seance-type/{id}` ; placement : `#/placer?bloc=N&jour=J&heure=hh:mm`, `#/emplacement?bloc=N&n=K` | L8 |
+| E-13 | Matériel (ouvert depuis le Profil) ; détail d'un matériel | `#/materiel`, `#/materiel/{id}` | LC2 |
+| E-14 | Contrôle des calculs (ouvert depuis Réglages, pendant la transition) | `#/controle` | LC1 |
 | E-12 | Performances (ouvert depuis le Profil) | `#/performances?sport=VELO\|CAP\|NATATION` (records de tous les temps, D-35) | LP |
 | E-11 | Historique de la forme (ouvert uniquement depuis le widget Forme de l'accueil) | `#/forme?periode=6s\|3m\|1a` (3 mois par défaut) | L2 |
 | E-10 | Mes séances (banque de séances par sport et par type, ouverte depuis le Profil) | `#/seances?sport=CODE` (filtre facultatif) ; l'éditeur ouvert d'ici revient ici (`?retour=seances`) | L8 |
@@ -554,6 +583,9 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | L6 | Le RPE saisi dans l'appli apparaît sur l'activité dans Intervals.icu ; le bilan du jour apparaît dans ses données wellness |
 | L7 | Le tracé de ma dernière sortie vélo s'affiche correctement |
 | LA | Sur une vraie sortie vélo et une vraie course, les onglets montrent les mêmes valeurs qu'Intervals.icu (résumé, intervalles, zones, meilleurs efforts) ; le curseur lit toutes les courbes au même instant ; l'écran reste fluide sur mon téléphone |
+| LC1 | La charge de mes vraies séances et ma forme calculées par l'appli sont proches de celles d'Intervals.icu (écarts expliqués) ; le premier calcul reste supportable sur mon téléphone ; le lundi, le bilan de la semaine est juste |
+| LC2 | Mon vélo, mes chaussures et leurs pièces affichent les bons kilomètres ; une pièce usée déclenche l'alerte ; « Remplacé » remet le compteur à zéro |
+| LC3 | Zones, meilleurs efforts et records calculés par l'appli correspondent à ceux d'Intervals.icu sur mes vraies séances |
 | LP | Mes courbes de puissance, d'allure et de FC et mes meilleurs efforts correspondent à ceux d'Intervals.icu pour chaque période ; la comparaison de deux périodes est lisible sur mon téléphone |
 | L8 | Je définis ma course et mes objectifs, je construis mes blocs avec Mes séances, l'aperçu montre le volume qui monte de bloc en bloc, les séances arrivent dans Intervals.icu puis sur ma montre, et une régénération ne touche pas mes séances manuelles |
 
@@ -588,6 +620,7 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 | D-23 | 24/11/2026 | ENF-16 terminé : choix du thème dans Réglages (Automatique, Clair, Sombre), appliqué tout de suite et enregistré dans le store `reglages` (champ `theme`, déjà prévu en 4.2). Attribut `data-theme` sur `<html>` lu par `css/style.css` ; sans attribut, la page suit le téléphone. La couleur de la barre du navigateur suit le choix. « Se déconnecter » efface aussi ce réglage (retour en automatique). Nouveaux fichiers : `logique/theme.js`, `ui/theme.js`. |
 | D-24 | 24/11/2026 | Banque de séances accessible depuis le Profil : carte « Mes séances » qui ouvre l'écran E-10 (`#/seances`, `ui/seances.js`), avec la même liste que dans Objectif et plan (`sectionMesSeances`). Ouvert depuis cet écran, l'éditeur de séance (`#/seance-type/...?retour=seances`, valeur contrôlée) revient à `#/seances` après un enregistrement ou une suppression ; le placement dans un bloc reste dans Objectif et plan. Aucune nouvelle fonction de données (F-88). |
 | D-31 | 26/11/2026 | Ajout de deux lots après L8, validés le 26/11/2026 : LA « Analyse d'une activité » (F-100 à F-106, onglets de E-03) et LP « Performances » (F-110 à F-116, nouvel écran E-12). Numéros décalés : F-80 à F-89 et E-09 à E-11 étaient déjà pris. Données uniquement depuis l'API, endpoints relevés dans la spécification OpenAPI officielle (https://intervals.icu/api/v1/docs) : `GET /activity/{id}/streams` (`types`), `/intervals`, `/power-curve`, `/pace-curve`, `/hr-curve`, `/power-histogram`, `/hr-histogram`, `/pace-histogram`, `/best-efforts` ; `GET /athlete/{id}/power-curves`, `/pace-curves`, `/hr-curves` (`type`, `curves`, `newest`) ; wellness `sportInfo.eftp` (F-115) ; `route_id` et `GET /athlete/{id}/activities?route_id=` (F-106). Absents de l'API : activités « similaires » par type de séance, historique de l'allure seuil et de la CSS. À confirmer sur le forum officiel avant usage : noms des flux (`watts`, `heartrate`...) et codes de période du paramètre `curves`, absents de la spécification. Graphiques en SVG dessiné à la main ; réduction des points par une fonction pure qui garde les pics. Pas de calcul d'analyse refait dans l'appli (1.7). Affichage : gabarits HTML avec `echapperHtml` (D-21, contrôlé par `tests/securite.test.js`), choix confirmé pour ces lots. Pas de captures de référence : design E seul. |
+| D-41 | 27/11/2026 | Validé le 27/11/2026, avec le bilan de la semaine ajouté à LC1 (F-131). Intervals.icu reste le serveur (données brutes, réglages, montre) mais l'appli fait les calculs, pour pouvoir changer de source un jour sans tout refaire (remplace l'exclusion « calculs d'analyse refaits dans l'appli » de 1.7). Trois lots après LP : LC1 charge et forme (F-120 à F-124, bilan de la semaine F-131), LC2 matériel (F-125 à F-128), LC3 analyse recalculée (F-129, F-130). Vérifié dans la spécification : chaque activité porte son matériel (`gear` : `id`, `name`, `distance`) et les seuils de son époque (`icu_ftp`, `lthr`, `threshold_pace`) ; matériel et pièces par `/athlete/{id}/gear` (types Bike, Shoes, Chain, Tyre, BrakePads, Cassette, Cleats...) ; seuils modifiables par `PUT /athlete/{id}/sport-settings/{id}`. Sur le téléphone, seuls les résultats légers sont gardés (quelques Mo) ; le détail d'une séance est retéléchargé à la demande. Les chiffres de l'appli peuvent différer un peu de ceux d'Intervals.icu : comparaison affichée pendant la transition (F-123). |
 | D-40 | 27/11/2026 | Programmation (F-40) : la durée d'une séance simple se choisit avec la même roue que l'heure (champ `type="time"`, `hh:mm`, au plus 23:59), au lieu d'un texte à taper. Fonction pure `formaterDureeChamp` (`logique/seance.js`). |
 | D-39 | 27/11/2026 | F-116 abandonnée à ma demande : plus de widget « Records récents » sur l'accueil ; le champ `icu_achievements` n'est plus demandé dans le fil (ENF-11), `schema_version` passe à 8. |
 | D-38 | 27/11/2026 | Fin des lots LA et LP. Correction de la recette LA : calcul des W/kg déplacé dans `logique/performances.js` (`formaterWkg`). F-113 : FC maximale tenue sur 1, 5, 20 min et 1 h par sport (`GET /athlete/{id}/hr-curves.json`, `secs` et `values` en bpm). F-115 : eFTP de la dernière année (wellness, `fields=id,sportInfo`, `SportInfo.eftp` par `type`), valeur actuelle, écart et petite courbe, pour le vélo et la course. F-116 : widget « Records récents » de l'accueil (30 derniers jours, 4 au plus), lu dans `icu_achievements` (schéma `IcuAchievement` : `BEST_POWER` avec `watts` et `secs`, `FTP_UP` et `LTHR_UP` avec `value` ; `BEST_PACE` : `pace` sans unité documentée, le `message` d'Intervals.icu est affiché tel quel), champ ajouté au fil ; `schema_version` passe à 7. Graphiques des courbes et comparaison de périodes non faits (écran simplifié, D-35). Textes des nouveaux écrans sans mention d'Intervals.icu (D-27). |
@@ -623,6 +656,8 @@ Pour chaque lot, la commande `/recette Lx` produit le tableau des tests du lot :
 **Ancien code v1.0** : supprimé (commit « Suppression du code v1.0 »), récupérable dans l'historique git.
 
 | LA | Codé (F-100 à F-106 ; histogramme d'allure exclu, D-37) ; recette PC faite le 27/11/2026 (Intervals.icu simulé) ; test réel à faire |
+| LC1 | Plan validé le 27/11/2026 (D-41) ; en cours |
+| LC2, LC3 | Plan validé le 27/11/2026 (D-41) ; à faire après LC1 |
 | LP | Codé (F-110 à F-116 ; records de tous les temps en tableaux, sans graphiques des courbes ni comparaison de périodes, D-35, D-38) ; recette PC faite le 27/11/2026 (Intervals.icu simulé) ; test réel à faire |
 
 **Mise en ligne :** faite le 26/11/2026 sur GitHub Pages (https://quentinmonnier04.github.io/appli-triathlon/).
