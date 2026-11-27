@@ -2,13 +2,14 @@
 // le Profil, rangée par sport puis par type de séance (logique/types-seance.js). Filtre par sport dans l'adresse
 // (#/seances?sport=CAP). L'éditeur ouvert d'ici revient ici après une modification.
 
-import { lirePreparation } from '../api/preparation.js';
+import { lirePreparation, importerSeance } from '../api/preparation.js';
+import { preparerImport } from '../logique/import-seance.js';
 import { lireAlluresSeuil } from '../api/profil.js';
 import { volumeSeance_s } from '../logique/plan.js';
 import { rangerSeances } from '../logique/types-seance.js';
 import { sport } from '../logique/sports.js';
 import { echapperHtml, formaterDureeLongue } from '../logique/format.js';
-import { messageErreurApi, squelette, boutonIcone } from './composants.js';
+import { messageErreurApi, squelette, boutonIcone, message, surveillerReseau } from './composants.js';
 import { icone, iconeSport } from './icones.js';
 
 // Une séance : titre et durée estimée.
@@ -60,5 +61,30 @@ export async function afficherSeances(conteneur, segments = [], params = {}) {
   zone.innerHTML = `<p class="doux">Tes séances types, rangées par sport et par type. Crée-les et modifie-les ici, puis place-les dans tes blocs depuis Objectif et plan.</p>
     ${filtres}
     ${ranges.length ? ranges.map((g) => carteSport(g, allures)).join('') : '<div class="carte"><p class="doux">Aucune séance pour l\'instant.</p></div>'}
-    <div class="pile"><a class="bouton principal" href="#/seance-type/nouvelle?retour=seances">${icone('plus', 18)} Nouvelle séance</a></div>`;
+    <div class="pile"><a class="bouton principal" href="#/seance-type/nouvelle?retour=seances">${icone('plus', 18)} Nouvelle séance</a>
+      <label class="bouton ecriture-label" for="fichier-seance">Importer un fichier (.zwo, .fit, .erg, .mrc)</label>
+      <input type="file" id="fichier-seance" class="lecteur" accept=".zwo,.mrc,.erg,.fit"></div>
+    <div id="hors-ligne-import"></div><div id="resultat-import" aria-live="polite"></div>
+    <p class="doux petit-texte">Importer : télécharge une séance sur un site (par exemple un fichier Zwift .zwo ou un fichier .fit), puis choisis-la ici. Elle est convertie et ajoutée à Mes séances ; tu peux ensuite la modifier.</p>`;
+
+  // F-132 : import d'un fichier de séance, lu sur l'appareil puis converti par Intervals.icu. Écriture en ligne seulement.
+  const champ = zone.querySelector('#fichier-seance');
+  const resultat = zone.querySelector('#resultat-import');
+  surveillerReseau(zone, zone.querySelector('#hors-ligne-import'), [champ]); // ENF-07
+  champ.addEventListener('change', async () => {
+    const fichier = champ.files?.[0];
+    if (!fichier) return;
+    const prepare = preparerImport(fichier.name, new Uint8Array(await fichier.arrayBuffer()));
+    if (prepare.erreur) { resultat.innerHTML = message('erreur', prepare.erreur); champ.value = ''; return; }
+    resultat.innerHTML = message('info', 'Import en cours...'); // ENF-10
+    try {
+      const seance = await importerSeance(prepare);
+      afficherSeances(conteneur, segments, params).then(() => {
+        conteneur.querySelector('#resultat-import')?.insertAdjacentHTML('beforeend', message('succes', 'Séance importée : ' + seance.titre + '. Touche-la pour vérifier son sport et son type.')); // message() échappe
+      });
+    } catch (e) {
+      resultat.innerHTML = messageErreurApi(e);
+      champ.value = '';
+    }
+  });
 }

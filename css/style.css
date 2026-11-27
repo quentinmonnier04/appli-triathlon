@@ -1125,3 +1125,16 @@ form.carte.en-lecture > h2, form.carte.en-lecture > .titre-icone { padding-right
 /* Les couches de Leaflet ont des z-index élevés (jusqu'à 1000) : la carte est isolée dans son propre empilement pour
    rester sous la barre de navigation (accueil et détail d'une activité). */
 .carte-mini.leaflet-container, .carte-leaflet.leaflet-container { position: relative; z-index: 0; isolation: isolate; }
+
+/* Profil : une ligne par sport pour les seuils (D-51) */
+.ligne-seuils { border-top: 1px solid var(--filet); padding: 8px 0; }
+.carte > .etiquette-carte + .ligne-seuils { border-top: 0; }
+.ligne-seuils-tete { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.ligne-seuils-texte { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.ligne-seuils .bouton-crayon { flex: none; }
+.ligne-seuils:not(.en-lecture) .bouton-crayon { visibility: hidden; }
+
+/* F-132 : bouton d'import (le champ fichier natif est masqué, l'étiquette sert de bouton accessible) */
+.ecriture-label { cursor: pointer; }
+#fichier-seance:focus-visible + .ecriture-label, .ecriture-label:focus-within { outline: 2px solid var(--texte); }
+#fichier-seance:disabled ~ * { opacity: 0.5; }

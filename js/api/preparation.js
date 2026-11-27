@@ -285,3 +285,16 @@ export async function enregistrerVariante(seance, { idOrigine, indexBloc, nomBlo
   });
   return variante;
 }
+
+// F-132 : importe une séance depuis un fichier (.zwo, .mrc, .erg, .fit) dans Mes séances. Intervals.icu convertit le
+// fichier (POST /api/v1/athlete/{id}/workouts : filename et file_contents ou file_contents_base64, spécification
+// OpenAPI, schéma WorkoutEx) ; la séance est rangée dans le dossier Mes séances avec l'étiquette de l'appli.
+// fichier : sortie de preparerImport (logique/import-seance.js). Renvoie la séance créée.
+export async function importerSeance(fichier) {
+  const folderId = await dossierId(false);
+  const brut = await requeteAuthentifiee('/athlete/0/workouts', null, {
+    methode: 'POST', corps: { ...fichier, folder_id: folderId, tags: [ETIQUETTE] },
+  });
+  await invaliderCaches();
+  return convertirSeanceBibliotheque(brut ?? {});
+}

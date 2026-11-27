@@ -4,7 +4,7 @@
 import { lireProfilEnCache, rafraichirProfil, enregistrerReglagesSport } from '../api/profil.js';
 import { lireMontre } from '../api/session.js';
 import { estPerime } from '../logique/activites.js';
-import { totauxAnnee, totauxParSport, seuilsAffichables, zonesDuSport, champsSeuils, lireSeuilsSaisis } from '../logique/profil.js';
+import { totauxAnnee, totauxParSport, seuilsAffichables, champsSeuils, lireSeuilsSaisis } from '../logique/profil.js';
 import { sport } from '../logique/sports.js';
 import { echapperHtml, formaterDistance, formaterDureeLongue, formaterEntier, formaterKm } from '../logique/format.js';
 import {
@@ -88,16 +88,6 @@ function carteSeuils(reglages) {
       <div class="stats">${seuils.map((s) => stat(s.etiquette, s.valeur)).join('')}</div></div>`).join('')}</div>`;
 }
 
-// F-54 : zones par sport, repliées par défaut.
-function carteZones(reglages) {
-  const blocs = reglages.map((r) => ({ r, familles: zonesDuSport(r) })).filter((b) => b.familles.length);
-  if (!blocs.length) return '';
-  return `<div class="carte"><div class="etiquette-carte">Zones</div>
-    ${blocs.map(({ r, familles }) => familles.map((f) => `<details class="zones-sport">
-      <summary>${pastilleSport(r.sport)}<span>${echapperHtml(sport(r.sport).libelle)} : ${echapperHtml(f.titre.toLowerCase())}</span></summary>
-      <ul class="liste-zones">${f.zones.map((z) => `<li><span class="zone-nom">${echapperHtml(z.nom)}</span><span>${echapperHtml(z.texte)}</span></li>`).join('')}</ul>
-    </details>`).join('')).join('')}</div>`;
-}
 
 // F-124 : seuils et zones d'un sport, modifiables avec le crayon et enregistrés dans Intervals.icu (D-42).
 // Champs proposés selon le sport ; les zones (listes de nombres) restent dans la modification.
@@ -114,31 +104,35 @@ function libellesChamps(code) {
     zones_allure: "Zones d'allure (% de l'allure seuil)",
   };
 }
-function formulaireSeuils(r) {
+// D-51 : une seule carte « Seuils », une ligne par sport (résumé des seuils et crayon) ; le crayon déplie les champs
+// et les zones du sport. Plus de carte « Zones » séparée.
+function ligneSeuils(r) {
   if (r.id === null || r.id === undefined) return '';
   const champs = champsSeuils(r);
   const libelles = libellesChamps(r.sport);
   const liste = CHAMPS_PAR_SPORT[r.sport] ?? ['fc_seuil', 'fc_max', 'zones_fc'];
-  return `<form class="carte" data-reglage="${echapperHtml(r.id)}" data-sport="${echapperHtml(r.sport)}" novalidate>
-    <h2 class="titre-icone">${pastilleSport(r.sport)} Seuils · ${echapperHtml(sport(r.sport).libelle)}</h2>${boutonCrayon('Modifier les seuils')}
-    <fieldset class="champs-formulaire"><div class="deux-colonnes">
-      ${liste.filter((c) => !c.startsWith('zones')).map((c) => `<div class="champ"><label for="${c}-${echapperHtml(r.sport)}">${libelles[c]}</label>
-        <input id="${c}-${echapperHtml(r.sport)}" data-champ-seuil="${c}" inputmode="${c === 'allure' ? 'text' : 'numeric'}" value="${echapperHtml(champs[c])}"></div>`).join('')}
-    </div>
-    <div class="seulement-edition">${liste.filter((c) => c.startsWith('zones')).map((c) => `<div class="champ"><label for="${c}-${echapperHtml(r.sport)}">${libelles[c]}</label>
-      <input id="${c}-${echapperHtml(r.sport)}" data-champ-seuil="${c}" inputmode="decimal" value="${echapperHtml(champs[c])}"></div>`).join('')}</div>
+  const resume = seuilsAffichables(r).map((x) => `${x.etiquette} ${x.valeur}`).join(' · ') || 'Aucun seuil renseigné';
+  const champ = (c, mode) => `<div class="champ"><label for="${c}-${echapperHtml(r.sport)}">${libelles[c]}</label>
+    <input id="${c}-${echapperHtml(r.sport)}" data-champ-seuil="${c}" inputmode="${mode}" value="${echapperHtml(champs[c])}"></div>`;
+  return `<form class="ligne-seuils" data-reglage="${echapperHtml(r.id)}" data-sport="${echapperHtml(r.sport)}" novalidate>
+    <div class="ligne-seuils-tete">${pastilleSport(r.sport)}
+      <span class="ligne-seuils-texte"><strong>${echapperHtml(sport(r.sport).libelle)}</strong> <span class="doux">${echapperHtml(resume)}</span></span>
+      ${boutonCrayon(`Modifier les seuils : ${sport(r.sport).libelle}`)}</div>
+    <fieldset class="champs-formulaire seulement-edition">
+      <div class="deux-colonnes">${liste.filter((c) => !c.startsWith('zones')).map((c) => champ(c, c === 'allure' ? 'text' : 'numeric')).join('')}</div>
+      ${liste.filter((c) => c.startsWith('zones')).map((c) => champ(c, 'decimal')).join('')}
     </fieldset>
     <div class="erreurs" aria-live="polite"></div>
     <div class="pile action-edition"><button type="submit" class="bouton principal" data-enregistrer>Enregistrer les modifications</button>${boutonAnnuler()}</div>
   </form>`;
 }
 function cartesSeuils(reglages) {
-  const formulaires = reglages.map(formulaireSeuils).join('');
-  return formulaires || carteSeuils(reglages);
+  const lignes = reglages.map(ligneSeuils).join('');
+  return lignes ? `<div class="carte"><div class="etiquette-carte">Seuils</div>${lignes}</div>` : carteSeuils(reglages);
 }
 
 function rendreProfil(p, montre) {
-  return `${enTete(p.nom, montre)}${lienObjectif()}${lienPerformances()}${lienMateriel()}${lienMesSeances()}${carteTotaux(p)}${carteParSport(p.activites)}${cartesSeuils(p.reglages)}${carteZones(p.reglages)}`;
+  return `${enTete(p.nom, montre)}${lienObjectif()}${lienPerformances()}${lienMateriel()}${lienMesSeances()}${carteTotaux(p)}${carteParSport(p.activites)}${cartesSeuils(p.reglages)}`;
 }
 
 // Largeur des barres (CSP : pas de style inline dans le HTML ; element.style est permis).
