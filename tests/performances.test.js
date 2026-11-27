@@ -80,3 +80,46 @@ test('histogramme : tranches triées, vides des bords retirées, pourcentages', 
   assert.equal(Math.round(b[1].pct), 80);
   assert.deepEqual(barresHistogramme(null, 25), []);
 });
+
+import { formaterWkg, serieEftp, convertirAchievement, recordsRecents } from '../js/logique/performances.js';
+
+test('W/kg : deux décimales, rien sans poids', () => {
+  assert.equal(formaterWkg(350, 70), '5');
+  assert.equal(formaterWkg(320, 72.5), '4,41');
+  assert.equal(formaterWkg(300, null), null);
+  assert.equal(formaterWkg(null, 70), null);
+});
+
+test('eFTP : série d\'un sport, jours sans valeur retirés, ordre chronologique', () => {
+  const w = [
+    { id: '2026-11-02', sportInfo: [{ type: 'Ride', eftp: 252 }, { type: 'Run', eftp: 310 }] },
+    { id: '2026-11-01', sportInfo: [{ type: 'Ride', eftp: 250.4 }] },
+    { id: '2026-11-03', sportInfo: [] },
+    { id: '2026-11-04' },
+  ];
+  assert.deepEqual(serieEftp(w, 'Ride'), [{ date: '2026-11-01', eftp: 250.4 }, { date: '2026-11-02', eftp: 252 }]);
+  assert.deepEqual(serieEftp(w, 'Run'), [{ date: '2026-11-02', eftp: 310 }]);
+  assert.deepEqual(serieEftp(null, 'Ride'), []);
+});
+
+test('records récents : achievements convertis, activités des 30 derniers jours, plus récents d\'abord', () => {
+  assert.deepEqual(convertirAchievement({ id: 'x', type: 'BEST_POWER', watts: 410, secs: 300, message: 'msg' }),
+    { type: 'BEST_POWER', watts: 410, secs: 300, valeur: null, message: 'msg' });
+  assert.equal(convertirAchievement({}), null);
+  const acts = [
+    { id: 'a', date: '2026-11-20', titre: 'A', sport: 'VELO', records: [{ type: 'BEST_POWER', watts: 400, secs: 60 }] },
+    { id: 'b', date: '2026-10-01', titre: 'B', sport: 'VELO', records: [{ type: 'FTP_UP', valeur: 260 }] },
+    { id: 'c', date: '2026-11-25', titre: 'C', sport: 'CAP', records: [{ type: 'BEST_PACE', message: 'New 5k best' }] },
+    { id: 'd', date: '2026-11-24', titre: 'D', sport: 'VELO', records: [] },
+  ];
+  const r = recordsRecents(acts, '2026-11-26');
+  assert.deepEqual(r.map((x) => x.activite.id), ['c', 'a']);
+  assert.equal(recordsRecents(acts, '2026-11-26', 30, 1).length, 1);
+});
+
+import { resumeEftp } from '../js/logique/performances.js';
+test('résumé de l\'eFTP', () => {
+  assert.deepEqual(resumeEftp([{ date: '2026-01-01', eftp: 240.4 }, { date: '2026-06-01', eftp: 262 }, { date: '2026-11-26', eftp: 255.6 }]),
+    { actuel: 256, debut: 240, ecart: 16, depuis: '2026-01-01', max: 262 });
+  assert.equal(resumeEftp([]), null);
+});

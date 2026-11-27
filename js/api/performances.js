@@ -11,8 +11,10 @@ import { lireCache, ecrireCache } from '../cache/stockage.js';
 import { estPerime } from '../logique/activites.js';
 import { jourISO } from '../logique/dates.js';
 import {
-  SPORTS_PERF, DUREES_RECORDS, DISTANCES_RECORDS, codeCourbe, pointsAuxDurees, tempsAuxDistances, activiteDuRecord, pointsCourbe,
+  SPORTS_PERF, DUREES_RECORDS, DISTANCES_RECORDS, DUREES_FC, codeCourbe, pointsAuxDurees, tempsAuxDistances, activiteDuRecord,
+  pointsCourbe, serieEftp,
 } from '../logique/performances.js';
+import { ajouterJours } from '../logique/dates.js';
 
 // Réponse d'une courbe -> records datés : [{ duree | distance, valeur | temps_s, activite_id, date, titre }].
 export function convertirRecords(reponse, mesure, sportCode) {
@@ -36,13 +38,16 @@ export async function lirePerformances(sportCode, periode, { forcer = false } = 
   if (cache && !forcer && !estPerime(cache.charge_le)) return { ...cache.donnees, charge_le: cache.charge_le };
   const sport = SPORTS_PERF.find((s) => s.code === sportCode) ?? SPORTS_PERF[0];
   try {
-    const [puissance, allure] = await Promise.all([
+    // F-113 : GET /athlete/{id}/hr-curves{ext} (type, curves) -> DataCurveSetHRCurve (secs, values en bpm).
+    const [puissance, allure, fc] = await Promise.all([
       sport.puissance ? chargerCourbe('power-curves', sport.type, periode) : null,
       sport.allure ? chargerCourbe('pace-curves', sport.type, periode) : null,
+      chargerCourbe('hr-curves', sport.type, periode).catch(() => null),
     ]);
     const p = convertirRecords(puissance, 'puissance', sport.code);
     const a = convertirRecords(allure, 'allure', sport.code);
-    const donnees = { puissance: p.records, allure: a.records, poids_kg: p.poids_kg };
+    const f = fc?.list?.[0] ? pointsAuxDurees(fc.list[0], DUREES_FC) : [];
+    const donnees = { puissance: p.records, allure: a.records, fc: f, poids_kg: p.poids_kg };
     await ecrireCache(cle, donnees);
     return { ...donnees, charge_le: (await lireCache(cle)).charge_le };
   } catch (e) {
@@ -64,6 +69,24 @@ export async function lireCourbe42Jours(sportCode, mesure) {
     const points = pointsCourbe(reponse?.list?.[0], mesure);
     await ecrireCache(cle, points);
     return points;
+  } catch (e) {
+    if (cache && e.type !== 'IDENTIFIANTS') return cache.donnees;
+    throw e;
+  }
+}
+
+// F-115 : eFTP de la dernière année, au jour le jour (GET /athlete/{id}/wellness, champs id et sportInfo ; SportInfo : type,
+// eftp). Cache de 5 min ; hors ligne, le dernier chargement.
+export async function lireEftp(type) {
+  const cle = `eftp:${type}`;
+  const cache = await lireCache(cle);
+  if (cache && !estPerime(cache.charge_le)) return cache.donnees;
+  const jour = jourISO();
+  try {
+    const bruts = await requeteAuthentifiee('/athlete/0/wellness', { oldest: ajouterJours(jour, -364), newest: jour, fields: 'id,sportInfo' });
+    const serie = serieEftp(bruts, type);
+    await ecrireCache(cle, serie);
+    return serie;
   } catch (e) {
     if (cache && e.type !== 'IDENTIFIANTS') return cache.donnees;
     throw e;

@@ -7,7 +7,7 @@ import {
   FILTRES_INTERVALLES, filtrerIntervalles, moyenneIntervalles, zonesDetaillees, classeZone, libelleEffort,
   indicesApresPause, couperAuxPauses,
 } from '../logique/analyse.js';
-import { echelleLog, reperesCourbe } from '../logique/performances.js';
+import { echelleLog, reperesCourbe, formaterWkg } from '../logique/performances.js';
 import { zonesDuSport } from '../logique/profil.js';
 import { RESSENTIS, libelleEchelle } from '../logique/ressenti.js';
 import {
@@ -125,13 +125,13 @@ export function rendreIntervalles(intervalles, sportCode, filtre, choisi = null)
 // diagnostic : texte affiché quand Intervals.icu ne renvoie rien (pour comprendre pourquoi sur une vraie séance).
 export function rendreTop(efforts, temps, a, diagnostic = '') {
   if (!efforts.length && !temps.length) {
-    return `<div class="carte"><p class="doux">Intervals.icu n'a renvoyé aucun meilleur effort pour cette séance.</p>
+    return `<div class="carte"><p class="doux">Aucun meilleur effort trouvé pour cette séance.</p>
       ${diagnostic ? `<p class="doux petit-texte">Détail technique : ${echapperHtml(diagnostic)}</p>` : ''}</div>`;
   }
   const ligne = (cle, libelle, cellules) => `<tr data-effort="${echapperHtml(cle)}" tabindex="0" aria-label="${echapperHtml(libelle)} : le montrer sur les graphiques">
     <th scope="row">${echapperHtml(libelle)}</th>${cellules.map((c) => `<td>${echapperHtml(c)}</td>`).join('')}</tr>`;
   const avecWkg = a.poids_kg > 0;
-  const wkg = (w) => String(Math.round((w / a.poids_kg) * 100) / 100).replace('.', ',');
+  const wkg = (w) => formaterWkg(w, a.poids_kg) ?? '';
   const tetePuissance = `<th scope="col">Durée</th><th scope="col">Puissance</th>${avecWkg ? '<th scope="col">W/kg</th>' : ''}`;
   const blocPuissance = efforts.length ? `<div class="carte"><h2>Top puissance</h2>
     <div class="tableau-defilant"><table class="intervalles tableau-analyse"><thead><tr>${tetePuissance}</tr></thead>
@@ -141,7 +141,7 @@ export function rendreTop(efforts, temps, a, diagnostic = '') {
     <div class="tableau-defilant"><table class="intervalles tableau-analyse"><thead><tr><th scope="col">Distance</th><th scope="col">Temps</th><th scope="col">Allure</th></tr></thead>
     <tbody>${temps.map((t) => ligne(`d${t.distance}`, libelleEffort(t), [formaterDuree(t.temps_s) ?? '', formaterVitesse(a.sport, t.distance, t.temps_s) ?? ''])).join('')}</tbody></table></div></div>` : '';
   return `${blocPuissance}${blocAllure}
-  <p class="doux petit-texte">Meilleurs efforts calculés par Intervals.icu sur cette séance. Touche une ligne pour la voir sur les graphiques.</p>`;
+  <p class="doux petit-texte">Meilleurs efforts de cette séance. Touche une ligne pour la voir sur les graphiques.</p>`;
 }
 
 // --- F-105 : courbe de la séance comparée aux 42 derniers jours (D-37) ---

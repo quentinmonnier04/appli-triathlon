@@ -128,3 +128,53 @@ export function reperesCourbe(min, max, mesure) {
   const reperes = mesure === 'allure' ? [100, 400, 1000, 5000, 10000, 21097] : [1, 5, 15, 60, 300, 1200, 3600, 7200];
   return reperes.filter((r) => r >= min && r <= max);
 }
+
+// --- W/kg (F-105, F-110 ; correction de la recette LA : calcul sorti de ui/) ---
+export function formaterWkg(watts, poids_kg) {
+  if (!Number.isFinite(watts) || !(poids_kg > 0)) return null;
+  return String(Math.round((watts / poids_kg) * 100) / 100).replace('.', ',');
+}
+
+// --- F-113 : FC maximale tenue selon la durée ---
+export const DUREES_FC = [60, 300, 1200, 3600];
+
+// --- F-115 : évolution de l'eFTP (wellness, sportInfo : type, eftp) ---
+// Wellness[] -> [{ date, eftp }] pour un type de sport (Ride, Run), jours sans eFTP retirés, ordre chronologique.
+export function serieEftp(wellness, type) {
+  return (wellness ?? [])
+    .map((w) => ({ date: w.id, eftp: (w.sportInfo ?? []).find((s) => s.type === type)?.eftp }))
+    .filter((p) => p.date && Number.isFinite(p.eftp) && p.eftp > 0)
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
+// --- F-116 : records récents signalés par Intervals.icu (icu_achievements des activités) ---
+// Achievement (IcuAchievement : type BEST_POWER, BEST_PACE, FTP_UP, LTHR_UP) -> record interne. Pour BEST_POWER,
+// watts et secs sont documentés ; pour les autres, le texte d'Intervals.icu ("message") est repris tel quel.
+export function convertirAchievement(brut) {
+  if (!brut?.type) return null;
+  return {
+    type: brut.type,
+    watts: Number.isFinite(brut.watts) ? brut.watts : null,
+    secs: Number.isFinite(brut.secs) ? brut.secs : null,
+    valeur: Number.isFinite(brut.value) ? brut.value : null,
+    message: brut.message || null,
+  };
+}
+
+// Records des activités des "jours" derniers jours (jour inclus), les plus récents d'abord, au plus "max".
+export function recordsRecents(activites, jour, jours = 30, max = 4) {
+  const debut = ajouterJours(jour, -(jours - 1));
+  return activites
+    .filter((a) => a.date >= debut && a.date <= jour && (a.records ?? []).length)
+    .sort((x, y) => (x.date < y.date ? 1 : -1))
+    .flatMap((a) => a.records.map((r) => ({ ...r, activite: { id: a.id, date: a.date, titre: a.titre, sport: a.sport } })))
+    .slice(0, max);
+}
+
+// Résumé de l'eFTP (F-115) : valeur la plus récente, première valeur de la période et écart (W, arrondis).
+export function resumeEftp(serie) {
+  if (!serie.length) return null;
+  const actuel = Math.round(serie[serie.length - 1].eftp);
+  const debut = Math.round(serie[0].eftp);
+  return { actuel, debut, ecart: actuel - debut, depuis: serie[0].date, max: Math.round(Math.max(...serie.map((p) => p.eftp))) };
+}
