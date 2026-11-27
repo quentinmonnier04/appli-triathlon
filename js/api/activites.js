@@ -13,7 +13,7 @@ import { lireCache, ecrireCache, supprimerCachePrefixe } from '../cache/stockage
 import { sportDepuisType, sport } from '../logique/sports.js';
 import { fusionnerActivites, estPerime as estPerimeLocal } from '../logique/activites.js';
 import { effortsAChercher, barresHistogramme } from '../logique/analyse.js';
-import { courbeDeLActivite, convertirAchievement } from '../logique/performances.js';
+import { courbeDeLActivite } from '../logique/performances.js';
 import { decouperSegments, alleger } from '../logique/carte.js';
 
 // Nombre d'activités par page du fil (F-10).
@@ -24,7 +24,6 @@ export const TAILLE_PAGE = 20;
 export const CHAMPS_FIL = [
   'id', 'start_date_local', 'type', 'name', 'moving_time', 'elapsed_time', 'distance', 'icu_distance',
   'total_elevation_gain', 'icu_training_load', 'icu_rpe', 'stream_types',
-  'icu_achievements', // records signalés par Intervals.icu (F-116, D-38)
 ];
 
 // Nombre de points gardés : carte du détail (F-70) et aperçu du fil (F-71).
@@ -69,7 +68,6 @@ export function convertirActivite(brut) {
     calories: ou(brut.calories),
     poids_kg: ou(brut.icu_weight), // poids du jour de l'activité, pour les W/kg (F-105)
     parcours_id: ou(brut.route_id), // parcours reconnu par Intervals.icu (F-106)
-    records: (brut.icu_achievements ?? []).map(convertirAchievement).filter(Boolean), // F-116
     flux: Array.isArray(brut.stream_types) ? brut.stream_types : [],
   };
 }

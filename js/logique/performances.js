@@ -147,30 +147,6 @@ export function serieEftp(wellness, type) {
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
-// --- F-116 : records récents signalés par Intervals.icu (icu_achievements des activités) ---
-// Achievement (IcuAchievement : type BEST_POWER, BEST_PACE, FTP_UP, LTHR_UP) -> record interne. Pour BEST_POWER,
-// watts et secs sont documentés ; pour les autres, le texte d'Intervals.icu ("message") est repris tel quel.
-export function convertirAchievement(brut) {
-  if (!brut?.type) return null;
-  return {
-    type: brut.type,
-    watts: Number.isFinite(brut.watts) ? brut.watts : null,
-    secs: Number.isFinite(brut.secs) ? brut.secs : null,
-    valeur: Number.isFinite(brut.value) ? brut.value : null,
-    message: brut.message || null,
-  };
-}
-
-// Records des activités des "jours" derniers jours (jour inclus), les plus récents d'abord, au plus "max".
-export function recordsRecents(activites, jour, jours = 30, max = 4) {
-  const debut = ajouterJours(jour, -(jours - 1));
-  return activites
-    .filter((a) => a.date >= debut && a.date <= jour && (a.records ?? []).length)
-    .sort((x, y) => (x.date < y.date ? 1 : -1))
-    .flatMap((a) => a.records.map((r) => ({ ...r, activite: { id: a.id, date: a.date, titre: a.titre, sport: a.sport } })))
-    .slice(0, max);
-}
-
 // Résumé de l'eFTP (F-115) : valeur la plus récente, première valeur de la période et écart (W, arrondis).
 export function resumeEftp(serie) {
   if (!serie.length) return null;

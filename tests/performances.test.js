@@ -81,7 +81,7 @@ test('histogramme : tranches triées, vides des bords retirées, pourcentages', 
   assert.deepEqual(barresHistogramme(null, 25), []);
 });
 
-import { formaterWkg, serieEftp, convertirAchievement, recordsRecents } from '../js/logique/performances.js';
+import { formaterWkg, serieEftp } from '../js/logique/performances.js';
 
 test('W/kg : deux décimales, rien sans poids', () => {
   assert.equal(formaterWkg(350, 70), '5');
@@ -100,21 +100,6 @@ test('eFTP : série d\'un sport, jours sans valeur retirés, ordre chronologique
   assert.deepEqual(serieEftp(w, 'Ride'), [{ date: '2026-11-01', eftp: 250.4 }, { date: '2026-11-02', eftp: 252 }]);
   assert.deepEqual(serieEftp(w, 'Run'), [{ date: '2026-11-02', eftp: 310 }]);
   assert.deepEqual(serieEftp(null, 'Ride'), []);
-});
-
-test('records récents : achievements convertis, activités des 30 derniers jours, plus récents d\'abord', () => {
-  assert.deepEqual(convertirAchievement({ id: 'x', type: 'BEST_POWER', watts: 410, secs: 300, message: 'msg' }),
-    { type: 'BEST_POWER', watts: 410, secs: 300, valeur: null, message: 'msg' });
-  assert.equal(convertirAchievement({}), null);
-  const acts = [
-    { id: 'a', date: '2026-11-20', titre: 'A', sport: 'VELO', records: [{ type: 'BEST_POWER', watts: 400, secs: 60 }] },
-    { id: 'b', date: '2026-10-01', titre: 'B', sport: 'VELO', records: [{ type: 'FTP_UP', valeur: 260 }] },
-    { id: 'c', date: '2026-11-25', titre: 'C', sport: 'CAP', records: [{ type: 'BEST_PACE', message: 'New 5k best' }] },
-    { id: 'd', date: '2026-11-24', titre: 'D', sport: 'VELO', records: [] },
-  ];
-  const r = recordsRecents(acts, '2026-11-26');
-  assert.deepEqual(r.map((x) => x.activite.id), ['c', 'a']);
-  assert.equal(recordsRecents(acts, '2026-11-26', 30, 1).length, 1);
 });
 
 import { resumeEftp } from '../js/logique/performances.js';

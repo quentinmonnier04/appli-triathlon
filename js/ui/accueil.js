@@ -5,8 +5,6 @@ import { lireTableauEnCache, rafraichirTableau } from '../api/tableau.js';
 import { lireAthlete } from '../api/athlete.js';
 import { lireObjectif } from '../api/objectif.js';
 import { tempsTotal } from '../logique/objectifs-course.js';
-import { recordsRecents } from '../logique/performances.js';
-import { libelleEffort } from '../logique/analyse.js';
 import { lireAlluresSeuil } from '../api/profil.js';
 import { estPerime } from '../logique/activites.js';
 import { comparaisonMois, sportsParJour, volumeSemaine, totauxSemaine } from '../logique/totaux.js';
@@ -78,22 +76,6 @@ function rappelRpe(activites, jour) {
   return activitesSansRpe(activites, jour).map((a) => `<a class="rappel" href="#/activite/${encodeURIComponent(a.id)}">
     ${pastilleSport(a.sport)}<span>Note ton ressenti sur <strong>${echapperHtml(a.titre)}</strong></span>
     <span class="lien-fleche-ligne">${icone('fleche')}</span></a>`).join('');
-}
-
-// F-116 : records des 30 derniers jours signalés par Intervals.icu ; rien s'il n'y en a pas (accueil lisible).
-function texteRecord(r) {
-  if (r.type === 'BEST_POWER' && r.watts && r.secs) return `${libelleEffort({ duree: r.secs })} : ${formaterEntier(r.watts)} W`;
-  if (r.type === 'FTP_UP' && r.valeur) return `FTP : ${formaterEntier(r.valeur)} W`;
-  if (r.type === 'LTHR_UP' && r.valeur) return `FC seuil : ${formaterEntier(r.valeur)} bpm`;
-  return r.message ?? 'Nouveau record';
-}
-function widgetRecords(activites, jour) {
-  const records = recordsRecents(activites, jour);
-  if (!records.length) return '';
-  return `<div class="carte"><div class="etiquette-carte">Records récents</div>
-    <ul class="liste-records">${records.map((r) => `<li><a class="ligne-record" href="#/activite/${encodeURIComponent(r.activite.id)}">
-      ${pastilleSport(r.activite.sport)}<span class="record-texte"><strong>${echapperHtml(texteRecord(r))}</strong>
-      <span class="doux">${echapperHtml(formaterJourMois(r.activite.date))} · ${echapperHtml(r.activite.titre)}</span></span></a></li>`).join('')}</ul></div>`;
 }
 
 // F-62 : accès au bilan du jour.
@@ -188,7 +170,6 @@ function rendreTableau(t, allures) {
     ${widgetDerniereActivite(t.derniere)}
     ${widgetForme(t.forme, t.jour)}
     <div class="tuiles">${widgetDureeMois(t.activites, t.jour)}${widgetSemaine(t.prevues, t.activites, t.jour)}</div>
-    ${widgetRecords(t.activites, t.jour)}
     ${lienBilan(t.jour)}
     ${widgetCalendrier(t.activites, t.jour)}`;
 }
