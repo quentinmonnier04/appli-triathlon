@@ -45,7 +45,7 @@ export function convertirSeanceMateriel(brut) {
   };
 }
 
-// Matériel et usure : une requête pour le matériel, une pour les séances depuis le plus ancien achat (5 ans au plus).
+// Matériel et usure : une requête pour le matériel, une pour les séances des 5 dernières années.
 // Cache de 5 min (ENF-11) ; hors ligne, le dernier chargement. Renvoie { arbre, charge_le }.
 // validiteMs : âge maximal du cache (5 min par défaut ; l'accueil accepte plus vieux pour rester léger).
 export async function lireMateriel({ forcer = false, validiteMs = null } = {}) {
@@ -54,9 +54,10 @@ export async function lireMateriel({ forcer = false, validiteMs = null } = {}) {
   if (cache && !forcer && frais) return { ...cache.donnees, charge_le: cache.charge_le };
   try {
     const materiels = ((await requeteAuthentifiee('/athlete/0/gear.json')) ?? []).map(convertirMateriel);
+    // Séances des 5 dernières années, quelle que soit la date d'achat : un vélo ajouté aujourd'hui dans l'appli compte
+    // aussi les sorties d'avant qui lui sont associées (D-44). Les pièces, elles, comptent depuis leur pose.
     const jour = jourISO();
-    const plusAncien = materiels.map((m) => m.achat).filter(Boolean).sort()[0] ?? ajouterJours(jour, -365);
-    const debut = plusAncien < ajouterJours(jour, -5 * 365) ? ajouterJours(jour, -5 * 365) : plusAncien;
+    const debut = ajouterJours(jour, -5 * 365);
     const seances = materiels.length
       ? ((await requeteAuthentifiee('/athlete/0/activities', { oldest: debut, newest: `${jour}T23:59:59`, fields: 'id,start_date_local,distance,gear' })) ?? [])
         .map(convertirSeanceMateriel)

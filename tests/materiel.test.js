@@ -67,3 +67,12 @@ test('conversions des réponses (simulées) d\'Intervals.icu', () => {
     { id: '1', date: '2026-10-01', gear_id: 'b9', distance_m: 40000 });
   assert.equal(convertirSeanceMateriel({ id: 2, start_date_local: '2026-10-01T08:00:00' }).gear_id, null);
 });
+
+test('D-44 : un matériel principal compte aussi ses séances antérieures à son achat ; une pièce, depuis sa pose', () => {
+  const velo = { id: 'b1', achat: '2026-11-27', rappels: [] };
+  assert.equal(usure(velo, seances).km, 230); // vélo ajouté aujourd'hui : ses sorties passées comptent
+  const chaussures = { id: 's1', achat: '2026-11-27', rappels: [{ id: 3, distance_m: 700000, dernier_remplacement: null }] };
+  assert.equal(usure(chaussures, seances).km, 12);
+  const piece = { id: 'c1', achat: '2026-09-01', rappels: [{ id: 1, distance_m: 2000000, dernier_remplacement: null }] };
+  assert.equal(usure(piece, seances, 'b1').km, 100); // seulement depuis la pose
+});
