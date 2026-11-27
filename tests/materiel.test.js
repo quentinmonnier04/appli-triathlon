@@ -76,3 +76,13 @@ test('D-44 : un matériel principal compte aussi ses séances antérieures à so
   const piece = { id: 'c1', achat: '2026-09-01', rappels: [{ id: 1, distance_m: 2000000, dernier_remplacement: null }] };
   assert.equal(usure(piece, seances, 'b1').km, 100); // seulement depuis la pose
 });
+
+import { dateLue, formatsDate, DATE_SANS_POSE } from '../js/logique/materiel.js';
+test('D-46 : dates lues et envoyées', () => {
+  assert.equal(dateLue('2025-11-27T00:00:00'), '2025-11-27');
+  assert.equal(dateLue('2025-11-27'), '2025-11-27');
+  assert.equal(dateLue(DATE_SANS_POSE), null); // "sans date de pose"
+  assert.equal(dateLue('1999-05-01'), null);
+  assert.equal(dateLue(null), null);
+  assert.deepEqual(formatsDate('2025-11-27'), ['2025-11-27', '2025-11-27T00:00:00']);
+});

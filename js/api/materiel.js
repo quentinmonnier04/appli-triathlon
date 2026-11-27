@@ -13,9 +13,24 @@ import { requeteAuthentifiee } from './client.js';
 import { lireCache, ecrireCache, supprimerCachePrefixe } from '../cache/stockage.js';
 import { estPerime } from '../logique/activites.js';
 import { jourISO, ajouterJours } from '../logique/dates.js';
-import { arbreMateriel } from '../logique/materiel.js';
+import { arbreMateriel, DATE_SANS_POSE, dateLue, formatsDate } from '../logique/materiel.js';
 
 const date = (v) => (typeof v === 'string' && v.length >= 10 ? v.slice(0, 10) : null);
+
+// Envoie un Gear avec une date d'achat ou de pose : la date seule, puis, si Intervals.icu refuse la requête
+// (erreur 400 ou 422), la date avec l'heure. Une seule nouvelle tentative (D-46).
+async function envoyerAvecDate(envoyer, dateVoulue) {
+  const formats = formatsDate(dateVoulue);
+  for (let i = 0; i < formats.length; i += 1) {
+    try {
+      return await envoyer(formats[i]);
+    } catch (e) {
+      const refus = e.type === 'SERVEUR' && (e.statut === 400 || e.statut === 422);
+      if (!refus || i === formats.length - 1) throw e;
+    }
+  }
+  return null;
+}
 
 // Gear -> matériel interne.
 export function convertirMateriel(brut) {
@@ -23,7 +38,7 @@ export function convertirMateriel(brut) {
     id: String(brut.id),
     type: brut.type ?? null,
     nom: brut.name || '',
-    achat: date(brut.purchased),
+    achat: dateLue(brut.purchased),
     retire: date(brut.retired),
     est_piece: Boolean(brut.component),
     pieces_ids: (brut.component_ids ?? []).map(String),
@@ -83,12 +98,13 @@ async function apresEcriture() {
 
 // Crée un matériel principal, ou une pièce rattachée à "parent" (ajoutée à ses component_ids). Avec "limite_m", un
 // rappel d'usure est créé (nom "Usure").
-// Sans date de pose, une pièce compte toutes les sorties du vélo (D-45) ; un matériel principal prend la date du jour.
+// Sans date de pose, une pièce compte toutes les sorties du vélo (D-45, enregistrée comme DATE_SANS_POSE, D-46) ;
+// un matériel principal prend la date du jour.
 export async function creerMateriel({ type, nom, achat, parent = null, limite_m = null }) {
-  const date = achat || (parent ? null : jourISO());
-  const cree = await requeteAuthentifiee('/athlete/0/gear', null, {
-    methode: 'POST', corps: { type, name: nom, ...(date ? { purchased: date } : {}), component: Boolean(parent) },
-  });
+  const dateVoulue = achat || (parent ? DATE_SANS_POSE : jourISO());
+  const cree = await envoyerAvecDate((d) => requeteAuthentifiee('/athlete/0/gear', null, {
+    methode: 'POST', corps: { type, name: nom, purchased: d, component: Boolean(parent) },
+  }), dateVoulue);
   if (parent) {
     const brutParent = (await requeteAuthentifiee('/athlete/0/gear.json')).find((g) => String(g.id) === String(parent));
     if (brutParent) {
@@ -125,16 +141,24 @@ export async function remettreAZero(gearId, rappel) {
 }
 
 // Renomme un matériel, change sa date d'achat ou de pose (achat : AAAA-MM-JJ, '' pour aucune) ou le retire (retired =
-// date du jour). Le Gear complet est relu pour ne rien effacer.
+// date du jour). Le Gear complet est relu pour ne rien effacer, puis relu après l'envoi pour vérifier que la date a
+// bien été gardée. Renvoie { dateGardee } (true sans changement de date).
 export async function modifierMateriel(gearId, { nom = null, achat = undefined, retirer = false }) {
-  const brut = ((await requeteAuthentifiee('/athlete/0/gear.json')) ?? []).find((g) => String(g.id) === String(gearId));
+  const lire = async () => ((await requeteAuthentifiee('/athlete/0/gear.json')) ?? []).find((g) => String(g.id) === String(gearId));
+  const brut = await lire();
   if (!brut) throw new Error('Matériel introuvable');
-  const corps = {
-    ...brut, ...(nom !== null ? { name: nom } : {}), ...(achat !== undefined ? { purchased: achat || null } : {}),
-    ...(retirer ? { retired: jourISO() } : {}),
-  };
-  await requeteAuthentifiee(`/athlete/0/gear/${encodeURIComponent(gearId)}`, null, { methode: 'PUT', corps });
+  const chemin = `/athlete/0/gear/${encodeURIComponent(gearId)}`;
+  const base = { ...brut, ...(nom !== null ? { name: nom } : {}), ...(retirer ? { retired: jourISO() } : {}) };
+  if (achat === undefined) {
+    await requeteAuthentifiee(chemin, null, { methode: 'PUT', corps: base });
+    await apresEcriture();
+    return { dateGardee: true };
+  }
+  const dateVoulue = achat || DATE_SANS_POSE;
+  await envoyerAvecDate((d) => requeteAuthentifiee(chemin, null, { methode: 'PUT', corps: { ...base, purchased: d } }), dateVoulue);
   await apresEcriture();
+  const relu = await lire();
+  return { dateGardee: dateLue(relu?.purchased) === (achat || null) };
 }
 
 // F-127 : matériel d'une séance (null pour aucun). Le fil, le détail et le matériel seront rechargés.

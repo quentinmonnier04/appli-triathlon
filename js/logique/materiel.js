@@ -85,3 +85,18 @@ export function lireLimiteKm(texte) {
   if (!/^\d+$/.test(t) || Number(t) < 10 || Number(t) > 100000) return { erreur: 'Limite : un nombre de km entre 10 et 100 000.' };
   return { metres: Number(t) * 1000 };
 }
+
+// --- Dates d'achat et de pose (D-46) ---
+// "Sans date de pose" est enregistré comme le 1er janvier 2000 : Intervals.icu peut refuser une date vide ou en mettre
+// une à sa place ; l'appli lit toute date jusqu'à ce jour comme "sans date" (la pièce compte toutes les sorties du vélo).
+export const DATE_SANS_POSE = '2000-01-01';
+
+export function dateLue(texte) {
+  const d = typeof texte === 'string' && texte.length >= 10 ? texte.slice(0, 10) : null;
+  return d && d > DATE_SANS_POSE ? d : null;
+}
+
+// Formats essayés pour envoyer une date (le format attendu n'est pas documenté) : date seule, puis date et heure.
+export function formatsDate(date) {
+  return [date, `${date}T00:00:00`];
+}

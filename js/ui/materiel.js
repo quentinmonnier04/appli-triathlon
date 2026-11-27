@@ -195,9 +195,14 @@ async function afficherUnMateriel(conteneur, id) {
     if (l.erreur) { erreurs.innerHTML = message('erreur', l.erreur); return; }
     try {
       const achat = form.querySelector('#achat-materiel').value;
-      if (nom !== m.nom || achat !== (m.achat ?? '')) await modifierMateriel(m.id, { nom, achat });
+      let dateGardee = true;
+      if (nom !== m.nom || achat !== (m.achat ?? '')) ({ dateGardee } = await modifierMateriel(m.id, { nom, ...(achat !== (m.achat ?? '') ? { achat } : {}) }));
       if (l.metres && l.metres !== m.usure.rappel?.distance_m) await definirLimite(m.id, m.usure.rappel?.id ?? null, l.metres);
-      afficherUnMateriel(conteneur, id);
+      await afficherUnMateriel(conteneur, id);
+      // D-46 : la date est relue après l'envoi ; si elle n'a pas été gardée, on le dit au lieu de l'ignorer.
+      if (!dateGardee) {
+        conteneur.querySelector('.erreurs')?.insertAdjacentHTML('beforeend', message('erreur', "La date n'a pas été enregistrée. Envoie-moi une capture de cet écran."));
+      }
     } catch (e) { erreurs.innerHTML = messageErreurApi(e); }
   });
   form.querySelector('#retirer-materiel').addEventListener('click', async () => {
