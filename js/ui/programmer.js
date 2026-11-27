@@ -14,7 +14,7 @@ import {
 import { ajouterEmplacement, utilisationsSeance } from '../logique/blocs.js';
 import {
   TYPES_BLOC, CIBLES, cibleParDefaut, blocsVersTexte, dureeTotaleBlocs, validerSeance, modeleParDefaut,
-  lireDureeSaisie, lireDureeEtape, formaterDureeSaisie, formaterDureeEtape,
+  lireDureeSaisie, lireDureeEtape, formaterDureeSaisie, formaterDureeEtape, formaterDureeChamp,
 } from '../logique/seance.js';
 import { SPORTS, sport } from '../logique/sports.js';
 import { jourISO, dateParametre } from '../logique/dates.js';
@@ -250,7 +250,7 @@ export async function afficherProgrammer(conteneur, segments, params = {}) {
     if (!structuree) {
       zone.innerHTML = `${bascule}<div class="carte">
         <div class="deux-colonnes">
-          <div class="champ"><label for="duree">Durée (h:mm)</label><input id="duree" inputmode="numeric" value="${formaterDureeSaisie(etat.duree_s)}" placeholder="1:00"></div>
+          <div class="champ"><label for="duree">Durée (h:mm)</label><input type="time" id="duree" step="60" value="${formaterDureeChamp(etat.duree_s)}"></div>
           <div class="champ"><label for="distance">Distance (${etat.sport === 'NATATION' ? 'm' : 'km'})</label>
             <input id="distance" inputmode="decimal" value="${etat.distance_m ? (etat.sport === 'NATATION' ? etat.distance_m : String(etat.distance_m / 1000).replace('.', ',')) : ''}"></div>
         </div>

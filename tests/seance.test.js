@@ -129,3 +129,14 @@ test("modèle de départ d'une séance structurée : valide et dans la cible du 
   assert.deepEqual(validerSeance({ date: '2026-11-24', sport: 'CAP', titre: 'x', blocs }), {});
   assert.equal(modeleParDefaut('VELO')[0].cible, 'HR');
 });
+
+// D-40 : durée de la séance choisie avec la roue de l'heure.
+import { formaterDureeChamp, lireDureeSaisie as lireDuree } from '../js/logique/seance.js';
+test('durée de la séance au format du champ heure (hh:mm), relue par lireDureeSaisie', () => {
+  assert.equal(formaterDureeChamp(5400), '01:30');
+  assert.equal(formaterDureeChamp(45 * 60), '00:45');
+  assert.equal(formaterDureeChamp(null), '');
+  assert.equal(formaterDureeChamp(30 * 3600), '23:59');
+  assert.equal(lireDuree('01:30'), 5400);
+  assert.equal(lireDuree('00:45'), 2700);
+});

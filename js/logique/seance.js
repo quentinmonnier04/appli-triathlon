@@ -148,6 +148,14 @@ export function formaterDureeSaisie(s) {
   return `${Math.floor(minutes / 60)}:${deux(minutes % 60)}`;
 }
 
+// Secondes -> "hh:mm" pour le champ de durée de la séance, choisi avec la même roue que l'heure (F-40, D-40).
+// Au plus 23:59 (limite du champ) ; vide sans durée.
+export function formaterDureeChamp(s) {
+  if (!s) return '';
+  const minutes = Math.min(23 * 60 + 59, Math.round(s / 60));
+  return `${deux(Math.floor(minutes / 60))}:${deux(minutes % 60)}`;
+}
+
 // Secondes -> "m:ss" pour préremplir la durée d'une étape.
 export function formaterDureeEtape(s) {
   if (!s) return '';
