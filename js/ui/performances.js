@@ -95,13 +95,15 @@ export async function afficherPerformances(conteneur, segments, params = {}) {
     const poids = records.puissance.find((x) => x.poids_kg > 0)?.poids_kg ?? null;
     return {
       puissance: sport?.puissance ? records.puissance : [], allure: sport?.allure ? records.allure : [], fc: records.fc,
-      poids_kg: poids, charge_le: r.charge_le, horsLigne: r.horsLigne, appli: true,
+      poids_kg: poids, charge_le: r.charge_le, horsLigne: r.horsLigne, appli: true, echecs: r.echecs ?? 0,
     };
   }
 
   function afficher() {
     const largeur = (zone.clientWidth || 340) - 32;
-    $('#intro-records').textContent = donnees.appli ? 'Tes records des 12 derniers mois, calculés par l\'appli.' : 'Tes records de tous les temps.';
+    $('#intro-records').textContent = donnees.appli
+      ? `Tes records des 12 derniers mois, calculés par l'appli.${donnees.echecs ? ` ${donnees.echecs} séances n'ont pas pu être analysées : touche Rafraîchir pour reprendre.` : ''}`
+      : 'Tes records de tous les temps.';
     const html = carteEftp(eftp, sportCode, largeur) + tableauPuissance(donnees.puissance, donnees.poids_kg)
       + tableauAllure(donnees.allure, sportCode) + tableauFc(donnees.fc);
     zone.innerHTML = html || '<div class="carte"><p class="doux">Aucun record pour ce sport.</p></div>';

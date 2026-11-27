@@ -1,7 +1,7 @@
 // Client HTTPS Intervals.icu (5.4, ENF-25). Seule couche avec api/ qui appelle le réseau.
 // La clé API n'est jamais écrite dans la console ni dans les messages d'erreur (ENF-13).
 
-import { enteteAuthorization } from '../logique/connexion.js';
+import { enteteAuthorization, erreurPassagere } from '../logique/connexion.js';
 import { lireReglages } from '../cache/stockage.js';
 
 const BASE = 'https://intervals.icu/api/v1';
@@ -52,4 +52,23 @@ export async function requeteAuthentifiee(chemin, params = null, options = {}) {
   const { cle } = await lireReglages();
   if (!cle) throw new ErreurApi('IDENTIFIANTS');
   return requete(chemin, cle, { ...options, params });
+}
+
+// Lecture pour les calculs en série (LC1, LC3, D-49) : en cas d'erreur passagère, nouvel essai après 2 s puis 5 s
+// (trois essais au plus, jamais sans limite). Les autres erreurs sont transmises tout de suite.
+const attendre = (ms) => new Promise((resoudre) => { setTimeout(resoudre, ms); });
+export async function requeteAvecReprise(chemin, params = null, attentes = [2000, 5000]) {
+  for (let essai = 0; ; essai += 1) {
+    try {
+      return await requeteAuthentifiee(chemin, params);
+    } catch (e) {
+      if (!erreurPassagere(e) || essai >= attentes.length) throw e;
+      await attendre(attentes[essai]);
+    }
+  }
+}
+
+// Petite pause entre deux lots de requêtes, pour ménager Intervals.icu (D-49).
+export async function pauseEntreRequetes(ms = 200) {
+  await attendre(ms);
 }

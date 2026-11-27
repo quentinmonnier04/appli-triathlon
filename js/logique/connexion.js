@@ -17,3 +17,11 @@ export function enteteAuthorization(cle) {
   const octets = new TextEncoder().encode(`API_KEY:${cle}`);
   return 'Basic ' + btoa(String.fromCharCode(...octets));
 }
+
+// Erreur passagère (D-49) : pas de réponse, trop de requêtes (429) ou panne du serveur (5xx). Une telle erreur peut être
+// réessayée un peu plus tard ; les autres (identifiants refusés, requête refusée) non.
+export function erreurPassagere(e) {
+  if (!e) return false;
+  if (e.type === 'RESEAU') return true;
+  return e.type === 'SERVEUR' && (e.statut === 429 || e.statut >= 500);
+}

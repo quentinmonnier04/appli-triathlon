@@ -4,7 +4,7 @@
 // pour le contrôle F-123, sa propre charge icu_training_load) et les flux d'une séance (GET /activity/{id}/streams).
 // L'appli calcule (logique/charge.js) et ne garde que des résultats légers : une ligne par séance (F-122).
 
-import { requeteAuthentifiee } from './client.js';
+import { requeteAuthentifiee, requeteAvecReprise, pauseEntreRequetes } from './client.js';
 import { lireCache, ecrireCache, lireReglages, ecrireReglages } from '../cache/stockage.js';
 import { lireProfilEnCache, convertirReglagesSport } from './profil.js';
 import { convertirFlux } from './activites.js';
@@ -64,7 +64,7 @@ async function reglagesActuels() {
 // Flux d'une séance téléchargés pour le calcul, sans être gardés (seul le résultat l'est).
 async function fluxDuCalcul(id, types) {
   if (!types.length) return {};
-  const bruts = await requeteAuthentifiee(`/activity/${encodeURIComponent(id)}/streams.json`, { types: types.join(',') });
+  const bruts = await requeteAvecReprise(`/activity/${encodeURIComponent(id)}/streams.json`, { types: types.join(',') });
   return convertirFlux(bruts);
 }
 
@@ -75,14 +75,18 @@ export async function calculerCharges({ surProgres = null } = {}) {
   const jour = jourISO();
   const debut = ajouterJours(jour, -(JOURS_HISTORIQUE - 1));
   const [bruts, reglages] = await Promise.all([
-    requeteAuthentifiee('/athlete/0/activities', { oldest: debut, newest: `${jour}T23:59:59`, fields: CHAMPS_CHARGE.join(',') }),
+    requeteAvecReprise('/athlete/0/activities', { oldest: debut, newest: `${jour}T23:59:59`, fields: CHAMPS_CHARGE.join(',') }),
     reglagesActuels(),
   ]);
   const seances = (bruts ?? []).filter((b) => b?.start_date_local).map((b) => convertirSeanceCharge(b, reglages));
   const resultats = [];
   let fait = 0;
-  for (let i = 0; i < seances.length; i += 3) {
-    const lot = seances.slice(i, i + 3);
+  let echecs = 0;
+  // D-49 : deux séances à la fois, une courte pause entre deux lots ; une séance qui échoue malgré les nouveaux essais
+  // est passée (non gardée : elle sera recalculée au prochain calcul), les autres continuent.
+  for (let i = 0; i < seances.length; i += 2) {
+    const lot = seances.slice(i, i + 2);
+    if (i) await pauseEntreRequetes();
     const calcules = await Promise.all(lot.map(async (s) => {
       const cle = `charge:${s.id}`;
       const deja = await lireCache(cle);
@@ -92,10 +96,14 @@ export async function calculerCharges({ surProgres = null } = {}) {
       const besoins = fluxPourCharge(s, s.flux);
       const resumeManquant = (await lireCache(`resume:${s.id}`))?.donnees?.version !== VERSION_EFFORTS;
       const types = resumeManquant ? [...new Set([...besoins, ...['time', 'watts', 'heartrate', 'distance'].filter((t) => s.flux.includes(t))])] : besoins;
-      const flux = await fluxDuCalcul(s.id, types.length > 1 || besoins.length ? types : []).catch((e) => {
-        if (e.type === 'IDENTIFIANTS' || e.type === 'RESEAU') throw e;
-        return {}; // flux indisponible : la méthode suivante (FC, RPE) est essayée
-      });
+      let flux;
+      try {
+        flux = await fluxDuCalcul(s.id, types.length > 1 || besoins.length ? types : []);
+      } catch (e) {
+        if (e.type === 'IDENTIFIANTS') throw e;
+        if (e.type === 'RESEAU' || e.statut === 429 || e.statut >= 500) { echecs += 1; return { cle: null, charge: null, methode: null }; }
+        flux = {}; // flux refusé pour cette séance : la méthode suivante (FC, RPE) est essayée
+      }
       const { charge, methode } = chargeSeance(s, flux);
       const ligne = { cle: cleCalcul(s), charge, methode };
       await ecrireCache(cle, ligne);
@@ -112,7 +120,7 @@ export async function calculerCharges({ surProgres = null } = {}) {
   }
   const donnees = { charges: resultats, debut };
   await ecrireCache('charges', donnees);
-  return { ...donnees, charge_le: (await lireCache('charges')).charge_le };
+  return { ...donnees, echecs, charge_le: (await lireCache('charges')).charge_le };
 }
 
 // Charges en cache : { charges, debut, charge_le } ou null.

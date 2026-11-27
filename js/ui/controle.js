@@ -90,7 +90,10 @@ export async function afficherControle(conteneur) {
         surProgres: (fait, total) => { $('#progression').textContent = `Records : ${fait} / ${total} séances`; },
       });
       if (!conteneur.isConnected) return;
-      $('#progression').innerHTML = message('succes', `${donnees.charges.length} séances calculées, records sur ${resumes.resumes.length} séances.`);
+      const echecs = Math.max(donnees.echecs ?? 0, resumes.echecs ?? 0); // une même séance compte pour la charge et les records
+      $('#progression').innerHTML = echecs
+        ? message('info', `${echecs} séances n'ont pas pu être analysées (connexion lente ou trop de requêtes). Touche « Calculer » pour reprendre : les séances déjà calculées sont gardées.`)
+        : message('succes', `${donnees.charges.length} séances calculées, records sur ${resumes.resumes.length} séances.`);
       await afficherResultats(donnees);
     } catch (e) {
       $('#progression').innerHTML = messageErreurApi(e);

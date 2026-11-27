@@ -4,7 +4,7 @@
 // résumé léger (meilleures valeurs par durée et par distance) ; le détail n'est pas gardé. Les flux téléchargés servent
 // aussi à calculer la charge de la séance (LC1) si elle ne l'est pas encore : un seul téléchargement par séance.
 
-import { requeteAuthentifiee } from './client.js';
+import { requeteAvecReprise, pauseEntreRequetes } from './client.js';
 import { lireCache, ecrireCache } from '../cache/stockage.js';
 import { convertirFlux } from './activites.js';
 import { CHAMPS_CHARGE, convertirSeanceCharge, cleCalcul } from './charge.js';
@@ -26,14 +26,18 @@ export async function calculerResumes({ surProgres = null } = {}) {
   const jour = jourISO();
   const debut = ajouterJours(jour, -(JOURS_RECORDS - 1));
   const [bruts, profil] = await Promise.all([
-    requeteAuthentifiee('/athlete/0/activities', { oldest: debut, newest: `${jour}T23:59:59`, fields: [...CHAMPS_CHARGE, 'icu_weight'].join(',') }),
+    requeteAvecReprise('/athlete/0/activities', { oldest: debut, newest: `${jour}T23:59:59`, fields: [...CHAMPS_CHARGE, 'icu_weight'].join(',') }),
     lireProfilEnCache().catch(() => null),
   ]);
   const seances = (bruts ?? []).filter((b) => b?.start_date_local).map((b) => ({ ...convertirSeanceCharge(b, profil?.reglages ?? []), poids_kg: b.icu_weight ?? null }));
   const resumes = [];
   let fait = 0;
-  for (let i = 0; i < seances.length; i += 3) {
-    const lot = seances.slice(i, i + 3);
+  let echecs = 0;
+  // D-49 : deux séances à la fois, une courte pause entre deux lots, nouveaux essais limités ; une séance qui échoue
+  // est passée (sans résumé gardé : elle sera reprise au prochain calcul), les autres continuent.
+  for (let i = 0; i < seances.length; i += 2) {
+    const lot = seances.slice(i, i + 2);
+    if (i) await pauseEntreRequetes();
     const calcules = await Promise.all(lot.map(async (s) => {
       const cle = `resume:${s.id}`;
       const deja = await lireCache(cle);
@@ -42,9 +46,10 @@ export async function calculerResumes({ surProgres = null } = {}) {
       let flux = {};
       if (types.length > 1) {
         try {
-          flux = convertirFlux(await requeteAuthentifiee(`/activity/${encodeURIComponent(s.id)}/streams.json`, { types: types.join(',') }));
+          flux = convertirFlux(await requeteAvecReprise(`/activity/${encodeURIComponent(s.id)}/streams.json`, { types: types.join(',') }));
         } catch (e) {
-          if (e.type === 'IDENTIFIANTS' || e.type === 'RESEAU') throw e;
+          if (e.type === 'IDENTIFIANTS') throw e;
+          if (e.type === 'RESEAU' || e.statut === 429 || e.statut >= 500) { echecs += 1; return null; }
         }
       }
       const resume = resumeEfforts(flux, { durees: DUREES_RESUME, dureesFc: DUREES_FC_RESUME, distances: DISTANCES_RESUME });
@@ -57,12 +62,12 @@ export async function calculerResumes({ surProgres = null } = {}) {
       }
       return resume;
     }));
-    lot.forEach((s, k) => resumes.push({ id: s.id, date: s.date, sport: s.sport, poids_kg: s.poids_kg, resume: calcules[k] }));
+    lot.forEach((s, k) => { if (calcules[k]) resumes.push({ id: s.id, date: s.date, sport: s.sport, poids_kg: s.poids_kg, resume: calcules[k] }); });
     fait += lot.length;
     surProgres?.(fait, seances.length);
   }
   await ecrireCache('resumes', { resumes });
-  return { resumes, charge_le: (await lireCache('resumes')).charge_le };
+  return { resumes, echecs, charge_le: (await lireCache('resumes')).charge_le };
 }
 
 // Résumés à jour (5 min, ENF-11) ; hors ligne, le cache.

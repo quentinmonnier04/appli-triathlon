@@ -19,3 +19,13 @@ test('identifiant athlète avec espace interne refusé', () => {
 test('en-tête Basic avec utilisateur API_KEY (5.4)', () => {
   assert.equal(enteteAuthorization('ma-cle'), 'Basic ' + Buffer.from('API_KEY:ma-cle').toString('base64'));
 });
+
+import { erreurPassagere } from '../js/logique/connexion.js';
+test('D-49 : erreurs passagères (réseau, 429, 5xx) réessayées, les autres non', () => {
+  assert.equal(erreurPassagere({ type: 'RESEAU' }), true);
+  assert.equal(erreurPassagere({ type: 'SERVEUR', statut: 429 }), true);
+  assert.equal(erreurPassagere({ type: 'SERVEUR', statut: 503 }), true);
+  assert.equal(erreurPassagere({ type: 'SERVEUR', statut: 404 }), false);
+  assert.equal(erreurPassagere({ type: 'IDENTIFIANTS', statut: 401 }), false);
+  assert.equal(erreurPassagere(null), false);
+});
